@@ -158,3 +158,12 @@
 #addSubjectError { margin-top: var(--s-sm); }
 
 .nr-save-state { margin-left: auto; font-weight: 600; }
+
+/* Zeugnisnote je Fach und Schnell-Hinzufügen */
+.nr-zeugnis { margin-left: auto; font-weight: 600; font-size: 14px; background: var(--field); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
+.nr-zeugnis:empty { display: none; }
+.nr-suggest { margin-top: var(--s-md); display: grid; gap: var(--s-xs); }
+.nr-chips { display: flex; flex-wrap: wrap; gap: var(--s-xs); }
+.chip { min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--hairline); background: var(--canvas); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
+.chip:hover { background: var(--canvas-soft); }
+.chip:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }

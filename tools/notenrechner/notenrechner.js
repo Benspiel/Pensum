@@ -3,7 +3,7 @@
 import { onAuthChange, onBeforeLogout, getPrefs, savePrefs } from "/js/auth.js";
 import { toast, confirmDialog, esc, closeIcon } from "/js/shell.js";
 import {
-  SYSTEMS, convert, parseGrade, parseWeight, subjectAverage, toSystem, overallAverage, requiredGrade,
+  SYSTEMS, DEFAULT_SUBJECTS, MORE_SUBJECTS, zeugnisNote, zeugnisAverage, convert, parseGrade, parseWeight, subjectAverage, toSystem, overallAverage, requiredGrade,
   formatNumber, formatInput, formatOther, schoolYearOf, halfOf, schoolYearOptions, pointsToNote, noteToPoints,
 } from "./core.js";
 import { createGuestStore, createCloudStore, importGuestData } from "./store.js";
@@ -19,6 +19,10 @@ const els = {
   note: $("storageNote"),
   overall: $("overallValue"),
   overallInfo: $("overallInfo"),
+  zeugnis: $("zeugnisValue"),
+  zeugnisInfo: $("zeugnisInfo"),
+  suggest: $("suggestions"),
+  chips: $("suggestionChips"),
   subjects: $("subjects"),
   addForm: $("addSubjectForm"),
   addName: $("newSubjectName"),
@@ -130,6 +134,7 @@ function subjectCard(s) {
       <div class="nr-avg">
         <span class="nr-avg-value tabular" data-out="avg">–</span>
         <span class="body-sm muted" data-out="avg-info"></span>
+        <span class="nr-zeugnis" data-out="zeugnis" title="Auf eine ganze Note gerundet"></span>
       </div>
       <div class="nr-grade-head caption" aria-hidden="true"><span>Bezeichnung</span><span>${sys.unit}</span><span>Gewicht</span>${yearView ? "<span>Halbjahr</span>" : ""}<span></span></div>
       <ul class="nr-grades">${gradesOf(s.id).map(gradeRow).join("")}</ul>
@@ -195,12 +200,14 @@ function renderSubjects() {
     const list = visibleSubjects();
     els.subjects.innerHTML = list.length
       ? list.map(subjectCard).join("")
-      : `<div class="card-soft nr-empty"><h3 class="h4">Noch keine Fächer.</h3><p class="body-sm muted-tint">Leg unten dein erstes Fach für das Schuljahr ${esc(state.view.schoolYear)} an.</p></div>`;
+      : `<div class="card-soft nr-empty"><h3 class="h4">Noch keine Fächer.</h3><p class="body-sm muted-tint">Für das Schuljahr ${esc(state.view.schoolYear)} gibt es noch kein Fach. Nimm die üblichen Schulfächer oder leg unten eigene an.</p><button class="btn btn-primary btn-sm" type="button" data-action="seed-defaults">Standardfächer einfügen</button></div>`;
   }
   updateComputed();
+  renderSuggestions();
 }
 
 function renderAll() {
+  ensureDefaults();
   renderControls();
   renderStorageNote();
   renderSubjects();
@@ -235,6 +242,8 @@ function updateComputed() {
     const all = gradesOf(s.id), ok = countable(all);
     const avg = subjectAverage(ok, sys);
     averages.push(avg);
+    const zn = zeugnisNote(avg, sys);
+    card.querySelector('[data-out="zeugnis"]').textContent = zn === null ? "" : `Zeugnis: ${formatInput(zn)}`;
     card.querySelector('[data-out="avg"]').textContent = formatNumber(avg, 2);
     card.querySelector('[data-out="avg-info"]').textContent =
       avg !== null ? `${formatOther(avg, sys)} · ${ok.length} ${ok.length === 1 ? "Note" : "Noten"}`
@@ -246,11 +255,47 @@ function updateComputed() {
     card.querySelector('[data-out="target"]').innerHTML = targetResult(s, ok);
   }
   const overall = overallAverage(averages);
+  const zeugnis = zeugnisAverage(averages, sys);
   const n = averages.filter((a) => a !== null).length;
-  els.overall.textContent = formatNumber(overall, 2);
-  els.overallInfo.textContent = overall === null
+  els.zeugnis.textContent = formatNumber(zeugnis, 2);
+  els.zeugnisInfo.textContent = zeugnis === null
     ? "Noch keine Noten eingetragen."
-    : `${formatOther(overall, sys)} · Mittel aus ${n} ${n === 1 ? "Fach" : "Fächern"} · ${HALF_LABEL[state.view.half]}`;
+    : `${formatOther(zeugnis, sys)} · Mittel aus ${n} ${n === 1 ? "Zeugnisnote" : "Zeugnisnoten"} (je Fach auf ganze ${sys === "note" ? "Noten" : "Punkte"} gerundet) · ${HALF_LABEL[state.view.half]}`;
+  els.overallInfo.textContent = overall === null ? "" : `Ungerundet: ${formatNumber(overall, 2)} (${formatOther(overall, sys)})`;
+}
+
+/* ---------- Standardfächer ---------- */
+
+const SEEDED_KEY = "pensum.notenrechner.seeded.v1";
+const seededList = () => { try { return JSON.parse(localStorage.getItem(SEEDED_KEY) || "[]"); } catch (_) { return []; } };
+const seedKey = () => `${state.user ? state.user.$id : "guest"}|${state.view.schoolYear}`;
+const markSeeded = () => { try { localStorage.setItem(SEEDED_KEY, JSON.stringify([...new Set([...seededList(), seedKey()])])); } catch (_) {} };
+
+function addSubjectNamed(name) {
+  const s = { id: state.store.newId(), name, schoolYear: state.view.schoolYear };
+  state.subjects.push(s);
+  state.store.addSubject(s).catch(() => {});
+  return s;
+}
+
+function seedDefaults() {
+  const have = new Set(visibleSubjects().map((s) => s.name.toLowerCase()));
+  for (const name of DEFAULT_SUBJECTS) if (!have.has(name.toLowerCase())) addSubjectNamed(name);
+  markSeeded();
+}
+
+/** Ein neues Schuljahr ohne Fächer bekommt einmal die Standardfächer. Wer sie löscht, dem werden sie nicht wieder aufgedrängt. */
+function ensureDefaults() {
+  if (state.loading || visibleSubjects().length || seededList().includes(seedKey())) return;
+  if (state.user && guest.peek().subjects.length && !declined().includes(state.user.$id)) return; // erst die Übernahme klären
+  seedDefaults();
+}
+
+function renderSuggestions() {
+  const have = new Set(visibleSubjects().map((s) => s.name.toLowerCase()));
+  const missing = [...DEFAULT_SUBJECTS, ...MORE_SUBJECTS].filter((n) => !have.has(n.toLowerCase()));
+  els.suggest.hidden = state.loading || !missing.length;
+  els.chips.innerHTML = missing.map((n) => `<button type="button" class="chip" data-suggest="${esc(n)}">+ ${esc(n)}</button>`).join("");
 }
 
 /* ---------- Eingaben ---------- */
@@ -304,6 +349,25 @@ els.subjects.addEventListener("toggle", (e) => {
   const card = e.target.closest && e.target.closest("[data-subject]");
   if (card && e.target.matches(".nr-target")) targetOf(card.dataset.subject).open = e.target.open;
 }, true);
+
+els.subjects.addEventListener("click", (e) => {
+  if (!e.target.closest('[data-action="seed-defaults"]') || state.loading) return;
+  seedDefaults();
+  renderSubjects();
+  renderControls();
+});
+
+els.chips.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-suggest]");
+  if (!b || state.loading) return;
+  const name = b.dataset.suggest;
+  if (visibleSubjects().some((s) => s.name.toLowerCase() === name.toLowerCase())) return;
+  const first = visibleSubjects().length === 0;
+  const s = addSubjectNamed(name);
+  if (first) renderSubjects();
+  else { els.subjects.insertAdjacentHTML("beforeend", subjectCard(s)); updateComputed(); renderSuggestions(); }
+  renderControls();
+});
 
 els.subjects.addEventListener("click", async (e) => {
   const btn = e.target.closest("[data-action]");
@@ -361,12 +425,10 @@ els.addForm.addEventListener("submit", (e) => {
   if (visibleSubjects().some((s) => s.name.toLowerCase() === name.toLowerCase())) return fail(`„${name}“ gibt es im Schuljahr ${state.view.schoolYear} schon.`);
   els.addError.hidden = true;
   els.addName.removeAttribute("aria-invalid");
-  const s = { id: state.store.newId(), name, schoolYear: state.view.schoolYear };
   const first = visibleSubjects().length === 0;
-  state.subjects.push(s);
-  state.store.addSubject(s).catch(() => {});
+  const s = addSubjectNamed(name);
   if (first) renderSubjects();
-  else { els.subjects.insertAdjacentHTML("beforeend", subjectCard(s)); updateComputed(); }
+  else { els.subjects.insertAdjacentHTML("beforeend", subjectCard(s)); updateComputed(); renderSuggestions(); }
   els.addName.value = "";
   els.addName.focus();
 });

@@ -107,6 +107,23 @@ export function overallAverage(averages) {
   return valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : null;
 }
 
+/** Zeugnisnote: Fachdurchschnitt auf eine ganze Note (bzw. ganze Punkte) gerundet, ab ,5 auf. */
+export function zeugnisNote(avg, system) {
+  const sys = SYSTEMS[system];
+  if (!sys || !isNum(avg)) return null;
+  return Math.min(sys.max, Math.max(sys.min, Math.round(avg + 1e-9)));
+}
+
+/** Zeugnisdurchschnitt: Mittel der gerundeten Zeugnisnoten; Fächer ohne Noten zählen nicht. */
+export function zeugnisAverage(averages, system) {
+  const grades = (averages || []).map((a) => zeugnisNote(a, system)).filter(isNum);
+  return grades.length ? grades.reduce((a, b) => a + b, 0) / grades.length : null;
+}
+
+/** Übliche Schulfächer: werden für ein neues Schuljahr vorgeschlagen und lassen sich ändern oder löschen. */
+export const DEFAULT_SUBJECTS = ["Deutsch", "Mathematik", "Englisch", "Biologie", "Chemie", "Physik", "Geschichte", "Erdkunde", "Politik", "Kunst", "Musik", "Sport"];
+export const MORE_SUBJECTS = ["Französisch", "Spanisch", "Latein", "Informatik", "Religion", "Ethik", "Wirtschaft", "Philosophie", "Sozialkunde", "Technik"];
+
 /**
  * Zielnote: Welche Note braucht die nächste Arbeit, damit der Durchschnitt das Ziel erreicht?
  *

@@ -44,9 +44,10 @@
 
     <div class="nr-top">
       <section class="card-soft on-tint nr-summary" aria-labelledby="summaryTitle">
-        <h2 class="body-sm nr-summary-title" id="summaryTitle">Gesamtdurchschnitt</h2>
-        <p class="nr-big tabular" id="overallValue" aria-live="polite">–</p>
-        <p class="body-sm muted-tint" id="overallInfo">Noch keine Noten eingetragen.</p>
+        <h2 class="body-sm nr-summary-title" id="summaryTitle">Zeugnisdurchschnitt</h2>
+        <p class="nr-big tabular" id="zeugnisValue" aria-live="polite">–</p>
+        <p class="body-sm muted-tint" id="zeugnisInfo">Noch keine Noten eingetragen.</p>
+        <p class="body-sm muted-tint" id="overallInfo"></p>
       </section>
 
       <section class="card nr-converter" aria-labelledby="converterTitle">
@@ -78,6 +79,10 @@
         <button class="btn btn-primary" type="submit">Fach hinzufügen</button>
       </form>
       <p class="form-message" id="addSubjectError" role="alert" hidden></p>
+      <div class="nr-suggest" id="suggestions" hidden>
+        <span class="body-sm muted">Schnell hinzufügen:</span>
+        <div class="nr-chips" id="suggestionChips"></div>
+      </div>
     </section>
   </main>
 

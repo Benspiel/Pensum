@@ -146,3 +146,16 @@ test("Schuljahr und Halbjahr", () => {
   assert.equal(halfOf(new Date(2027, 1, 1)), 2);
   assert.deepEqual(schoolYearOptions(["2023/24", "kaputt"], new Date(2026, 10, 11)), ["2027/28", "2026/27", "2025/26", "2023/24"]);
 });
+
+test("Zeugnisnote rundet auf ganze Noten, ab ,5 auf; Zeugnisdurchschnitt mittelt die gerundeten Noten", async () => {
+  const { zeugnisNote, zeugnisAverage, DEFAULT_SUBJECTS } = await import("../tools/notenrechner/core.js");
+  assert.equal(zeugnisNote(2.33, "note"), 2);
+  assert.equal(zeugnisNote(2.5, "note"), 3);
+  assert.equal(zeugnisNote(1.49, "note"), 1);
+  assert.equal(zeugnisNote(10.5, "punkte"), 11);
+  assert.equal(zeugnisNote(null, "note"), null);
+  // 2,33 → 2 | 1,5 → 2 | 3,4 → 3  ⇒ Zeugnisdurchschnitt 2,33 (ungerundet wäre es 2,41)
+  assert.ok(Math.abs(zeugnisAverage([2.33, 1.5, 3.4, null], "note") - 7 / 3) < 1e-9);
+  assert.equal(zeugnisAverage([], "note"), null);
+  assert.ok(DEFAULT_SUBJECTS.includes("Mathematik") && DEFAULT_SUBJECTS.length >= 10);
+});
