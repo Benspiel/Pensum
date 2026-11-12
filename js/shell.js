@@ -158,6 +158,7 @@ function buildAuthDialog() {
       if (result && result.needsCode) {
         pendingCode = { userId: result.userId, email: result.email };
         setAuthMode("code", `Wir haben einen 6-stelligen Code an ${result.email} geschickt. Gib ihn ein, um deine E-Mail-Adresse zu bestätigen.`);
+        if (result.mailFailed) showMessage("Dein Konto ist angelegt, aber die E-Mail mit dem Code konnte nicht gesendet werden. Prüfe die Adresse und tippe auf „Code erneut senden“. Klappt es weiter nicht, versuch es später noch einmal.");
         form.elements.code.focus();
         return;
       }

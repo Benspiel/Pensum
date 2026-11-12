@@ -71,6 +71,16 @@ export async function sendCode({ userId, email }) {
   return { userId: token.userId, email };
 }
 
+/** Code-Schritt: Schlägt nur der Mailversand fehl, bleibt der Nutzer im Code-Dialog und kann erneut senden. */
+async function codeStep(userId, email) {
+  try {
+    return codeStep(userId, email);
+  } catch (e) {
+    console.warn("Code konnte nicht gesendet werden", e);
+    return { needsCode: true, userId, email, mailFailed: true };
+  }
+}
+
 /** Prüft den Code aus der Mail; legt die Session an und bestätigt dabei die E-Mail-Adresse. */
 export async function confirmCode({ userId, code }) {
   await account.createSession({ userId, secret: String(code).replace(/\s+/g, "") });
@@ -85,7 +95,7 @@ export async function login({ email, password }) {
   const user = await account.get();
   if (!user.emailVerification) {
     try { await account.deleteSession({ sessionId: "current" }); } catch (_) { /* egal */ }
-    return { needsCode: true, ...(await sendCode({ userId: user.$id, email })) };
+    return codeStep(user.$id, email);
   }
   setUser(user, { broadcast: true });
   return { user };
