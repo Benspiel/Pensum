@@ -67,6 +67,33 @@ export function createGuestStore() {
  * @param {{ $id: string }} user
  * @param {(status: "saving" | "saved" | "error", error?: unknown) => void} onStatus
  */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const transient = (e) => !e || !e.code || e.code >= 500 || e.code === 429;
+
+/** Höchstens 3 Schreibzugriffe gleichzeitig (12 Standardfächer auf einmal überlasten sonst einen kleinen Server)
+ *  und bei Serverfehlern bis zu zweimal mit Pause wiederholen. */
+let active = 0;
+const waiting = [];
+async function limited(op, { okOn409 = false } = {}) {
+  while (active >= 3) await new Promise((r) => waiting.push(r));
+  active++;
+  try {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await op();
+      } catch (e) {
+        if (okOn409 && e && e.code === 409) return; // der erste Versuch war doch angekommen
+        if (attempt >= 2 || !transient(e)) throw e;
+        await sleep(1500 * (attempt + 1));
+      }
+    }
+  } finally {
+    active--;
+    const next = waiting.shift();
+    if (next) next();
+  }
+}
+
 export function createCloudStore(user, onStatus = () => {}) {
   const userId = user.$id;
   const permissions = ownerPermissions(userId);
@@ -107,7 +134,7 @@ export function createCloudStore(user, onStatus = () => {}) {
     if (!entry) return Promise.resolve();
     clearTimeout(entry.timer);
     pending.delete(rowId);
-    return enqueue(rowId, () => tablesDB.updateRow({ databaseId, tableId: entry.tableId, rowId, data: entry.data })).catch(() => {});
+    return enqueue(rowId, () => limited(() => tablesDB.updateRow({ databaseId, tableId: entry.tableId, rowId, data: entry.data }))).catch(() => {});
   }
 
   const dropPending = (rowId) => {
@@ -116,11 +143,11 @@ export function createCloudStore(user, onStatus = () => {}) {
   };
 
   const create = (tableId, rowId, data) =>
-    enqueue(rowId, () => tablesDB.createRow({ databaseId, tableId, rowId, data: { userId, ...data }, permissions }));
+    enqueue(rowId, () => limited(() => tablesDB.createRow({ databaseId, tableId, rowId, data: { userId, ...data }, permissions }), { okOn409: true }));
 
   const remove = (tableId, rowId) => {
     dropPending(rowId);
-    return enqueue(rowId, () => tablesDB.deleteRow({ databaseId, tableId, rowId }).catch((e) => { if (!e || e.code !== 404) throw e; }));
+    return enqueue(rowId, () => limited(() => tablesDB.deleteRow({ databaseId, tableId, rowId }).catch((e) => { if (!e || e.code !== 404) throw e; })));
   };
 
   const rowData = ({ id, ...rest }) => rest;
