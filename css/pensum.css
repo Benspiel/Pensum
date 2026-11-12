@@ -552,7 +552,7 @@ pensum-footer { display: block; margin-top: var(--s-section); }
 .footer :focus-visible { outline-color: var(--on-primary); }
 .footer-note { margin-top: var(--s-xxl); color: var(--faint); font-size: 12px; line-height: 1.33; }
 @media (min-width: 768px) {
-  .footer-top { grid-template-columns: 1.4fr 1fr; align-items: start; }
+  .footer-top { grid-template-columns: 1fr 1.5fr; align-items: start; }
   .footer-logo { height: 80px; }
 }
 
@@ -679,3 +679,12 @@ a.tool-card:hover p { color: var(--muted-on-tint); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
+
+/* Zustimmung bei der Registrierung, Nav-Link zum Konto, Footer mit drei Spalten */
+.check { display: flex; gap: var(--s-sm); align-items: flex-start; font-size: 14px; line-height: 1.43; cursor: pointer; }
+.check input { flex: none; width: 24px; height: 24px; margin: 10px 0 0; accent-color: var(--ink); }
+.check span { padding-block: 10px; }
+.check a { text-decoration: underline; text-underline-offset: 3px; }
+a.nav-user { min-height: 44px; border-radius: var(--r-full); text-decoration: none; color: inherit; }
+a.nav-user:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+@media (min-width: 640px) { .footer-cols { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

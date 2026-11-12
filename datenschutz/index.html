@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Datenschutzerklärung – Pensum</title>
+  <meta name="description" content="Wie Pensum personenbezogene Daten verarbeitet: Konto, Notenrechner, Goodnotes-Tool, Hosting.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="icon" href="/assets/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="/assets/favicon.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="/vendor/fonts.css">
+  <link rel="stylesheet" href="/css/pensum.css">
+  <link rel="stylesheet" href="/css/legal.css">
+  <script type="module" src="/js/shell.js"></script>
+  <script type="module" src="/js/legal-pages.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+  <pensum-nav></pensum-nav>
+
+  <main id="inhalt" class="container container-narrow">
+    <header class="tool-head">
+      <h1 class="h2">Datenschutz.</h1>
+      <p class="body-lg">Kurz gesagt: Pensum zeigt keine Werbung, setzt kein Tracking ein und lädt keine Schriften oder Skripte von fremden Servern. Im Folgenden steht genau, was passiert.</p>
+    </header>
+    <article class="legal">
+      <h2>1. Verantwortlicher</h2>
+      <address class="legal-address">
+        <span data-legal="name"></span><br>
+        <span data-legal="street"></span><br>
+        <span data-legal="city"></span><br>
+        <span data-legal="country"></span>
+      </address>
+      <p>E-Mail: <a data-legal-mail="email"></a></p>
+
+      <h2>2. Was wir nicht tun</h2>
+      <ul>
+        <li>Kein Tracking, keine Webanalyse, keine Werbe- oder Marketing-Cookies.</li>
+        <li>Keine Einbindung von Schriften, Skripten oder Bildern fremder Anbieter. Alle Schriften liegen auf unserem eigenen Server.</li>
+        <li>Keine Weitergabe deiner Daten zu Werbezwecken und kein Verkauf.</li>
+      </ul>
+
+      <h2>3. Nutzung ohne Konto (Gast-Modus)</h2>
+      <p>Notenrechner und Goodnotes-Tool lassen sich ohne Konto nutzen. Deine Eingaben (Fächer, Noten, Einstellungen, ein Handschrift-Profil) werden dann nur im <code>localStorage</code> deines Browsers gespeichert und nicht an uns übertragen. Du kannst sie jederzeit löschen, siehe <a href="/cookies/">Cookies und Speicher</a>.</p>
+
+      <h2>4. Konto</h2>
+      <p>Wenn du ein Konto anlegst, verarbeiten wir:</p>
+      <ul>
+        <li><strong>E-Mail-Adresse und Passwort</strong> (das Passwort speichert der Server nur als Hash), optional deinen <strong>Namen</strong>.</li>
+        <li><strong>Sitzungsdaten:</strong> Zeitpunkt der Anmeldung, Browser- und Gerätetyp, grobe IP-Angaben. Du siehst sie unter <a href="/konto/">Konto</a> und kannst Sitzungen beenden.</li>
+        <li><strong>Deine Inhalte:</strong> Fächer, Noten und Gewichtungen aus dem Notenrechner, Ansichtseinstellungen und das Handschrift-Profil des Goodnotes-Tools.</li>
+      </ul>
+      <p><strong>Zweck und Rechtsgrundlage:</strong> Bereitstellung des Kontos und der Tools, Art. 6 Abs. 1 lit. b DSGVO (Nutzungsverhältnis). Die Anmeldung per E-Mail-Code dient der Sicherheit des Kontos, Art. 6 Abs. 1 lit. f DSGVO.</p>
+      <p><strong>Speicherdauer:</strong> Bis du dein Konto löschst. Die Löschung unter <a href="/konto/">Konto</a> entfernt Konto und alle zugehörigen Daten sofort und vollständig.</p>
+      <p><strong>Alter:</strong> Das Konto ist für Nutzerinnen und Nutzer ab 16 Jahren gedacht. Jüngere brauchen die Einwilligung ihrer Erziehungsberechtigten.</p>
+
+      <h2>5. Hosting der Website</h2>
+      <p>Die Website wird bei <strong>Vercel Inc.</strong>, 440 N Barranca Ave #4133, Covina, CA 91723, USA, ausgeliefert. Beim Aufruf verarbeitet Vercel technisch notwendige Verbindungsdaten (IP-Adresse, Zeitpunkt, aufgerufene Adresse, Browserangaben) in Server-Logdateien. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (sicherer und effizienter Betrieb). Die Übermittlung in die USA stützt sich auf den Angemessenheitsbeschluss zum EU-US Data Privacy Framework bzw. Standardvertragsklauseln.</p>
+
+      <h2>6. Konto-Server (Appwrite)</h2>
+      <p>Konto und Daten liegen auf einem selbst betriebenen <strong>Appwrite</strong>-Server unter <code>appwrite.buchholz.dev</code>. Die Verbindung wird über <strong>Cloudflare</strong> (Cloudflare, Inc., USA) geleitet; Cloudflare verarbeitet dabei Verbindungsdaten wie die IP-Adresse. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO, die Übermittlung stützt sich auf das EU-US Data Privacy Framework bzw. Standardvertragsklauseln.</p>
+      <p>Zugriffsrechte: Jeder Datensatz ist nur für das Konto lesbar und änderbar, dem er gehört.</p>
+
+      <h2>7. E-Mail-Versand</h2>
+      <p>Für Bestätigungscodes und das Zurücksetzen des Passworts versenden wir E-Mails über den Dienst <strong><span data-legal="smtpProvider"></span></strong>. Dabei werden deine E-Mail-Adresse und der Inhalt der Nachricht verarbeitet. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO.</p>
+
+      <h2>8. Goodnotes-Tool</h2>
+      <p>Der Text, den du umwandelst, und die erzeugten Dateien (.goodnotes, PDF) werden komplett in deinem Browser verarbeitet. Es wird nichts hochgeladen. Nur das Handschrift-Profil wird gespeichert: lokal im Gast-Modus, im Konto, wenn du angemeldet bist.</p>
+
+      <h2>9. Cookies und lokaler Speicher</h2>
+      <p>Wir verwenden nur technisch notwendigen Speicher (Anmeldung, deine Einstellungen und Gast-Daten). Dafür ist nach § 25 Abs. 2 TDDDG keine Einwilligung nötig, deshalb gibt es kein Cookie-Banner. Eine vollständige Liste steht unter <a href="/cookies/">Cookies und Speicher</a>.</p>
+
+      <h2>10. Deine Rechte</h2>
+      <p>Du hast das Recht auf Auskunft (Art. 15), Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung der Verarbeitung (Art. 18), Datenübertragbarkeit (Art. 20) und Widerspruch (Art. 21 DSGVO). Die meisten Rechte kannst du direkt unter <a href="/konto/">Konto</a> ausüben: Daten ansehen und ändern, als Datei exportieren und das Konto löschen. Für alles andere schreib an <a data-legal-mail="email"></a>.</p>
+      <p>Du kannst dich außerdem bei einer Datenschutz-Aufsichtsbehörde beschweren, zum Beispiel bei der Behörde deines Bundeslandes.</p>
+
+      <h2>11. Pflicht zur Bereitstellung, automatisierte Entscheidungen</h2>
+      <p>Für ein Konto sind E-Mail-Adresse und Passwort erforderlich. Ohne Konto sind die Tools im Gast-Modus nutzbar. Eine automatisierte Entscheidungsfindung oder ein Profiling findet nicht statt.</p>
+
+      <h2>12. Änderungen</h2>
+      <p>Wenn sich etwas an Pensum ändert (zum Beispiel ein neues Tool), passen wir diese Erklärung an. Das Datum steht unten auf der Seite.</p>
+    </article>
+    <p class="body-sm muted legal-stand">Stand: 12. November 2026</p>
+  </main>
+
+  <pensum-footer></pensum-footer>
+</body>
+</html>

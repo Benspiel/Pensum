@@ -1,0 +1,31 @@
+/* Rechtsseiten und Konto-Verwaltung */
+.legal { max-width: 68ch; }
+.legal h2 { margin-top: var(--s-xxl); margin-bottom: var(--s-sm); font-size: 24px; }
+.legal h2:first-child { margin-top: 0; }
+.legal p, .legal ul { margin-top: var(--s-sm); line-height: 1.6; }
+.legal ul { padding-left: 1.25em; list-style: disc; }
+.legal li + li { margin-top: var(--s-xs); }
+.legal a, .legal-stand a { text-decoration: underline; text-underline-offset: 3px; }
+.legal code { font-size: .9em; background: var(--field); border-radius: 8px; padding: 1px 6px; overflow-wrap: anywhere; }
+.legal-address { font-style: normal; line-height: 1.6; }
+.legal-stand { margin-top: var(--s-xxl); }
+.legal-missing { background: #fff3c4; color: var(--ink); border-radius: 8px; padding: 0 6px; }
+.legal-table { margin-top: var(--s-sm); overflow-x: auto; border: 1px solid var(--hairline); border-radius: var(--r-sm); }
+.legal-table:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.legal-table table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: 14px; line-height: 1.43; }
+.legal-table th, .legal-table td { text-align: left; vertical-align: top; padding: var(--s-sm) var(--s-md); border-bottom: 1px solid var(--hairline-soft); }
+.legal-table th { font-weight: 600; background: var(--canvas-soft); }
+.legal-table tr:last-child td { border-bottom: 0; }
+
+/* Konto-Verwaltung */
+.acc-section { margin-top: var(--s-lg); }
+.acc-section h2 { font-size: 24px; }
+.acc-section > p { margin-top: var(--s-xs); }
+.acc-form { margin-top: var(--s-md); display: grid; gap: var(--s-md); max-width: 460px; }
+.acc-list { margin-top: var(--s-md); display: grid; gap: var(--s-xs); }
+.acc-item { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-sm); background: var(--canvas); border-radius: var(--r-sm); padding: var(--s-sm) var(--s-md); }
+.acc-item small { display: block; color: var(--muted-on-tint); font-size: 13px; }
+.acc-danger { background: var(--canvas); border: 1px solid var(--ink); }
+.btn-danger { background: var(--ink); color: var(--on-primary); }
+.btn-danger:hover:not([disabled]) { background: var(--ink-soft); }
+.btn[disabled] { opacity: .5; cursor: not-allowed; }

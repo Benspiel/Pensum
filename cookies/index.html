@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cookies und Speicher – Pensum</title>
+  <meta name="description" content="Welche Cookies und lokalen Daten Pensum nutzt und wie du sie löschst.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="icon" href="/assets/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="/assets/favicon.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="/vendor/fonts.css">
+  <link rel="stylesheet" href="/css/pensum.css">
+  <link rel="stylesheet" href="/css/legal.css">
+  <script type="module" src="/js/shell.js"></script>
+  <script type="module" src="/js/legal-pages.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+  <pensum-nav></pensum-nav>
+
+  <main id="inhalt" class="container container-narrow">
+    <header class="tool-head">
+      <h1 class="h2">Cookies und Speicher.</h1>
+      <p class="body-lg">Pensum setzt nur technisch notwendigen Speicher ein. Es gibt kein Tracking und deshalb kein Cookie-Banner.</p>
+    </header>
+    <article class="legal">
+      <h2>Warum kein Cookie-Banner?</h2>
+      <p>Nach § 25 Abs. 2 Nr. 2 TDDDG ist für Speicherzugriffe, die zwingend nötig sind, damit du einen von dir gewünschten Dienst nutzen kannst, keine Einwilligung erforderlich. Alles unten gehört dazu. Wir nutzen keine Analyse-, Werbe- oder Social-Media-Dienste. Sollte sich das ändern, fragen wir vorher.</p>
+
+      <h2>Was gespeichert wird</h2>
+      <div class="legal-table" role="region" aria-label="Gespeicherte Daten" tabindex="0">
+        <table>
+          <thead><tr><th>Name</th><th>Art</th><th>Zweck</th><th>Dauer</th></tr></thead>
+          <tbody>
+            <tr><td><code>a_session_…</code></td><td>Cookie (Appwrite)</td><td>Hält deine Anmeldung. Nur mit Konto.</td><td>Bis zur Abmeldung, höchstens ein Jahr</td></tr>
+            <tr><td><code>cookieFallback</code></td><td>Lokaler Speicher</td><td>Ersatz für das Anmelde-Cookie, wenn der Browser Cookies von Drittseiten blockiert. Nur mit Konto.</td><td>Bis zur Abmeldung</td></tr>
+            <tr><td><code>pensum.notenrechner.guest.v1</code></td><td>Lokaler Speicher</td><td>Deine Fächer und Noten im Gast-Modus.</td><td>Bis du sie löschst</td></tr>
+            <tr><td><code>pensum.notenrechner.view.v1</code></td><td>Lokaler Speicher</td><td>Ansicht: Schuljahr, Halbjahr, Notensystem.</td><td>Bis du sie löschst</td></tr>
+            <tr><td><code>pensum.notenrechner.seeded.v1</code></td><td>Lokaler Speicher</td><td>Merkt sich, dass die Standardfächer schon eingefügt wurden.</td><td>Bis du sie löschst</td></tr>
+            <tr><td><code>pensum.goodnotes.hand.guest.v1</code></td><td>Lokaler Speicher</td><td>Dein Handschrift-Profil im Gast-Modus.</td><td>Bis du sie löschst</td></tr>
+            <tr><td><code>pensum.goodnotes.template.v1</code></td><td>Lokaler Speicher</td><td>Zuletzt gewählte Vorlage im Goodnotes-Tool.</td><td>Bis du sie löschst</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Die Daten im lokalen Speicher bleiben in deinem Browser. Sie werden nicht an uns übertragen, solange du nicht angemeldet bist.</p>
+
+      <h2>Alles löschen</h2>
+      <p>Mit diesem Knopf entfernst du alle Pensum-Daten aus diesem Browser: Gast-Fächer und -Noten, Einstellungen und das lokale Handschrift-Profil. Das lässt sich nicht rückgängig machen. Konten auf dem Server bleiben unberührt, dafür gibt es die Verwaltung unter <a href="/konto/">Konto</a>.</p>
+      <div class="row">
+        <button class="btn btn-outline" type="button" id="clearLocal">Lokale Daten dieses Browsers löschen</button>
+      </div>
+      <p class="form-message is-ok" id="clearLocalMsg" role="status" hidden></p>
+    </article>
+    <p class="body-sm muted legal-stand">Stand: 12. November 2026</p>
+  </main>
+
+  <pensum-footer></pensum-footer>
+</body>
+</html>

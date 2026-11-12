@@ -95,6 +95,10 @@ function buildAuthDialog() {
         <input class="input" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,8}" maxlength="8" required>
         <span class="field-hint">6 Ziffern aus der E-Mail. Schau auch im Spam-Ordner nach.</span>
       </label>
+      <label class="check" data-only="register">
+        <input type="checkbox" name="terms" required>
+        <span>Ich bin mindestens 16 Jahre alt und akzeptiere die <a href="/nutzungsbedingungen/" target="_blank" rel="noopener">Nutzungsbedingungen</a> und die <a href="/datenschutz/" target="_blank" rel="noopener">Datenschutzerklärung</a>.</span>
+      </label>
       <p class="form-message" role="alert" hidden></p>
       <button class="btn btn-primary btn-wide" type="submit"></button>
       <button class="btn btn-outline btn-wide" type="button" data-google hidden>Mit Google fortfahren</button>
@@ -257,11 +261,11 @@ class PensumNav extends HTMLElement {
     }
     const label = user.name || user.email || "Konto";
     box.innerHTML = `
-      <span class="nav-user" title="${esc(user.email || label)}">
+      <a class="nav-user" href="/konto/" title="Konto verwalten (${esc(user.email || label)})">
         <span class="avatar" aria-hidden="true">${esc(auth.initials(user))}</span>
         <span class="nav-user-name">${esc(label)}</span>
-        <span class="sr-only">Angemeldet als ${esc(label)}</span>
-      </span>
+        <span class="sr-only">Angemeldet als ${esc(label)}. Konto verwalten</span>
+      </a>
       <button class="btn btn-outline btn-sm" type="button" data-auth-action="logout">Abmelden</button>`;
   }
 }
@@ -288,6 +292,13 @@ class PensumFooter extends HTMLElement {
                 <span data-footer-auth></span>
                 <a href="/">Startseite</a>
               </div>
+              <div class="footer-col">
+                <h2>Rechtliches</h2>
+                <a href="/impressum/">Impressum</a>
+                <a href="/datenschutz/">Datenschutz</a>
+                <a href="/cookies/">Cookies und Speicher</a>
+                <a href="/nutzungsbedingungen/">Nutzungsbedingungen</a>
+              </div>
             </div>
           </div>
           <p class="footer-note">© ${new Date().getFullYear()} Pensum · Das Goodnotes-Tool ist inoffiziell und steht in keiner Verbindung zu Goodnotes Ltd.</p>
@@ -296,7 +307,7 @@ class PensumFooter extends HTMLElement {
     this._off = auth.onAuthChange(({ status, user }) => {
       if (status === "loading") return;
       this.querySelector("[data-footer-auth]").innerHTML = user
-        ? '<button type="button" data-auth-action="logout">Abmelden</button>'
+        ? '<a href="/konto/">Konto verwalten</a><button type="button" data-auth-action="logout">Abmelden</button>'
         : '<button type="button" data-auth-action="login">Anmelden</button><button type="button" data-auth-action="register">Konto erstellen</button><button type="button" data-auth-action="forgot">Passwort vergessen</button>';
     });
   }

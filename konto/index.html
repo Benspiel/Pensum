@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Konto – Pensum</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="icon" href="/assets/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="/assets/favicon.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="/vendor/fonts.css">
+  <link rel="stylesheet" href="/css/pensum.css">
+  <link rel="stylesheet" href="/css/legal.css">
+  <script type="module" src="/js/shell.js"></script>
+  <script type="module" src="/konto/konto.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+  <pensum-nav></pensum-nav>
+
+  <main id="inhalt" class="container container-narrow">
+    <header class="tool-head">
+      <h1 class="h2">Konto.</h1>
+      <p class="body-lg" id="accLead">Dein Konto gilt für alle Tools. Hier verwaltest du es.</p>
+    </header>
+
+    <section class="card-soft on-tint stack" id="accGuest" hidden>
+      <p class="body">Du bist nicht angemeldet. Melde dich an, um dein Konto zu verwalten.</p>
+      <div class="row">
+        <button class="btn btn-primary" type="button" data-auth-action="login">Anmelden</button>
+        <button class="btn btn-soft" type="button" data-auth-action="register">Konto erstellen</button>
+      </div>
+    </section>
+
+    <div id="accMain" hidden>
+      <section class="card-soft on-tint acc-section" aria-labelledby="hProfile">
+        <h2 id="hProfile">Profil.</h2>
+        <p class="body-sm muted-tint">Angemeldet als <strong id="accEmail"></strong>. <span id="accVerified"></span></p>
+        <form class="acc-form" id="nameForm">
+          <label class="field">
+            <span class="field-label">Name</span>
+            <input class="input" name="name" autocomplete="name" maxlength="80">
+          </label>
+          <p class="form-message" role="alert" hidden></p>
+          <div><button class="btn btn-primary" type="submit">Name speichern</button></div>
+        </form>
+      </section>
+
+      <section class="card-soft on-tint acc-section" aria-labelledby="hEmail">
+        <h2 id="hEmail">E-Mail-Adresse ändern.</h2>
+        <p class="body-sm muted-tint">Danach bestätigst du die neue Adresse beim nächsten Anmelden mit einem Code.</p>
+        <form class="acc-form" id="emailForm">
+          <label class="field">
+            <span class="field-label">Neue E-Mail-Adresse</span>
+            <input class="input" name="email" type="email" autocomplete="email" required>
+          </label>
+          <label class="field">
+            <span class="field-label">Aktuelles Passwort</span>
+            <input class="input" name="password" type="password" autocomplete="current-password" required>
+          </label>
+          <p class="form-message" role="alert" hidden></p>
+          <div><button class="btn btn-primary" type="submit">Adresse ändern</button></div>
+        </form>
+      </section>
+
+      <section class="card-soft on-tint acc-section" aria-labelledby="hPass">
+        <h2 id="hPass">Passwort ändern.</h2>
+        <form class="acc-form" id="passForm">
+          <label class="field">
+            <span class="field-label">Aktuelles Passwort</span>
+            <input class="input" name="old" type="password" autocomplete="current-password" required>
+          </label>
+          <label class="field">
+            <span class="field-label">Neues Passwort</span>
+            <input class="input" name="password" type="password" autocomplete="new-password" minlength="8" required>
+            <span class="field-hint muted-tint">Mindestens 8 Zeichen.</span>
+          </label>
+          <p class="form-message" role="alert" hidden></p>
+          <div><button class="btn btn-primary" type="submit">Passwort ändern</button></div>
+        </form>
+      </section>
+
+      <section class="card-soft on-tint acc-section" aria-labelledby="hSessions">
+        <h2 id="hSessions">Angemeldete Geräte.</h2>
+        <p class="body-sm muted-tint">Hier siehst du, wo du angemeldet bist. Beende Sitzungen, die du nicht kennst.</p>
+        <ul class="acc-list" id="sessionList" aria-live="polite"></ul>
+        <p class="form-message" id="sessionMsg" role="alert" hidden></p>
+        <div class="row" style="margin-top: var(--s-md)">
+          <button class="btn btn-soft" type="button" id="endOthers">Alle anderen beenden</button>
+          <button class="btn btn-soft" type="button" id="endAll">Überall abmelden</button>
+        </div>
+      </section>
+
+      <section class="card-soft on-tint acc-section" aria-labelledby="hData">
+        <h2 id="hData">Deine Daten.</h2>
+        <p class="body-sm muted-tint">Lade alles herunter, was in deinem Konto gespeichert ist (Fächer, Noten, Handschrift-Profil), oder lösche nur die Inhalte und behalte das Konto.</p>
+        <p class="body-sm" id="dataCount" style="margin-top: var(--s-sm)"></p>
+        <p class="form-message" id="dataMsg" role="alert" hidden></p>
+        <div class="row" style="margin-top: var(--s-md)">
+          <button class="btn btn-soft" type="button" id="exportBtn">Daten exportieren (JSON)</button>
+          <button class="btn btn-soft" type="button" id="wipeBtn">Inhalte löschen</button>
+        </div>
+      </section>
+
+      <section class="card acc-section acc-danger" aria-labelledby="hDelete">
+        <h2 id="hDelete">Konto löschen.</h2>
+        <p class="body-sm">Dabei werden dein Konto, alle Fächer und Noten, dein Handschrift-Profil und alle Sitzungen <strong>sofort und endgültig</strong> gelöscht. Das lässt sich nicht rückgängig machen. Exportiere vorher deine Daten, wenn du sie behalten willst.</p>
+        <form class="acc-form" id="deleteForm">
+          <label class="field">
+            <span class="field-label">Zur Bestätigung „LÖSCHEN“ eingeben</span>
+            <input class="input" name="confirm" autocomplete="off" autocapitalize="characters" spellcheck="false">
+          </label>
+          <p class="form-message" role="alert" hidden></p>
+          <div><button class="btn btn-danger" type="submit" disabled>Konto endgültig löschen</button></div>
+        </form>
+      </section>
+
+      <p class="body-sm muted legal-stand">Mehr dazu in der <a href="/datenschutz/">Datenschutzerklärung</a> und den <a href="/nutzungsbedingungen/">Nutzungsbedingungen</a>.</p>
+    </div>
+  </main>
+
+  <pensum-footer></pensum-footer>
+</body>
+</html>
