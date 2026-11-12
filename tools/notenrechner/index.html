@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notenrechner – Pensum</title>
+  <meta name="description" content="Notenrechner mit Gewichtung: Durchschnitt pro Fach und insgesamt, Noten 1–6 oder 0–15 Punkte, Zielnote-Rechner.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/vendor/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/vendor/fonts.css">
+  <link rel="stylesheet" href="/css/pensum.css">
+  <link rel="stylesheet" href="/tools/notenrechner/notenrechner.css">
+  <script type="module" src="/js/shell.js"></script>
+  <script type="module" src="/tools/notenrechner/notenrechner.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+  <pensum-nav></pensum-nav>
+
+  <main id="inhalt" class="container">
+    <header class="tool-head">
+      <h1>Notenrechner.</h1>
+      <p class="body-lg">Gewichtete Durchschnitte pro Fach und insgesamt. Rechnet live mit, während du tippst.</p>
+    </header>
+
+    <div class="nr-toolbar" role="group" aria-label="Ansicht">
+      <label class="nr-year">
+        <span class="sr-only">Schuljahr</span>
+        <select class="select" id="yearSelect"></select>
+      </label>
+      <div class="segmented" id="halfSwitch" role="group" aria-label="Zeitraum">
+        <button type="button" data-half="1" aria-pressed="false">1. Halbjahr</button>
+        <button type="button" data-half="2" aria-pressed="false">2. Halbjahr</button>
+        <button type="button" data-half="0" aria-pressed="false">Schuljahr</button>
+      </div>
+      <div class="segmented" id="systemSwitch" role="group" aria-label="Notensystem">
+        <button type="button" data-system="note" aria-pressed="false">Noten 1–6</button>
+        <button type="button" data-system="punkte" aria-pressed="false">Punkte 0–15</button>
+      </div>
+    </div>
+
+    <div class="storage-note on-tint" id="storageNote" aria-live="polite"></div>
+
+    <div class="nr-top">
+      <section class="card-soft on-tint nr-summary" aria-labelledby="summaryTitle">
+        <h2 class="body-sm nr-summary-title" id="summaryTitle">Gesamtdurchschnitt</h2>
+        <p class="nr-big tabular" id="overallValue" aria-live="polite">–</p>
+        <p class="body-sm muted-tint" id="overallInfo">Noch keine Noten eingetragen.</p>
+      </section>
+
+      <section class="card nr-converter" aria-labelledby="converterTitle">
+        <h2 class="h4" id="converterTitle">Umrechnung.</h2>
+        <p class="body-sm muted">Note und Punkte rechnen sich gegenseitig um.</p>
+        <div class="nr-converter-row">
+          <label class="field">
+            <span class="field-label">Note (1–6)</span>
+            <input class="input tabular" id="convNote" inputmode="decimal" autocomplete="off" placeholder="2,3">
+          </label>
+          <span class="nr-converter-eq" aria-hidden="true">≙</span>
+          <label class="field">
+            <span class="field-label">Punkte (0–15)</span>
+            <input class="input tabular" id="convPoints" inputmode="decimal" autocomplete="off" placeholder="10">
+          </label>
+        </div>
+      </section>
+    </div>
+
+    <section aria-labelledby="subjectsTitle" class="nr-subjects-section">
+      <h2 class="h3" id="subjectsTitle">Deine Fächer.</h2>
+      <div class="nr-subjects" id="subjects"></div>
+
+      <form class="nr-add-subject" id="addSubjectForm" novalidate>
+        <label class="field">
+          <span class="field-label">Neues Fach</span>
+          <input class="input" id="newSubjectName" name="name" maxlength="120" autocomplete="off" placeholder="z. B. Mathe">
+        </label>
+        <button class="btn btn-primary" type="submit">Fach hinzufügen</button>
+      </form>
+      <p class="form-message" id="addSubjectError" role="alert" hidden></p>
+    </section>
+  </main>
+
+  <pensum-footer></pensum-footer>
+</body>
+</html>

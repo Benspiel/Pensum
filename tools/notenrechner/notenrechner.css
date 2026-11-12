@@ -1,0 +1,160 @@
+/* Notenrechner – Layout. Farben, Radien und Typografie kommen aus /css/pensum.css. */
+
+.nr-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-sm);
+  align-items: center;
+  margin-bottom: var(--s-md);
+}
+.nr-year { flex: 1 1 100%; }
+@media (min-width: 480px) { .nr-year { flex: 0 0 auto; } .nr-year .select { width: auto; min-width: 150px; } }
+
+.nr-top { display: grid; gap: var(--s-md); margin-top: var(--s-md); }
+@media (min-width: 840px) { .nr-top { grid-template-columns: 1.3fr 1fr; gap: var(--s-lg); } }
+
+.nr-summary-title { font-weight: 600; }
+.nr-big {
+  margin-top: var(--s-xs);
+  font-size: 56px;
+  font-weight: var(--w-head);
+  line-height: 1;
+}
+@media (min-width: 640px) { .nr-big { font-size: 80px; } }
+.nr-summary .body-sm:last-child { margin-top: var(--s-sm); }
+
+.nr-converter > * + * { margin-top: var(--s-xs); }
+.nr-converter-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: var(--s-sm);
+  align-items: end;
+  margin-top: var(--s-md);
+}
+.nr-converter-eq { height: var(--control-h); display: grid; place-items: center; font-weight: 600; }
+
+.nr-subjects-section { margin-top: var(--s-xxl); }
+.nr-subjects { display: grid; gap: var(--s-md); margin-top: var(--s-lg); align-items: start; }
+@media (min-width: 840px) { .nr-subjects { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-lg); } }
+
+.nr-empty { grid-column: 1 / -1; text-align: center; padding: var(--s-xxl) var(--s-lg); }
+.nr-empty p { margin-top: var(--s-xs); }
+
+/* Fach-Karte */
+.nr-subject { padding: var(--s-md); }
+@media (min-width: 480px) { .nr-subject { padding: var(--s-lg); } }
+.nr-subject-head { display: flex; align-items: center; gap: var(--s-xs); }
+.nr-subject-name {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 var(--s-sm);
+  margin-left: calc(-1 * var(--s-sm));
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: var(--w-head);
+  line-height: 1.25;
+  text-overflow: ellipsis;
+}
+@media (min-width: 640px) { .nr-subject-name { font-size: 24px; } }
+.nr-subject-name:hover { background: var(--canvas-soft); }
+.nr-subject-name:focus-visible { background: var(--field); outline: 2px solid var(--ink); outline-offset: 0; }
+
+.nr-avg {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--s-xxs) var(--s-sm);
+  margin-top: var(--s-xs);
+}
+.nr-avg-value { font-size: 44px; font-weight: var(--w-head); line-height: 1; }
+
+.nr-grades { list-style: none; padding: 0; margin: var(--s-md) 0 0; display: grid; gap: var(--s-xs); }
+.nr-grade-head, .nr-grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 76px 76px 44px;
+  gap: var(--s-xs);
+  align-items: center;
+}
+.nr-year-view .nr-grade-head, .nr-year-view .nr-grade { grid-template-columns: minmax(0, 1fr) 76px 76px 84px 44px; }
+.nr-grade-head { margin-top: var(--s-md); color: var(--muted); }
+.nr-grade-head span { padding-left: var(--s-xxs); }
+.nr-grade .input { padding-inline: var(--s-sm); }
+.nr-grade .select { padding-left: var(--s-sm); padding-right: 30px; background-position: right 8px center; border-radius: var(--r-sm); font-weight: var(--w-text); }
+.nr-weight { position: relative; }
+.nr-weight::before {
+  content: "×";
+  position: absolute;
+  left: var(--s-sm);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted-on-tint);
+  pointer-events: none;
+}
+.nr-weight .input { padding-left: 28px; }
+.nr-grades + .nr-row-error { margin-top: var(--s-xs); }
+.nr-row-error { font-size: 14px; font-weight: 600; line-height: 1.43; }
+.nr-row-error:empty { display: none; }
+.nr-subject-actions { display: flex; flex-wrap: wrap; gap: var(--s-xs); margin-top: var(--s-md); }
+
+/* schmal: Bezeichnung in die erste Zeile, Zahlen darunter */
+@media (max-width: 479px) {
+  .nr-grade-head { display: none; }
+  .nr-grade, .nr-year-view .nr-grade {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
+    grid-template-areas: "label label remove" "value weight weight";
+    padding-bottom: var(--s-xs);
+  }
+  .nr-year-view .nr-grade { grid-template-areas: "label label remove" "value weight weight" "half half half"; }
+  .nr-grade > [data-cell="label"] { grid-area: label; }
+  .nr-grade > [data-cell="value"] { grid-area: value; }
+  .nr-grade > [data-cell="weight"] { grid-area: weight; }
+  .nr-grade > [data-cell="half"] { grid-area: half; }
+  .nr-grade > [data-cell="remove"] { grid-area: remove; }
+}
+
+/* Zielnote */
+.nr-target { margin-top: var(--s-md); border-radius: var(--r-sm); background: var(--canvas-soft); }
+.nr-target summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 0 var(--s-md);
+  border-radius: var(--r-sm);
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+.nr-target summary::-webkit-details-marker { display: none; }
+.nr-target summary::after {
+  content: "";
+  width: 20px; height: 20px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none' stroke='%23141414' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 7.5 5 5 5-5'/%3E%3C/svg%3E") center / contain no-repeat;
+  transition: transform 0.15s ease;
+}
+.nr-target[open] summary::after { transform: rotate(180deg); }
+.nr-target-body { padding: 0 var(--s-md) var(--s-md); }
+.nr-target-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-sm); align-items: end; }
+.nr-target-result { margin-top: var(--s-sm); font-weight: 600; }
+.nr-target-result span { display: block; font-weight: var(--w-text); color: var(--muted-on-tint); }
+
+/* Neues Fach */
+.nr-add-subject {
+  display: grid;
+  gap: var(--s-sm);
+  align-items: end;
+  margin-top: var(--s-lg);
+  padding: var(--s-md);
+  border-radius: var(--r-md);
+  background: var(--canvas-soft);
+}
+.nr-add-subject .input { background: var(--canvas); }
+@media (min-width: 480px) { .nr-add-subject { grid-template-columns: minmax(0, 1fr) auto; padding: var(--s-lg); } }
+#addSubjectError { margin-top: var(--s-sm); }
+
+.nr-save-state { margin-left: auto; font-weight: 600; }

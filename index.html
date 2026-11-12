@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pensum – Tools für die Schule</title>
+  <meta name="description" content="Pensum bündelt Schul-Tools unter einem Login: Notenrechner und Goodnotes-Tool. Ohne Konto nutzbar, mit Konto synchronisiert.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/vendor/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/vendor/fonts.css">
+  <link rel="stylesheet" href="/css/pensum.css">
+  <script type="module" src="/js/shell.js"></script>
+  <script type="module" src="/js/home.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+  <pensum-nav></pensum-nav>
+
+  <main id="inhalt">
+    <section class="hero container">
+      <div class="hero-cloud" aria-hidden="true">
+        <span class="squircle">Ø</span>
+        <span class="squircle squircle-soft">2+</span>
+        <span class="squircle squircle-soft">15</span>
+        <span class="squircle">Aa</span>
+        <span class="squircle squircle-soft">×2</span>
+        <span class="squircle">1</span>
+      </div>
+      <h1 class="display">Alles fürs Pensum.</h1>
+      <p class="body-lg hero-sub">Schul-Tools an einem Ort. Einmal anmelden, überall angemeldet. Oder einfach ohne Konto loslegen.</p>
+      <div class="row row-center hero-actions">
+        <a class="btn btn-primary btn-lg" href="#tools">Tools ansehen</a>
+        <button class="btn btn-outline btn-lg" type="button" data-auth-action="register" data-guest-only hidden>Konto erstellen</button>
+      </div>
+    </section>
+
+    <section class="container" id="tools" aria-labelledby="toolsTitle">
+      <h2 class="sr-only" id="toolsTitle">Alle Tools</h2>
+      <div class="tool-grid" id="toolGrid"></div>
+    </section>
+
+    <section class="section-lg container" aria-labelledby="kontoTitle">
+      <h2 class="center" id="kontoTitle">Ein Konto. Alle Tools.</h2>
+      <p class="body-lg center hero-sub">Du entscheidest, ob deine Daten auf dem Gerät bleiben oder mit dir wandern.</p>
+      <div class="feature-grid">
+        <div class="feature">
+          <h3 class="title">Ohne Konto nutzbar.</h3>
+          <p class="body-sm">Im Gast-Modus bleiben deine Daten im Browser dieses Geräts. Nichts wird hochgeladen.</p>
+        </div>
+        <div class="feature">
+          <h3 class="title">Mit Konto synchron.</h3>
+          <p class="body-sm">Angemeldet liegen deine Noten in deinem Konto und sind auf Handy, Tablet und Laptop gleich.</p>
+        </div>
+        <div class="feature">
+          <h3 class="title">Nur für dich.</h3>
+          <p class="body-sm">Jeder Datensatz gehört genau einem Konto. Andere Konten können ihn weder lesen noch ändern.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="container container-narrow" aria-labelledby="faqTitle">
+      <h2 class="center" id="faqTitle">Häufige Fragen.</h2>
+      <div class="faq" style="margin-top: var(--s-xl)">
+        <details class="faq-row">
+          <summary><span class="body">Brauche ich ein Konto?</span></summary>
+          <p class="body-sm">Nein. Alle Tools funktionieren ohne Anmeldung. Ein Konto brauchst du nur, wenn deine Daten auf mehreren Geräten verfügbar sein sollen.</p>
+        </details>
+        <details class="faq-row">
+          <summary><span class="body">Was passiert mit meinen lokalen Daten, wenn ich mich anmelde?</span></summary>
+          <p class="body-sm">Beim ersten Anmelden fragt das Tool, ob die Daten aus dem Gast-Modus in dein Konto übernommen werden sollen. Lehnst du ab, bleiben sie getrennt auf dem Gerät.</p>
+        </details>
+        <details class="faq-row">
+          <summary><span class="body">Wird mein Text aus dem Goodnotes-Tool hochgeladen?</span></summary>
+          <p class="body-sm">Nein. Handschrift, Vorschau und Export entstehen komplett in deinem Browser. Im Konto landet höchstens deine selbst gezeichnete Handschrift, nie dein Text.</p>
+        </details>
+        <details class="faq-row">
+          <summary><span class="body">Muss ich mich in jedem Tool neu anmelden?</span></summary>
+          <p class="body-sm">Nein. Es gibt eine gemeinsame Anmeldung. Wer sich einmal anmeldet, ist in allen Tools angemeldet, auch in anderen Tabs.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <pensum-footer></pensum-footer>
+</body>
+</html>

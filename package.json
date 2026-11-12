@@ -1,0 +1,11 @@
+{
+  "name": "pensum",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pensum – Schüler-Toolkit: Notenrechner und Goodnotes-Tool unter einem Login.",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "test": "node --test tests/"
+  }
+}

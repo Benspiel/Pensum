@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Goodnotes-Tool – Pensum</title>
+  <meta name="description" content="Getippten Text in Handschrift verwandeln und als .goodnotes-Datei oder PDF exportieren. Läuft komplett im Browser.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/vendor/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/vendor/fonts.css">
+  <link rel="stylesheet" href="/css/pensum.css">
+  <link rel="stylesheet" href="/tools/goodnotes/goodnotes.css">
+  <!-- Bibliotheken und Vorlagen der Tinten-Engine (lokal eingebunden, kein CDN) -->
+  <script src="/vendor/jszip.min.js" defer></script>
+  <script src="/vendor/jspdf.umd.min.js" defer></script>
+  <script src="/tools/goodnotes/templates.js" defer></script>
+  <script type="module" src="/js/shell.js"></script>
+  <script type="module" src="/tools/goodnotes/goodnotes.js"></script>
+</head>
+<body class="gn-page">
+  <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+  <pensum-nav></pensum-nav>
+
+  <main id="inhalt" class="container">
+    <header class="tool-head">
+      <h1>Goodnotes-Tool.</h1>
+      <p class="body-lg">Getippter Text wird zu Handschrift. Export als .goodnotes-Datei oder PDF, alles direkt in deinem Browser.</p>
+    </header>
+
+    <div class="storage-note on-tint" id="gnNote" aria-live="polite"></div>
+
+    <div class="gn-split">
+      <!-- Vorschau -->
+      <section class="gn-preview" aria-labelledby="previewTitle">
+        <div class="gn-preview-head">
+          <h2 class="title" id="previewTitle">Vorschau.</h2>
+          <span class="badge badge-soft" id="pageCount">1 Seite</span>
+          <span class="caption muted gn-preview-meta">A4 · entspricht dem Export</span>
+        </div>
+        <div class="gn-stage" id="preview" aria-label="Vorschau der Seiten"></div>
+      </section>
+
+      <!-- Einstellungen -->
+      <div class="gn-settings">
+        <section aria-labelledby="textTitle">
+          <h2 class="h4" id="textTitle">Dein Text.</h2>
+          <label class="field">
+            <span class="sr-only">Text</span>
+            <textarea id="textInput" class="textarea" rows="10" spellcheck="true"># Lernzettel Biologie
+
+Die Zelle ist die kleinste Einheit des Lebens.
+- Zellkern: enthält die DNA
+- Mitochondrien: Kraftwerke der Zelle
+- Ribosomen: bauen Proteine
+
+Tipp: Zeilen mit # werden zu Überschriften, Zeilen mit - zu Aufzählungen.</textarea>
+            <span class="field-hint"># macht eine Überschrift, - eine Aufzählung. Dein Text bleibt auf diesem Gerät.</span>
+          </label>
+        </section>
+
+        <section aria-labelledby="styleTitle">
+          <h2 class="h4" id="styleTitle">Stil.</h2>
+
+          <div class="field-label" id="modeLabel">Ausgabe</div>
+          <div class="gn-options gn-two" data-group="mode" role="group" aria-labelledby="modeLabel">
+            <button class="gn-option" type="button" data-value="ink" aria-pressed="true">
+              <span class="gn-option-title">Echte Tinte</span>
+              <span class="caption muted">Radieren, auswählen, umfärben. Wie selbst geschrieben.</span>
+            </button>
+            <button class="gn-option" type="button" data-value="pdf" aria-pressed="false">
+              <span class="gn-option-title">PDF-Seite</span>
+              <span class="caption muted">Text ist Teil des Seitenhintergrunds.</span>
+            </button>
+          </div>
+
+          <div class="field-label" id="fontLabel">Handschrift</div>
+          <div class="gn-options gn-three" data-group="font" id="fontGrid" role="group" aria-labelledby="fontLabel">
+            <button class="gn-option" type="button" data-value="Caveat" aria-pressed="true"><span class="gn-font" style="font-family:Caveat">Caveat</span></button>
+            <button class="gn-option" type="button" data-value="Kalam" aria-pressed="false"><span class="gn-font" style="font-family:Kalam">Kalam</span></button>
+            <button class="gn-option" type="button" data-value="Patrick Hand" aria-pressed="false"><span class="gn-font" style="font-family:'Patrick Hand'">Patrick</span></button>
+            <button class="gn-option" type="button" data-value="Indie Flower" aria-pressed="false"><span class="gn-font" style="font-family:'Indie Flower'">Indie</span></button>
+            <button class="gn-option" type="button" data-value="Shadows Into Light" aria-pressed="false"><span class="gn-font" style="font-family:'Shadows Into Light'">Shadows</span></button>
+            <button class="gn-option" type="button" data-value="Gochi Hand" aria-pressed="false"><span class="gn-font" style="font-family:'Gochi Hand'">Gochi</span></button>
+            <button class="gn-option gn-hand-tile" type="button" id="handTile" data-value="__hand__" aria-pressed="false">
+              <span class="gn-option-title">Meine Handschrift</span>
+              <span class="caption muted" id="handTileInfo">Jedes Zeichen einmal selbst schreiben.</span>
+            </button>
+          </div>
+          <p class="gn-hand-actions" id="handActions" hidden>
+            <button class="text-link" type="button" id="handEdit">Meine Handschrift bearbeiten</button>
+          </p>
+
+          <div class="field-label" id="paperLabel">Papier</div>
+          <div class="gn-options gn-four" data-group="paper" role="group" aria-labelledby="paperLabel">
+            <button class="gn-option" type="button" data-value="lined" aria-pressed="true"><span class="gn-paper gn-paper-lined" aria-hidden="true"></span><span class="gn-option-title">Liniert</span></button>
+            <button class="gn-option" type="button" data-value="lined-small" aria-pressed="false"><span class="gn-paper gn-paper-lined-small" aria-hidden="true"></span><span class="gn-option-title">Eng liniert</span></button>
+            <button class="gn-option" type="button" data-value="grid" aria-pressed="false"><span class="gn-paper gn-paper-grid" aria-hidden="true"></span><span class="gn-option-title">Kariert</span></button>
+            <button class="gn-option" type="button" data-value="blank" aria-pressed="false"><span class="gn-paper" aria-hidden="true"></span><span class="gn-option-title">Blanko</span></button>
+          </div>
+
+          <div class="field-label" id="inkLabel">Tinte</div>
+          <div class="gn-inks" data-group="ink" role="group" aria-labelledby="inkLabel">
+            <button class="gn-ink" type="button" data-value="#1d3f9e" style="--ink-color:#1d3f9e" aria-label="Blau" aria-pressed="true"></button>
+            <button class="gn-ink" type="button" data-value="#262626" style="--ink-color:#262626" aria-label="Schwarz" aria-pressed="false"></button>
+            <button class="gn-ink" type="button" data-value="#0f6b4f" style="--ink-color:#0f6b4f" aria-label="Grün" aria-pressed="false"></button>
+            <button class="gn-ink" type="button" data-value="#9b1c31" style="--ink-color:#9b1c31" aria-label="Rot" aria-pressed="false"></button>
+          </div>
+
+          <label class="gn-slider">
+            <span class="field-label">Schriftgröße <span class="caption muted" id="sizeVal">1.0×</span></span>
+            <input type="range" id="sizeInput" min="0.7" max="1.6" step="0.05" value="1">
+          </label>
+
+          <label class="gn-slider" data-mode-only="ink">
+            <span class="field-label">Strichstärke <span class="caption muted" id="widthVal">wie die Schrift</span></span>
+            <input type="range" id="widthInput" min="0.6" max="1.6" step="0.05" value="1">
+          </label>
+
+          <label class="gn-slider">
+            <span class="field-label">Unregelmäßigkeit <span class="caption muted" id="jitterVal">mittel</span></span>
+            <input type="range" id="jitterInput" min="0" max="2" step="0.1" value="1">
+          </label>
+
+          <div id="handVaryBox" hidden>
+            <label class="gn-toggle">
+              <span>Striche variieren <span class="caption muted">· Meine Handschrift</span></span>
+              <input type="checkbox" id="handVary" class="gn-switch">
+            </label>
+            <label class="gn-slider" id="handVaryControls" hidden>
+              <span class="field-label">Variation <span class="caption muted" id="handVaryVal">mittel</span></span>
+              <input type="range" id="handVaryInput" min="0.2" max="2" step="0.1" value="1">
+            </label>
+          </div>
+        </section>
+
+        <details class="faq-row gn-template" id="customTemplate">
+          <summary><span class="body">Eigene Vorlage verwenden (optional)</span></summary>
+          <div class="gn-template-body">
+            <label class="gn-drop" id="dropzone">
+              <input type="file" id="templateInput" class="sr-only" accept=".goodnotes,application/zip">
+              <span class="badge badge-soft" id="templateBadge" hidden>Gespeichert</span>
+              <span class="gn-option-title" id="templateTitle">Eigene Vorlage auswählen</span>
+              <span class="body-sm muted" id="templateInfo"></span>
+            </label>
+            <p id="templateActions" hidden><button class="text-link" type="button" id="forgetTemplate">Eigene Vorlage entfernen</button></p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </main>
+
+  <!-- Export-Leiste -->
+  <div class="gn-bar-wrap">
+    <div class="gn-bar" role="group" aria-label="Export">
+      <label class="gn-bar-name">
+        <span class="sr-only">Dateiname</span>
+        <input id="fileName" class="input" value="Lernzettel" autocomplete="off">
+      </label>
+      <span class="caption muted-tint gn-bar-status" id="statusText">Vorlage: Liniert</span>
+      <div class="gn-bar-actions">
+        <button class="btn btn-outline" type="button" id="exportPdf" aria-label="Als PDF exportieren"><span class="gn-long">Als PDF</span><span class="gn-short">PDF</span></button>
+        <button class="btn btn-primary" type="button" id="exportGn" aria-label=".goodnotes exportieren"><span class="gn-long">.goodnotes exportieren</span><span class="gn-short">.goodnotes</span></button>
+      </div>
+    </div>
+  </div>
+
+  <pensum-footer></pensum-footer>
+
+  <!-- Handschrift erfassen -->
+  <dialog class="modal modal-wide" id="handDialog" aria-labelledby="handTitle">
+    <div class="modal-body">
+      <div class="modal-head">
+        <h2 class="h3" id="handTitle">Meine Handschrift.</h2>
+        <button type="button" class="icon-btn" id="handClose" aria-label="Schließen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <p class="body-sm muted">Schreib jedes Zeichen einmal ins Feld, so wie du normal schreibst. Die dunkle Linie ist die Grundlinie.</p>
+      <div class="gn-hand-current">
+        <span class="gn-hand-char" id="handChar">a</span>
+        <span class="caption muted" id="handProgress"></span>
+      </div>
+      <canvas class="gn-hand-pad" id="handPad" aria-label="Zeichenfeld"></canvas>
+      <div class="gn-hand-controls">
+        <button type="button" class="btn btn-outline btn-sm" id="handPrev">Zurück</button>
+        <button type="button" class="text-link" id="handUndo">Rückgängig</button>
+        <button type="button" class="text-link" id="handClear">Leeren</button>
+        <button type="button" class="btn btn-outline btn-sm" id="handNext">Weiter</button>
+      </div>
+      <div class="gn-hand-strip" id="handStrip"></div>
+      <p class="caption muted" id="handSaveInfo"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary" id="handSave">Handschrift speichern</button>
+        <button type="button" class="text-link" id="handDelete" hidden>Meine Handschrift löschen</button>
+      </div>
+    </div>
+  </dialog>
+</body>
+</html>

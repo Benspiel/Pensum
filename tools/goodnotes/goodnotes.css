@@ -1,0 +1,230 @@
+/* Goodnotes-Tool – Layout. Farben, Radien und Typografie kommen aus /css/pensum.css. */
+
+.gn-page { --toast-lift: 88px; }
+
+.gn-split { display: grid; gap: var(--s-xl); margin-top: var(--s-lg); }
+@media (min-width: 1024px) {
+  .gn-split { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: var(--s-xxl); align-items: start; }
+  .gn-preview { position: sticky; top: var(--nav-offset); }
+}
+
+/* Vorschau */
+.gn-preview-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-xs) var(--s-sm); margin-bottom: var(--s-sm); }
+.gn-preview-meta { margin-left: auto; }
+.gn-stage {
+  display: grid;
+  gap: var(--s-md);
+  padding: var(--s-md);
+  border-radius: var(--r-md);
+  background: var(--canvas-soft);
+  max-height: 70vh;
+  overflow: auto;
+}
+@media (min-width: 1024px) { .gn-stage { max-height: calc(100vh - var(--nav-offset) - 170px); } }
+.gn-stage canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--r-sm);
+  background: var(--canvas);
+}
+
+/* Einstellungen */
+.gn-settings { display: grid; gap: var(--s-xl); min-width: 0; }
+.gn-settings h2 { margin-bottom: var(--s-md); }
+.gn-settings .field-label { margin-top: var(--s-lg); }
+.gn-settings h2 + .field-label { margin-top: 0; }
+.gn-settings .field-label .caption { margin-left: var(--s-xxs); font-weight: var(--w-text); }
+
+.gn-options { display: grid; gap: var(--s-xs); }
+.gn-two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.gn-three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.gn-four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 480px) {
+  .gn-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .gn-four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.gn-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--s-xxs);
+  min-height: 56px;
+  padding: var(--s-sm) var(--s-md);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.gn-option:hover { background: var(--canvas-soft); }
+.gn-option[aria-pressed="true"] { border-color: var(--ink); outline: 1px solid var(--ink); outline-offset: -2px; }
+.gn-option[aria-pressed="true"]:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.gn-option-title { font-size: 14px; font-weight: 600; line-height: 1.43; }
+.gn-font { font-size: 24px; line-height: 1.1; }
+.gn-three .gn-option { align-items: center; text-align: center; }
+.gn-hand-tile { grid-column: 1 / -1; align-items: flex-start !important; text-align: left !important; }
+.gn-hand-actions { margin-top: var(--s-xs); }
+.gn-hand-actions .text-link, .gn-template-body .text-link { display: inline-flex; align-items: center; min-height: 44px; }
+
+.gn-paper {
+  width: 100%;
+  height: 34px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--s-xs);
+  background: var(--canvas);
+}
+.gn-paper-lined { background: repeating-linear-gradient(var(--canvas) 0 8px, var(--hairline) 8px 9px); }
+.gn-paper-lined-small { background: repeating-linear-gradient(var(--canvas) 0 5px, var(--hairline) 5px 6px); }
+.gn-paper-grid {
+  background:
+    repeating-linear-gradient(transparent 0 6px, var(--hairline) 6px 7px),
+    repeating-linear-gradient(90deg, var(--canvas) 0 6px, var(--hairline) 6px 7px);
+}
+
+.gn-inks { display: flex; gap: var(--s-xs); }
+.gn-ink {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-full);
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.gn-ink::before { content: ""; width: 32px; height: 32px; border-radius: var(--r-full); background: var(--ink-color); }
+.gn-ink[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: -4px; }
+.gn-ink:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.gn-slider { display: block; }
+.gn-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-md);
+  min-height: 48px;
+  margin-top: var(--s-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.gn-switch {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  width: 52px;
+  height: 32px;
+  margin: 0;
+  border-radius: var(--r-full);
+  background: var(--hairline);
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.gn-switch::before {
+  content: "";
+  position: absolute;
+  top: 4px; left: 4px;
+  width: 24px; height: 24px;
+  border-radius: var(--r-full);
+  background: var(--canvas);
+  transition: transform 0.15s ease;
+}
+.gn-switch:checked { background: var(--ink); }
+.gn-switch:checked::before { transform: translateX(20px); }
+
+/* Eigene Vorlage */
+.gn-template-body { padding: 0 var(--s-lg) var(--s-lg); }
+.gn-drop {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-xxs);
+  align-items: flex-start;
+  padding: var(--s-md);
+  border: 1px dashed var(--muted);
+  border-radius: var(--r-sm);
+  background: var(--canvas);
+  cursor: pointer;
+}
+.gn-drop:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
+.gn-drop.drag, .gn-drop.loaded { border-style: solid; border-color: var(--ink); }
+.gn-drop.error { border-style: solid; border-color: var(--ink); }
+.gn-drop.error .gn-option-title::before { content: "! "; }
+
+/* Export-Leiste: schwebt wie die Nav-Pill, ohne Schatten */
+.gn-bar-wrap {
+  position: sticky;
+  bottom: 0;
+  z-index: 40;
+  padding: var(--s-lg) var(--gutter) var(--s-sm);
+  pointer-events: none;
+}
+.gn-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-xs);
+  max-width: 880px;
+  margin-inline: auto;
+  padding: var(--s-xs);
+  border: 4px solid var(--canvas);
+  border-radius: var(--r-full);
+  background: var(--canvas-soft);
+  background-clip: padding-box;
+  pointer-events: auto;
+}
+.gn-long { display: none; }
+.gn-bar .input { background: var(--canvas); border-radius: var(--r-full); padding-inline: var(--s-md); font-weight: 600; }
+.gn-bar-status { display: none; }
+.gn-bar-actions { display: flex; gap: var(--s-xs); }
+@media (min-width: 768px) {
+  .gn-bar { grid-template-columns: minmax(140px, 240px) minmax(0, 1fr) auto; }
+  .gn-long { display: inline; }
+  .gn-short { display: none; }
+  .gn-bar-status { display: block; padding-inline: var(--s-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gn-bar-actions { display: flex; }
+}
+
+/* Handschrift zeichnen */
+.gn-hand-current { display: flex; align-items: baseline; gap: var(--s-md); }
+.gn-hand-char { font-size: 44px; font-weight: var(--w-head); line-height: 1; min-width: 1.2ch; }
+.gn-hand-pad {
+  display: block;
+  width: 100%;
+  height: 220px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  background: var(--canvas);
+  touch-action: none;
+  cursor: crosshair;
+}
+.gn-hand-controls { display: flex; align-items: center; justify-content: space-between; gap: var(--s-xs); }
+.gn-hand-strip {
+  display: flex;
+  gap: var(--s-xxs);
+  padding-bottom: var(--s-xs);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.gn-hand-strip button {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-full);
+  background: var(--canvas);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.gn-hand-strip button.done { background: var(--canvas-soft); border-color: var(--canvas-soft); color: var(--ink); }
+.gn-hand-strip button.current { background: var(--ink); border-color: var(--ink); color: var(--on-primary); }

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neues Passwort – Pensum</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/vendor/fonts.css">
+  <link rel="stylesheet" href="/css/pensum.css">
+  <script type="module" src="/js/shell.js"></script>
+  <script type="module" src="/konto/passwort/passwort.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+  <pensum-nav></pensum-nav>
+
+  <main id="inhalt" class="container container-narrow">
+    <div class="tool-head">
+      <h1 class="h2">Neues Passwort.</h1>
+      <p class="body-lg" id="lead">Wähle ein neues Passwort für dein Pensum-Konto.</p>
+    </div>
+
+    <form class="card-soft on-tint stack" id="resetForm" hidden>
+      <label class="field">
+        <span class="field-label">Neues Passwort</span>
+        <input class="input" name="password" type="password" autocomplete="new-password" minlength="8" required>
+        <span class="field-hint muted-tint">Mindestens 8 Zeichen.</span>
+      </label>
+      <label class="field">
+        <span class="field-label">Passwort wiederholen</span>
+        <input class="input" name="repeat" type="password" autocomplete="new-password" minlength="8" required>
+      </label>
+      <p class="form-message" id="resetMessage" role="alert" style="background: var(--canvas)" hidden></p>
+      <button class="btn btn-primary btn-wide" type="submit">Passwort speichern</button>
+    </form>
+
+    <div class="card-soft on-tint stack" id="resetInfo" hidden>
+      <p class="body" id="resetInfoText"></p>
+      <div class="row">
+        <button class="btn btn-primary" type="button" id="resetInfoAction"></button>
+        <a class="btn btn-soft" href="/">Zur Startseite</a>
+      </div>
+    </div>
+  </main>
+
+  <pensum-footer></pensum-footer>
+</body>
+</html>
