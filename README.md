@@ -42,7 +42,7 @@ appwrite.config.json       Datenbank-Schema für `appwrite push`
 
 ## Appwrite
 
-Selbst gehostet unter `https://appwrite.buchholz.dev/v1`, Projekt `pensum` (`6af4d2f90031e22384bc`). Beides steht in `js/config.js` und ist öffentlich. API-Keys gehören nie ins Repo.
+Selbst gehostet unter `https://appwrite.buchholz.dev/v1`, Projekt `pensum` (`6af569a7000d660f3559`). Beides steht in `js/config.js` und ist öffentlich. API-Keys gehören nie ins Repo.
 
 ### Einrichten mit der CLI
 

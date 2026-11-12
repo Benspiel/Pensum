@@ -3,7 +3,7 @@
  * API-Keys mit Schreibrechten gehören NIE hierher (nur in die Umgebung der CLI, siehe README). */
 export const config = {
   endpoint: "https://appwrite.buchholz.dev/v1",
-  projectId: "6af4d2f90031e22384bc",
+  projectId: "6af569a7000d660f3559",
   projectName: "pensum",
 
   // Datenbank und Tabellen aus appwrite.config.json
