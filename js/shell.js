@@ -60,10 +60,11 @@ export function confirmDialog({ title, text, confirm = "OK", cancel = "Abbrechen
 const AUTH_COPY = {
   login: { title: "Anmelden.", submit: "Anmelden", reason: "Ein Konto für alle Tools. Angemeldet werden deine Daten gespeichert und zwischen deinen Geräten synchronisiert." },
   register: { title: "Konto erstellen.", submit: "Registrieren", reason: "Ein Konto gilt für die ganze Plattform. Du bleibst in allen Tools angemeldet." },
+  code: { title: "Code eingeben.", submit: "Bestätigen", reason: "" },
   forgot: { title: "Passwort zurücksetzen.", submit: "Link senden", reason: "Gib deine E-Mail-Adresse ein. Du bekommst einen Link, über den du ein neues Passwort setzt." },
 };
 
-let authDialog, authMode = "login";
+let authDialog, authMode = "login", pendingCode = null;
 
 function buildAuthDialog() {
   const d = document.createElement("dialog");
@@ -80,7 +81,7 @@ function buildAuthDialog() {
         <span class="field-label">Name</span>
         <input class="input" name="name" autocomplete="name" maxlength="80">
       </label>
-      <label class="field">
+      <label class="field" data-only="login register forgot">
         <span class="field-label">E-Mail</span>
         <input class="input" name="email" type="email" autocomplete="email" required>
       </label>
@@ -89,9 +90,15 @@ function buildAuthDialog() {
         <input class="input" name="password" type="password" minlength="8" required>
         <span class="field-hint" data-only="register">Mindestens 8 Zeichen.</span>
       </label>
+      <label class="field" data-only="code">
+        <span class="field-label">Bestätigungscode</span>
+        <input class="input" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,8}" maxlength="8" required>
+        <span class="field-hint">6 Ziffern aus der E-Mail. Schau auch im Spam-Ordner nach.</span>
+      </label>
       <p class="form-message" role="alert" hidden></p>
       <button class="btn btn-primary btn-wide" type="submit"></button>
       <button class="btn btn-outline btn-wide" type="button" data-google hidden>Mit Google fortfahren</button>
+      <p class="body-sm center muted" data-only="code"><button type="button" class="text-link" data-resend>Code erneut senden</button> · <button type="button" class="text-link" data-switch="login">Zurück</button></p>
       <p class="body-sm center" data-only="login"><button type="button" class="text-link" data-switch="forgot">Passwort vergessen?</button></p>
       <p class="body-sm center muted" data-only="login">Noch kein Konto? <button type="button" class="text-link" data-switch="register">Registrieren</button></p>
       <p class="body-sm center muted" data-only="register forgot">Schon ein Konto? <button type="button" class="text-link" data-switch="login">Anmelden</button></p>
@@ -111,6 +118,13 @@ function buildAuthDialog() {
   d.querySelector("[data-close]").addEventListener("click", () => d.close());
   d.querySelectorAll("[data-switch]").forEach((b) => b.addEventListener("click", () => setAuthMode(b.dataset.switch)));
   d.querySelector("[data-google]").addEventListener("click", () => auth.loginWithGoogle());
+  d.querySelector("[data-resend]").addEventListener("click", async () => {
+    if (!pendingCode) return;
+    try {
+      await auth.sendCode(pendingCode);
+      showMessage("Ein neuer Code ist unterwegs.", true);
+    } catch (err) { showMessage(auth.authMessage(err)); }
+  });
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -125,11 +139,26 @@ function buildAuthDialog() {
         showMessage("Wenn es zu dieser Adresse ein Konto gibt, ist die Mail unterwegs. Schau auch im Spam-Ordner nach.", true);
         return;
       }
-      if (authMode === "register") await auth.register({ name: String(data.get("name") || "").trim(), email, password });
-      else await auth.login({ email, password });
+      if (authMode === "code") {
+        await auth.confirmCode({ userId: pendingCode.userId, code: String(data.get("code") || "") });
+        pendingCode = null;
+        form.elements.code.value = "";
+        d.close();
+        toast("E-Mail bestätigt. Du bist in allen Tools angemeldet.");
+        return;
+      }
+      const result = authMode === "register"
+        ? await auth.register({ name: String(data.get("name") || "").trim(), email, password })
+        : await auth.login({ email, password });
       form.elements.password.value = "";
+      if (result && result.needsCode) {
+        pendingCode = { userId: result.userId, email: result.email };
+        setAuthMode("code", `Wir haben einen 6-stelligen Code an ${result.email} geschickt. Gib ihn ein, um deine E-Mail-Adresse zu bestätigen.`);
+        form.elements.code.focus();
+        return;
+      }
       d.close();
-      toast(authMode === "register" ? "Konto erstellt. Du bist in allen Tools angemeldet." : "Angemeldet.");
+      toast("Angemeldet.");
     } catch (err) {
       showMessage(auth.authMessage(err));
     } finally {
@@ -152,7 +181,7 @@ function setAuthMode(mode, reason) {
     el.querySelectorAll("input").forEach((i) => { i.disabled = !show; });
   });
   d.querySelector('[name="password"]').autocomplete = authMode === "register" ? "new-password" : "current-password";
-  d.querySelector("[data-google]").hidden = !(auth.googleEnabled && authMode !== "forgot");
+  d.querySelector("[data-google]").hidden = !(auth.googleEnabled && (authMode === "login" || authMode === "register"));
   d._showMessage("");
 }
 

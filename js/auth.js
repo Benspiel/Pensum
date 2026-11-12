@@ -65,23 +65,43 @@ if (typeof document !== "undefined") {
   });
 }
 
-export async function login({ email, password }) {
-  await account.createEmailPasswordSession({ email, password });
+/** Schickt einen 6-stelligen Code per E-Mail. Mit dem Code wird die Adresse bestätigt und angemeldet. */
+export async function sendCode({ userId, email }) {
+  const token = await account.createEmailToken({ userId, email });
+  return { userId: token.userId, email };
+}
+
+/** Prüft den Code aus der Mail; legt die Session an und bestätigt dabei die E-Mail-Adresse. */
+export async function confirmCode({ userId, code }) {
+  await account.createSession({ userId, secret: String(code).replace(/\s+/g, "") });
   setUser(await account.get(), { broadcast: true });
   return state.user;
 }
 
-export async function register({ name, email, password }) {
-  try {
-    await account.create({ userId: ID.unique(), email, password, name: name || undefined });
-  } catch (e) {
-    // 409: Konto gibt es schon. 5xx: Der Server kann das Konto angelegt und erst danach einen Fehler
-    // gemeldet haben. In beiden Fällen zählt, ob die Anmeldung mit genau diesen Daten klappt.
-    const retry = e && (e.code === 409 || e.code >= 500);
-    if (!retry) throw e;
-    try { return await login({ email, password }); } catch (_) { throw e; }
+/** Meldet an. Ist die E-Mail-Adresse noch nicht bestätigt, wird die Session wieder verworfen
+ *  und stattdessen ein Code geschickt: Ergebnis { needsCode: true, userId, email }. */
+export async function login({ email, password }) {
+  await account.createEmailPasswordSession({ email, password });
+  const user = await account.get();
+  if (!user.emailVerification) {
+    try { await account.deleteSession({ sessionId: "current" }); } catch (_) { /* egal */ }
+    return { needsCode: true, ...(await sendCode({ userId: user.$id, email })) };
   }
-  return login({ email, password });
+  setUser(user, { broadcast: true });
+  return { user };
+}
+
+/** Legt das Konto an und schickt den Bestätigungscode. Angemeldet wird erst nach dem Code. */
+export async function register({ name, email, password }) {
+  const userId = ID.unique();
+  try {
+    await account.create({ userId, email, password, name: name || undefined });
+  } catch (e) {
+    // 409: Konto gibt es schon (z. B. nach abgebrochener Registrierung): dann wie bei der Anmeldung weiter.
+    if (e && e.code === 409) return login({ email, password });
+    throw e;
+  }
+  return { needsCode: true, ...(await sendCode({ userId, email })) };
 }
 
 /** Tools können hier anmelden, was vor dem Abmelden noch gespeichert werden muss. */
@@ -139,6 +159,7 @@ export function authMessage(e) {
   if (/password/i.test((e && e.message) || "") && code === 400) return "Das Passwort braucht mindestens 8 Zeichen und darf nicht zu einfach sein.";
   if (/email/i.test((e && e.message) || "") && code === 400) return "Gib eine gültige E-Mail-Adresse ein.";
   if (code === 401) return "E-Mail oder Passwort ist falsch.";
+  if (type === "user_invalid_token" || type === "user_invalid_code") return "Der Code stimmt nicht oder ist abgelaufen. Fordere einen neuen an.";
   if (code >= 500) return "Der Server hat einen Fehler gemeldet. Das liegt nicht an deinen Eingaben. Versuch es später noch einmal.";
   if (!code) return "Keine Verbindung zum Server. Bist du online?";
   return (e && e.message) || "Das hat nicht geklappt. Probier es noch einmal.";
