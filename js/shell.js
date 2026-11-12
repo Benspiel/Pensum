@@ -221,8 +221,8 @@ class PensumNav extends HTMLElement {
       <div class="nav-wrap">
         <nav class="nav-pill" aria-label="Hauptnavigation">
           <a class="nav-logo" href="/" aria-label="Pensum – Startseite">
-            <span class="squircle squircle-32" aria-hidden="true">P</span>
-            <span class="nav-wordmark">Pensum</span>
+            <img class="nav-logo-full" src="/assets/logo.png" width="110" height="28" alt="Pensum">
+            <img class="nav-logo-mark" src="/assets/icon.png" width="32" height="32" alt="Pensum">
           </a>
           <div class="nav-links">${links}</div>
           <div class="nav-auth" data-nav-auth aria-live="polite"><span class="nav-skeleton" aria-hidden="true"></span></div>
@@ -275,7 +275,7 @@ class PensumFooter extends HTMLElement {
         <div class="container">
           <div class="footer-top">
             <div>
-              <div class="footer-wordmark">Pensum</div>
+              <img class="footer-logo" src="/assets/logo-light.png" width="221" height="56" alt="Pensum">
               <p class="footer-tagline">Alles fürs Pensum. Ein Konto für alle Tools, auf jedem Gerät.</p>
             </div>
             <div class="footer-cols">

@@ -455,7 +455,14 @@ pensum-nav {
   font-weight: var(--w-head);
   text-decoration: none;
 }
-@media (max-width: 479px) { .nav-wordmark { display: none; } .nav-logo { min-width: 44px; justify-content: center; margin-right: 0; } .nav-pill { padding-left: var(--s-xs); } }  /* schmal: nur Logomark + CTA */
+.nav-logo-full { display: block; height: 28px; width: auto; }
+.nav-logo-mark { display: none; height: 32px; width: 32px; border-radius: 30%; }  /* Squircle wie in DESIGN.md */
+@media (max-width: 479px) {  /* schmal: nur Logomark + CTA */
+  .nav-logo-full { display: none; }
+  .nav-logo-mark { display: block; }
+  .nav-logo { min-width: 44px; justify-content: center; margin-right: 0; }
+  .nav-pill { padding-left: var(--s-xs); }
+}
 .nav-links { display: none; align-items: center; }
 .nav-link {
   display: inline-flex;
@@ -524,7 +531,7 @@ pensum-footer { display: block; margin-top: var(--s-section); }
 }
 @media (min-width: 768px) { .footer { padding-block: var(--s-section) var(--s-xxl); } }
 .footer-top { display: grid; gap: var(--s-xxl); }
-.footer-wordmark { font-size: 56px; font-weight: var(--w-head); line-height: 1; }
+.footer-logo { display: block; height: 56px; width: auto; }
 .footer-tagline { margin-top: var(--s-md); max-width: 36ch; color: var(--faint); }
 .footer-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-lg); }
 .footer-col h2 { margin-bottom: var(--s-xs); font-size: 14px; font-weight: 600; line-height: 1.43; color: var(--on-primary); }
@@ -546,7 +553,7 @@ pensum-footer { display: block; margin-top: var(--s-section); }
 .footer-note { margin-top: var(--s-xxl); color: var(--faint); font-size: 12px; line-height: 1.33; }
 @media (min-width: 768px) {
   .footer-top { grid-template-columns: 1.4fr 1fr; align-items: start; }
-  .footer-wordmark { font-size: 80px; }
+  .footer-logo { height: 80px; }
 }
 
 /* ---------- Dialoge ---------- */
