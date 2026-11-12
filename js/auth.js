@@ -98,7 +98,9 @@ export async function register({ name, email, password }) {
     await account.create({ userId, email, password, name: name || undefined });
   } catch (e) {
     // 409: Konto gibt es schon (z. B. nach abgebrochener Registrierung): dann wie bei der Anmeldung weiter.
-    if (e && e.code === 409) return login({ email, password });
+    if (e && e.code === 409) {
+      try { return await login({ email, password }); } catch (_) { throw e; } // falsches Passwort: „Konto gibt es schon“ statt „Passwort falsch“
+    }
     throw e;
   }
   return { needsCode: true, ...(await sendCode({ userId, email })) };
