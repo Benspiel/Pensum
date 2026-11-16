@@ -840,3 +840,22 @@ body.home pensum-nav { position: relative; z-index: 20; }
 .nav-home:hover { background: var(--canvas); }
 .nav-home svg { width: 20px; height: 20px; flex: none; }
 @media (max-width: 479px) { .nav-home { width: 44px; justify-content: center; padding: 0; } .nav-home span { display: none; } }
+
+/* ---------- „Was ist neu“ ---------- */
+
+dialog.whatsnew { width: min(400px, calc(100vw - 2 * var(--gutter))); animation: wn-pop .35s var(--ease); }
+dialog.whatsnew::backdrop { animation: fade .3s ease; }
+@keyframes wn-pop { from { opacity: 0; transform: translateY(20px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes wn-slide { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+.wn-body { display: grid; gap: var(--s-md); }
+.wn-body > * + * { margin-top: 0; }
+.wn-slide { display: grid; gap: var(--s-sm); justify-items: center; min-height: 250px; align-content: center; padding-block: var(--s-sm); text-align: center; }
+.wn-slide.in { animation: wn-slide .35s var(--ease); }
+.wn-slide .squircle { margin-bottom: var(--s-xs); }
+.wn-slide p { max-width: 34ch; color: var(--muted); }
+.wn-slide .text-link { color: var(--ink); font-weight: 600; min-height: 44px; display: inline-flex; align-items: center; }
+.wn-dots { display: flex; justify-content: center; gap: var(--s-xs); }
+.wn-dots i { width: 8px; height: 8px; border-radius: var(--r-full); background: var(--hairline); transition: width .25s var(--ease), background-color .2s ease; }
+.wn-dots i.on { width: 24px; background: var(--ink); }
+.wn-actions { display: grid; gap: var(--s-xs); }
+@media (prefers-reduced-motion: reduce) { dialog.whatsnew, .wn-slide.in { animation: none; } }

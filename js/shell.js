@@ -3,6 +3,7 @@
  * deshalb zeigt die Nav-Pill in jedem Tool denselben Stand und reagiert sofort auf Änderungen. */
 import { tools } from "/js/tools.js";
 import * as auth from "/js/auth.js";
+import "/js/whatsnew.js";
 
 export const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -290,6 +291,7 @@ class PensumFooter extends HTMLElement {
                 <h2>Konto</h2>
                 <span data-footer-auth></span>
                 <a href="/">Startseite</a>
+                <button type="button" data-whatsnew>Was ist neu?</button>
               </div>
               <div class="footer-col">
                 <h2>Rechtliches</h2>
