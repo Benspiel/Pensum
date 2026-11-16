@@ -4,6 +4,7 @@ import { onAuthChange, onBeforeLogout } from "/js/auth.js";
 import { esc, toast, confirmDialog, closeIcon } from "/js/shell.js";
 import { MAX_ITEMS, todayISO, dueLabel, daysUntil, formatDate, examCountdown, groupTasks, splitExams, stats, usedSubjects } from "./core.js";
 import { createGuestStore, createCloudStore, newId } from "./store.js";
+import { loadIslandsSoon } from "/js/islands.js";
 import { createGuestStore as createDeckGuest, createCloudStore as createDeckCloud } from "/tools/karteikarten/store.js";
 
 const app = document.getElementById("app");
@@ -158,17 +159,36 @@ function render() {
       </div>
       <div class="pl-stats">
         <div class="pl-stat"><b>${s.open}</b><span>offen</span></div>
-        <div class="pl-stat ${s.overdue || s.dueToday ? "is-alert" : ""}"><b>${s.overdue + s.dueToday}</b><span>${s.overdue ? "überfällig/heute" : "heute fällig"}</span></div>
+        <div class="pl-stat ${s.overdue || s.dueToday ? "is-alert" : ""}"><b>${s.overdue + s.dueToday}</b><span>${s.overdue ? "überfällig" : "heute fällig"}</span></div>
         <div class="pl-stat ${s.nextExamDays != null && s.nextExamDays <= 3 ? "is-alert" : ""}"><b>${esc(nextTxt)}</b><span>${s.nextExam ? "bis " + esc(s.nextExam.subject || "Klausur") : "nächste Klausur"}</span></div>
       </div>
       <p class="pl-note" id="plNote">${noteHtml()}</p>
     </section>
-    <div class="segmented pl-tabs" role="tablist" aria-label="Bereiche">
-      <button type="button" role="tab" data-act="tab" data-tab="task" aria-selected="${tab === "task"}">Hausaufgaben (${openTasks})</button>
-      <button type="button" role="tab" data-act="tab" data-tab="exam" aria-selected="${tab === "exam"}">Klausuren (${exams})</button>
-    </div>
+    <div id="tabsSlot"></div>
     <div class="pl-panel" role="tabpanel">${tab === "task" ? renderTasks() : renderExams()}</div>`;
+  app.querySelector("#tabsSlot").replaceWith(tabsHost);
+  renderTabs([{ id: "task", title: `Hausaufgaben (${openTasks})` }, { id: "exam", title: `Klausuren (${exams})` }]);
 }
+
+/* Tab-Leiste: bleibt zwischen den Neuzeichnungen erhalten, damit die Anzeige gleiten kann (KokonutUI „Swipe Tabs“).
+ * Bis die Komponente geladen ist, gilt eine normale HTML-Leiste. */
+const tabsHost = document.createElement("div");
+let tabsUI = null;
+function setTab(id) { tab = id; render(); }
+let islands = null;
+let lastItems = [];
+function upgradeTabs() {
+  if (!islands || tabsUI || !lastItems.length) return;
+  tabsHost.replaceChildren();
+  tabsUI = islands.mountTabs(tabsHost, { items: lastItems, value: tab, label: "Bereiche", onChange: setTab });
+}
+function renderTabs(items) {
+  lastItems = items;
+  if (tabsUI) { tabsUI.update({ items, value: tab, label: "Bereiche", onChange: setTab }); return; }
+  if (islands) { upgradeTabs(); return; }
+  tabsHost.innerHTML = `<div class="segmented pl-tabs" role="tablist" aria-label="Bereiche">${items.map((i) => `<button type="button" role="tab" data-act="tab" data-tab="${i.id}" aria-selected="${tab === i.id}">${i.title}</button>`).join("")}</div>`;
+}
+loadIslandsSoon().then((ui) => { islands = ui; upgradeTabs(); });
 
 /* ---------- Dialog: Eintrag anlegen/bearbeiten ---------- */
 

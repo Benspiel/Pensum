@@ -3,6 +3,7 @@
 import { esc, toast, confirmDialog, closeIcon } from "/js/shell.js";
 import { MAX_DECKS, LEVELS, MODES, isLevelMode, levelCounts, dueCount, buildQueue, answerCard, resetLevels, isCorrect } from "./core.js";
 import { onAuthChange, onBeforeLogout } from "/js/auth.js";
+import { loadIslandsSoon } from "/js/islands.js";
 import { createGuestStore, createCloudStore, newId } from "./store.js";
 
 const app = document.getElementById("app");
@@ -182,13 +183,38 @@ function renderDeck() {
       <button class="icon-btn" type="button" data-act="back" aria-label="Zurück zu allen Stapeln">${ICON.back}</button>
       <h1>${esc(deck.name)}</h1>
       <button class="icon-btn" type="button" data-act="edit-deck" aria-label="Stapel bearbeiten">${ICON.edit}</button>
-      <button class="icon-btn" type="button" data-act="delete-deck" aria-label="Stapel löschen">${ICON.trash}</button>
     </div>
-    <div class="segmented kk-tabs" role="tablist" aria-label="Bereiche des Stapels">
-      ${TABS.map(([id, label]) => `<button type="button" role="tab" data-act="tab" data-tab="${id}" aria-selected="${id === tab}">${esc(label)}</button>`).join("")}
-    </div>
+    <div id="tabsSlot"></div>
     <div class="kk-panel" role="tabpanel">${panel}</div>`;
+  app.querySelector("#tabsSlot").replaceWith(tabsHost);
+  renderTabs(TABS.map(([id, title]) => ({ id, title })), tab);
 }
+
+/* Tab-Leiste: bleibt zwischen den Neuzeichnungen erhalten, damit die Anzeige gleiten kann (KokonutUI „Swipe Tabs“).
+ * Bis die Komponente geladen ist, gilt eine normale HTML-Leiste. */
+const tabsHost = document.createElement("div");
+let tabsUI = null;
+let currentTab = "learn";
+function setTab(id) {
+  view.tab = id;
+  renderDeck();
+  if (id === "add") app.querySelector('[name="front"]')?.focus({ preventScroll: true });
+}
+let islands = null;
+let lastItems = [];
+function upgradeTabs() {
+  if (!islands || tabsUI || !lastItems.length) return;
+  tabsHost.replaceChildren();
+  tabsUI = islands.mountTabs(tabsHost, { items: lastItems, value: currentTab, label: "Bereiche des Stapels", onChange: setTab });
+}
+function renderTabs(items, value) {
+  currentTab = value;
+  lastItems = items;
+  if (tabsUI) { tabsUI.update({ items, value, label: "Bereiche des Stapels", onChange: setTab }); return; }
+  if (islands) { upgradeTabs(); return; }
+  tabsHost.innerHTML = `<div class="segmented kk-tabs" role="tablist" aria-label="Bereiche des Stapels">${items.map((i) => `<button type="button" role="tab" data-act="tab" data-tab="${i.id}" aria-selected="${value === i.id}">${esc(i.title)}</button>`).join("")}</div>`;
+}
+loadIslandsSoon().then((ui) => { islands = ui; upgradeTabs(); });
 
 function boxes(deck) {
   const counts = levelCounts(deck);
@@ -414,7 +440,12 @@ function deckDialog(deck) {
       <span class="field-hint">Bald gibst du nur dein Thema ein und die KI erstellt die Karten für dich.</span>
     </div>` : ""}
     <p class="form-message" role="alert" hidden></p>
-    <button class="btn btn-primary btn-wide" type="submit">${creating ? "Stapel erstellen" : "Speichern"}</button>`,
+    <button class="btn btn-primary btn-wide" type="submit">${creating ? "Stapel erstellen" : "Speichern"}</button>
+    ${creating ? "" : `<div class="kk-danger">
+      <span class="field-label">Stapel löschen</span>
+      <div id="dangerSlot"><button class="btn btn-outline btn-wide" type="button" data-del>Stapel löschen</button></div>
+      <span class="field-hint">Löscht den Stapel samt aller Karten. Das lässt sich nicht rückgängig machen.</span>
+    </div>`}`,
   (fd, fail) => {
     const name = String(fd.get("name") || "").trim();
     if (!name) { fail("Gib dem Stapel einen Namen."); return false; }
@@ -434,6 +465,28 @@ function deckDialog(deck) {
   const sel = d.querySelector("select");
   sel.addEventListener("change", () => { d.querySelector("[data-hint]").textContent = MODES[sel.value].hint; });
   d.querySelector('[name="name"]').focus();
+
+  if (!creating) {
+    // Löschen: gedrückt halten (KokonutUI „Hold Button“). Ohne die Komponente: normaler Knopf mit Rückfrage.
+    const slot = d.querySelector("#dangerSlot");
+    slot.querySelector("[data-del]").addEventListener("click", async () => {
+      if (await confirmDialog({ title: "Stapel löschen?", text: `„${deck.name}“ mit ${plural(deck.cards.length, "Karte", "Karten")} wird endgültig gelöscht.`, confirm: "Löschen" })) { d.close(); removeDeck(deck); }
+    });
+    loadIslandsSoon().then((ui) => {
+      if (!ui || !d.isConnected) return;
+      const host = document.createElement("div");
+      slot.replaceChildren(host);
+      ui.mountHold(host, { label: "Zum Löschen halten", holdingLabel: "Weiter halten …", completeLabel: "Gelöscht", onComplete: () => setTimeout(() => { d.close(); removeDeck(deck); }, 450) });
+    });
+  }
+}
+
+function removeDeck(deck) {
+  data.decks = data.decks.filter((x) => x.id !== deck.id);
+  persist();
+  view = { name: "list" };
+  render();
+  toast("Stapel gelöscht.");
 }
 
 function cardDialog(deck, card) {

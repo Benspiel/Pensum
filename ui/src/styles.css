@@ -1,0 +1,54 @@
+/* Tailwind nur mit Theme und Utilities, ohne Preflight: das bestehende Pensum-Design (css/pensum.css) bleibt unberührt.
+ * Die shadcn-Variablen unten zeigen auf die Pensum-Farben, damit Hell/Dunkel automatisch mitgeht. */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@custom-variant dark (&:is([data-theme="dark"] *));
+
+:root {
+  --background: var(--canvas);
+  --foreground: var(--ink);
+  --card: var(--canvas);
+  --card-foreground: var(--ink);
+  --popover: var(--canvas);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--on-primary);
+  --secondary: var(--canvas-soft);
+  --secondary-foreground: var(--ink);
+  --accent-foreground: var(--ink);
+  --destructive: var(--ink);
+  --border: var(--hairline);
+  --input: var(--hairline);
+  --ring: var(--ink);
+  --radius: 1rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  /* --muted und --accent gehören schon Pensum (Textfarbe, Akzent): hier direkt auf die Pensum-Farben zeigen */
+  --color-muted: var(--canvas-soft);
+  --color-muted-foreground: var(--muted);
+  --color-accent: var(--canvas-soft);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* Ohne Tailwind-Preflight erben Buttons die Schrift nicht von selbst */
+.ui-island button { font-family: inherit; }

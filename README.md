@@ -129,3 +129,13 @@ Das Modul `tools/videos/` ist noch ausgeblendet (`soon: true` in `js/tools.js`).
 3. In `js/tools.js` die Zeile `soon: true` beim Eintrag `videos` entfernen.
 
 Optional: `CHANNEL_HANDLE` (Standard `LehrerSchmidt`) oder `CHANNEL_ID`. Eine Suche kostet 100 Kontingent-Einheiten (Standard 10 000 pro Tag), gleiche Suchen werden 6 Stunden zwischengespeichert. Der Player (youtube-nocookie.com) lädt erst nach dem Klick auf „Hier ansehen“; die CSP in `vercel.json` erlaubt dafür `frame-src`.
+
+## KokonutUI-Komponenten (`ui/`)
+
+Die Seite bleibt reines HTML/JS ohne Build-Schritt. Einzelne Komponenten aus der shadcn-Registry `@kokonutui` (React + Tailwind) liegen als „Inseln“ im Ordner `ui/` und werden nach `vendor/ui/` gebaut (diese Dateien sind eingecheckt, Vercel baut nichts).
+
+- Aktuell genutzt: `smooth-tab` (gleitende Tab-Leiste im Planer und bei den Karteikarten-Stapeln) und `hold-button` (Stapel löschen durch Gedrückthalten).
+- Laden: `js/islands.js` holt die Insel erst nach dem Seitenaufbau. Bis dahin (oder ohne) gelten die normalen HTML-Elemente.
+- Neue Komponente: im Ordner `ui/` `npx shadcn@latest add @kokonutui/<name> -c .`, in `ui/src/islands.tsx` eine `mount…`-Funktion ergänzen, dann `npm run build` und `vendor/ui/` einchecken.
+- Tailwind läuft ohne Preflight, die shadcn-Farben zeigen auf die Pensum-Variablen (`ui/src/styles.css`), Hell/Dunkel geht über `data-theme`.
+

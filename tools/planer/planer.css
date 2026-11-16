@@ -9,7 +9,9 @@
 .pl-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-sm); }
 .pl-stat { padding: var(--s-md) var(--s-xs); border-radius: var(--r-sm); background: var(--canvas); text-align: center; }
 .pl-stat b { display: block; font-size: 26px; line-height: 1.1; font-weight: var(--w-head); font-variant-numeric: tabular-nums; }
-.pl-stat span { font-size: 13px; color: var(--muted-on-tint); }
+.pl-stat b { white-space: nowrap; }
+.pl-stat span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-inline: var(--s-xs); font-size: 13px; color: var(--muted-on-tint); }
+@media (max-width: 420px) { .pl-stat b { font-size: 22px; } }
 .pl-stat.is-alert { background: var(--ink); color: var(--on-primary); }
 .pl-stat.is-alert span { color: inherit; opacity: .8; }
 
