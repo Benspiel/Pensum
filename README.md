@@ -7,7 +7,7 @@ Schüler-Toolkit: mehrere Tools unter einem gemeinsamen Login. Statische Seite (
 
 - **Mindmap-Generator** (`/tools/mindmap/`): Gemini erstellt pro Tag eine Mindmap (nur mit Konto), die sich 3-mal mit KI und beliebig oft von Hand im Editor ändern lässt. Der Schlüssel liegt serverseitig (siehe „Mindmap-Generator einrichten“).
 
-- **Spiele** (`/tools/spiele/`): 2048, Snake, Tetris und Minesweeper. Die Regeln liegen ohne Oberfläche in `tools/spiele/{g2048,snake,tetris,minesweeper}.js` (getestet), die Oberfläche in `spiele.js`. Bestwerte stehen nur im `localStorage` (`pensum.spiele.best.v1`).
+- **Spiele** (`/tools/spiele/`): 17 Spiele in vier Gruppen. Klassiker: 2048, Snake, Tetris, Minesweeper. Denken und Rätseln: Sudoku, Memory, Vier gewinnt (KI), Tic-Tac-Toe (KI), Schiebepuzzle, Lights Out, Mastermind. Wörter und Zahlen: Galgenmännchen, Kopfrechnen-Blitz. Geschick: Breakout, Pong (KI), Hüpfer, Simon. Alles ist selbst nach bekannten, freien Spielregeln geschrieben (kein fremder Code, keine fremden Bilder oder Töne). Die Regeln liegen ohne Oberfläche je Spiel in `tools/spiele/*.js` (getestet), die Oberflächen in `ui-klassiker.js`, `ui-denken.js`, `ui-geschick.js`, die Auswahl in `spiele.js`. Bestwerte stehen nur im `localStorage` (`pensum.spiele.best.v1`).
 
 Ohne Konto bleiben Daten im `localStorage`. Mit Konto liegen sie in Appwrite und sind auf allen Geräten gleich.
 
@@ -39,7 +39,7 @@ js/parallax.js             Parallax-Scrolling und Einblenden der Startseite (res
 tools/notenrechner/        core.js (Rechnen), store.js (Gast/Konto), notenrechner.js (Oberfläche)
 tools/mindmap/             tree.js (Baum, Layout), hand.js (eigene Handschrift), mindmap.js (Editor)
 functions/mindmap/         Appwrite-Function: Gemini-Aufruf und Tageslimits (lib.js = Logik, index.js = Anbindung)
-tools/spiele/              Minispiele: Regeln je Spiel (g2048.js, snake.js, tetris.js, minesweeper.js), spiele.js (Oberfläche)
+tools/spiele/              17 Spiele: Regeln je Spiel (g2048.js, sudoku.js, connect4.js, …), ui-*.js (Oberflächen), spiele.js (Auswahl)
 tools/goodnotes/           ink-engine.js (Inkly-Logik), goodnotes.js (Oberfläche), templates.js
 konto/passwort/            Zielseite für „Passwort zurücksetzen“
 vendor/                    Appwrite-SDK, JSZip, jsPDF, Schriften (alles lokal)

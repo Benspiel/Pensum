@@ -50,6 +50,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 html {
+  touch-action: pan-x pan-y;      /* kein Zwei-Finger-Zoom und kein Doppeltipp-Zoom am Handy */
   overflow-x: clip;               /* nie seitlich scrollen: Sicherung, die eigentlichen Ursachen sind einzeln behoben */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
