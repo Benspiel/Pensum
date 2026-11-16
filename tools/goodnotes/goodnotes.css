@@ -30,8 +30,10 @@
 }
 
 /* Einstellungen */
-.gn-settings { display: grid; gap: var(--s-xl); min-width: 0; }
-.gn-settings h2 { margin-bottom: var(--s-md); }
+.gn-settings { display: grid; gap: var(--s-md); min-width: 0; }
+.gn-settings .panel > h2 { margin-bottom: var(--s-md); }
+.gn-settings .panel > * + * { margin-top: 0; }
+.gn-settings .panel > h2 + * { margin-top: 0; }
 .gn-settings .field-label { margin-top: var(--s-lg); }
 .gn-settings h2 + .field-label { margin-top: 0; }
 .gn-settings .field-label .caption { margin-left: var(--s-xxs); font-weight: var(--w-text); }

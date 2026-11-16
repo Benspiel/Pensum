@@ -23,7 +23,7 @@
   <main id="inhalt" class="container container-narrow">
     <header class="tool-head">
       <h1 class="h2">Konto.</h1>
-      <p class="body-lg" id="accLead">Dein Konto gilt für alle Tools. Hier verwaltest du es.</p>
+      <p class="body-lg" id="accLead">Dein Konto gilt für alle Tools.</p>
     </header>
 
     <section class="card-soft on-tint stack" id="accGuest" hidden>
@@ -35,87 +35,114 @@
     </section>
 
     <div id="accMain" hidden>
-      <section class="card-soft on-tint acc-section" aria-labelledby="hProfile">
-        <h2 id="hProfile">Profil.</h2>
-        <p class="body-sm muted-tint">Angemeldet als <strong id="accEmail"></strong>. <span id="accVerified"></span></p>
-        <form class="acc-form" id="nameForm">
-          <label class="field">
-            <span class="field-label">Name</span>
-            <input class="input" name="name" autocomplete="name" maxlength="80">
-          </label>
-          <p class="form-message" role="alert" hidden></p>
-          <div><button class="btn btn-primary" type="submit">Name speichern</button></div>
-        </form>
-      </section>
-
-      <section class="card-soft on-tint acc-section" aria-labelledby="hEmail">
-        <h2 id="hEmail">E-Mail-Adresse ändern.</h2>
-        <p class="body-sm muted-tint">Danach bestätigst du die neue Adresse beim nächsten Anmelden mit einem Code.</p>
-        <form class="acc-form" id="emailForm">
-          <label class="field">
-            <span class="field-label">Neue E-Mail-Adresse</span>
-            <input class="input" name="email" type="email" autocomplete="email" required>
-          </label>
-          <label class="field">
-            <span class="field-label">Aktuelles Passwort</span>
-            <input class="input" name="password" type="password" autocomplete="current-password" required>
-          </label>
-          <p class="form-message" role="alert" hidden></p>
-          <div><button class="btn btn-primary" type="submit">Adresse ändern</button></div>
-        </form>
-      </section>
-
-      <section class="card-soft on-tint acc-section" aria-labelledby="hPass">
-        <h2 id="hPass">Passwort ändern.</h2>
-        <form class="acc-form" id="passForm">
-          <label class="field">
-            <span class="field-label">Aktuelles Passwort</span>
-            <input class="input" name="old" type="password" autocomplete="current-password" required>
-          </label>
-          <label class="field">
-            <span class="field-label">Neues Passwort</span>
-            <input class="input" name="password" type="password" autocomplete="new-password" minlength="8" required>
-            <span class="field-hint muted-tint">Mindestens 8 Zeichen.</span>
-          </label>
-          <p class="form-message" role="alert" hidden></p>
-          <div><button class="btn btn-primary" type="submit">Passwort ändern</button></div>
-        </form>
-      </section>
-
-      <section class="card-soft on-tint acc-section" aria-labelledby="hSessions">
-        <h2 id="hSessions">Angemeldete Geräte.</h2>
-        <p class="body-sm muted-tint">Hier siehst du, wo du angemeldet bist. Beende Sitzungen, die du nicht kennst.</p>
-        <ul class="acc-list" id="sessionList" aria-live="polite"></ul>
-        <p class="form-message" id="sessionMsg" role="alert" hidden></p>
-        <div class="row" style="margin-top: var(--s-md)">
-          <button class="btn btn-soft" type="button" id="endOthers">Alle anderen beenden</button>
-          <button class="btn btn-soft" type="button" id="endAll">Überall abmelden</button>
+      <section class="hero-card" aria-label="Dein Profil">
+        <span class="avatar avatar-lg" id="accAvatar" aria-hidden="true"></span>
+        <div class="hero-card-text">
+          <p class="hero-card-name" id="accName"></p>
+          <p class="body-sm muted" id="accEmail"></p>
         </div>
+        <span class="badge badge-soft" id="accVerified"></span>
       </section>
 
-      <section class="card-soft on-tint acc-section" aria-labelledby="hData">
-        <h2 id="hData">Deine Daten.</h2>
-        <p class="body-sm muted-tint">Lade alles herunter, was in deinem Konto gespeichert ist (Fächer, Noten, Mindmaps, Handschrift-Profil), oder lösche nur die Inhalte und behalte das Konto.</p>
-        <p class="body-sm" id="dataCount" style="margin-top: var(--s-sm)"></p>
-        <p class="form-message" id="dataMsg" role="alert" hidden></p>
-        <div class="row" style="margin-top: var(--s-md)">
-          <button class="btn btn-soft" type="button" id="exportBtn">Daten exportieren (JSON)</button>
-          <button class="btn btn-soft" type="button" id="wipeBtn">Inhalte löschen</button>
+      <div class="segmented tabs" id="accTabs" role="group" aria-label="Bereich">
+        <button type="button" data-tab="profil" aria-pressed="true">Profil</button>
+        <button type="button" data-tab="sicherheit" aria-pressed="false">Sicherheit</button>
+        <button type="button" data-tab="daten" aria-pressed="false">Daten</button>
+      </div>
+
+      <!-- Profil -->
+      <div data-panel="profil">
+        <div class="group">
+          <details class="group-row">
+            <summary><span class="group-row-label">Name</span><span class="group-row-value" id="valName"></span><span class="group-row-action">Ändern</span></summary>
+            <form class="form-stack" id="nameForm">
+              <label class="field">
+                <span class="field-label">Name</span>
+                <input class="input" name="name" autocomplete="name" maxlength="80">
+              </label>
+              <p class="form-message" role="alert" hidden></p>
+              <div><button class="btn btn-primary" type="submit">Speichern</button></div>
+            </form>
+          </details>
+
+          <details class="group-row">
+            <summary><span class="group-row-label">E-Mail-Adresse</span><span class="group-row-value" id="valEmail"></span><span class="group-row-action">Ändern</span></summary>
+            <form class="form-stack" id="emailForm">
+              <p class="body-sm muted">Die neue Adresse bestätigst du beim nächsten Anmelden mit einem Code.</p>
+              <label class="field">
+                <span class="field-label">Neue E-Mail-Adresse</span>
+                <input class="input" name="email" type="email" autocomplete="email" required>
+              </label>
+              <label class="field">
+                <span class="field-label">Aktuelles Passwort</span>
+                <input class="input" name="password" type="password" autocomplete="current-password" required>
+              </label>
+              <p class="form-message" role="alert" hidden></p>
+              <div><button class="btn btn-primary" type="submit">Adresse ändern</button></div>
+            </form>
+          </details>
         </div>
-      </section>
+      </div>
 
-      <section class="card acc-section acc-danger" aria-labelledby="hDelete">
-        <h2 id="hDelete">Konto löschen.</h2>
-        <p class="body-sm">Dabei werden dein Konto, alle Fächer und Noten, deine Mindmaps, dein Handschrift-Profil und alle Sitzungen <strong>sofort und endgültig</strong> gelöscht. Das lässt sich nicht rückgängig machen. Exportiere vorher deine Daten, wenn du sie behalten willst.</p>
-        <form class="acc-form" id="deleteForm">
-          <label class="field">
-            <span class="field-label">Zur Bestätigung „LÖSCHEN“ eingeben</span>
-            <input class="input" name="confirm" autocomplete="off" autocapitalize="characters" spellcheck="false">
-          </label>
-          <p class="form-message" role="alert" hidden></p>
-          <div><button class="btn btn-danger" type="submit" disabled>Konto endgültig löschen</button></div>
-        </form>
-      </section>
+      <!-- Sicherheit -->
+      <div data-panel="sicherheit" hidden>
+        <div class="group">
+          <details class="group-row">
+            <summary><span class="group-row-label">Passwort</span><span class="group-row-value">••••••••</span><span class="group-row-action">Ändern</span></summary>
+            <form class="form-stack" id="passForm">
+              <label class="field">
+                <span class="field-label">Aktuelles Passwort</span>
+                <input class="input" name="old" type="password" autocomplete="current-password" required>
+              </label>
+              <label class="field">
+                <span class="field-label">Neues Passwort</span>
+                <input class="input" name="password" type="password" autocomplete="new-password" minlength="8" required>
+                <span class="field-hint">Mindestens 8 Zeichen.</span>
+              </label>
+              <p class="form-message" role="alert" hidden></p>
+              <div><button class="btn btn-primary" type="submit">Passwort ändern</button></div>
+            </form>
+          </details>
+        </div>
+
+        <section class="panel" aria-labelledby="hSessions">
+          <h2 class="h4" id="hSessions">Angemeldete Geräte.</h2>
+          <p class="body-sm muted">Beende Sitzungen, die du nicht kennst.</p>
+          <ul class="plain-list" id="sessionList" aria-live="polite"></ul>
+          <p class="form-message" id="sessionMsg" role="alert" hidden></p>
+          <div class="row">
+            <button class="btn btn-outline btn-sm" type="button" id="endOthers">Alle anderen beenden</button>
+            <button class="btn btn-outline btn-sm" type="button" id="endAll">Überall abmelden</button>
+          </div>
+        </section>
+      </div>
+
+      <!-- Daten -->
+      <div data-panel="daten" hidden>
+        <section class="panel" aria-labelledby="hData">
+          <h2 class="h4" id="hData">Gespeichert in deinem Konto.</h2>
+          <div class="chips-row" id="dataCount" aria-live="polite"></div>
+          <p class="form-message" id="dataMsg" role="alert" hidden></p>
+          <div class="row">
+            <button class="btn btn-outline btn-sm" type="button" id="exportBtn">Daten exportieren (JSON)</button>
+            <button class="btn btn-outline btn-sm" type="button" id="wipeBtn">Inhalte löschen</button>
+          </div>
+          <p class="body-sm muted">„Inhalte löschen“ entfernt Fächer, Noten, Mindmaps und Handschrift-Profil. Das Konto bleibt.</p>
+        </section>
+
+        <details class="group-row is-danger">
+          <summary><span class="group-row-label">Konto löschen</span><span class="group-row-value">Unwiderruflich</span><span class="group-row-action">Öffnen</span></summary>
+          <p class="body-sm">Dabei werden dein Konto, alle Fächer und Noten, deine Mindmaps, dein Handschrift-Profil und alle Sitzungen <strong>sofort und endgültig</strong> gelöscht. Exportiere vorher deine Daten, wenn du sie behalten willst.</p>
+          <form class="form-stack" id="deleteForm">
+            <label class="field">
+              <span class="field-label">Zur Bestätigung „LÖSCHEN“ eingeben</span>
+              <input class="input" name="confirm" autocomplete="off" autocapitalize="characters" spellcheck="false">
+            </label>
+            <p class="form-message" role="alert" hidden></p>
+            <div><button class="btn btn-danger" type="submit" disabled>Konto endgültig löschen</button></div>
+          </form>
+        </details>
+      </div>
 
       <p class="body-sm muted legal-stand">Mehr dazu in der <a href="/datenschutz/">Datenschutzerklärung</a> und den <a href="/nutzungsbedingungen/">Nutzungsbedingungen</a>.</p>
     </div>

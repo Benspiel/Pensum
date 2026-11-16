@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Notenrechner – Pensum</title>
-  <meta name="description" content="Notenrechner mit Gewichtung: Durchschnitt pro Fach und insgesamt, Noten 1–6 oder 0–15 Punkte, Zielnote-Rechner.">
+  <meta name="description" content="Notenrechner: Zeugnisnote pro Fach eintragen und den Zeugnisdurchschnitt ausrechnen, in Noten 1–6 oder Punkten 0–15.">
   <meta name="theme-color" content="#ffffff">
   <link rel="icon" href="/assets/favicon.ico" sizes="any">
   <link rel="icon" href="/assets/favicon-32.png" type="image/png" sizes="32x32">
@@ -24,7 +24,7 @@
   <main id="inhalt" class="container">
     <header class="tool-head">
       <h1>Notenrechner.</h1>
-      <p class="body-lg">Gewichtete Durchschnitte pro Fach und insgesamt. Rechnet live mit, während du tippst.</p>
+      <p class="body-lg">Trag pro Fach deine Zeugnisnote ein. Den Zeugnisdurchschnitt siehst du sofort.</p>
     </header>
 
     <div class="nr-toolbar" role="group" aria-label="Ansicht">
@@ -35,7 +35,6 @@
       <div class="segmented" id="halfSwitch" role="group" aria-label="Zeitraum">
         <button type="button" data-half="1" aria-pressed="false">1. Halbjahr</button>
         <button type="button" data-half="2" aria-pressed="false">2. Halbjahr</button>
-        <button type="button" data-half="0" aria-pressed="false">Schuljahr</button>
       </div>
       <div class="segmented" id="systemSwitch" role="group" aria-label="Notensystem">
         <button type="button" data-system="note" aria-pressed="false">Noten 1–6</button>
@@ -49,8 +48,7 @@
       <section class="card-soft on-tint nr-summary" aria-labelledby="summaryTitle">
         <h2 class="body-sm nr-summary-title" id="summaryTitle">Zeugnisdurchschnitt</h2>
         <p class="nr-big tabular" id="zeugnisValue" aria-live="polite">–</p>
-        <p class="body-sm muted-tint" id="zeugnisInfo">Noch keine Noten eingetragen.</p>
-        <p class="body-sm muted-tint" id="overallInfo"></p>
+        <p class="body-sm muted-tint" id="zeugnisInfo">Trag bei deinen Fächern die Zeugnisnote ein.</p>
       </section>
 
       <section class="card nr-converter" aria-labelledby="converterTitle">
@@ -71,8 +69,8 @@
     </div>
 
     <section aria-labelledby="subjectsTitle" class="nr-subjects-section">
-      <h2 class="h3" id="subjectsTitle">Deine Fächer.</h2>
-      <div class="nr-subjects" id="subjects"></div>
+      <h2 class="h3" id="subjectsTitle">Deine Zeugnisnoten.</h2>
+      <div class="nr-subjects card" id="subjects"></div>
 
       <form class="nr-add-subject" id="addSubjectForm" novalidate>
         <label class="field">

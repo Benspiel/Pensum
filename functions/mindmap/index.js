@@ -1,9 +1,9 @@
 /* Mindmap-Generator – Appwrite-Function.
  *
- * Ruft Gemini auf und erzwingt die Tageslimits (1 Mindmap, 10 KI-Änderungen pro Nutzer).
+ * Ruft Gemini auf und erzwingt die Tageslimits (1 Mindmap, 3 KI-Änderungen pro Nutzer).
  * Der Gemini-Schlüssel steht nur hier als Umgebungsvariable GEMINI_API_KEY (nie im Repo, nie im Browser):
  *   appwrite functions create-variable --function-id mindmap --key GEMINI_API_KEY --value <schlüssel> --secret true
- * Optional: GEMINI_MODEL (Standard gemini-2.5-flash).
+ * Optional: GEMINI_MODEL (Standard gemini-3.5-flash-lite).
  * Der Schlüssel (x-appwrite-key) der Ausführung wird pro Aufruf erzeugt und gilt nur für die Rechte in appwrite.config.json. */
 "use strict";
 const http = require("http");
@@ -91,7 +91,7 @@ function database(key) {
 async function gemini(system, user) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw Object.assign(new Error("GEMINI_API_KEY fehlt"), { setup: true });
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const model = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
   const r = await request(https, new URL(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`), {
     method: "POST",
     headers: { "content-type": "application/json", "x-goog-api-key": apiKey },

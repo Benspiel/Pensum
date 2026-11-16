@@ -2,10 +2,10 @@
 
 Schüler-Toolkit: mehrere Tools unter einem gemeinsamen Login. Statische Seite (HTML, CSS, ES-Module), kein Build-Schritt.
 
-- **Notenrechner** (`/tools/notenrechner/`): gewichtete Durchschnitte, Noten 1–6 und 0–15 Punkte, Zielnote.
+- **Notenrechner** (`/tools/notenrechner/`): eine Zeugnisnote pro Fach und Halbjahr, daraus der Zeugnisdurchschnitt; Noten 1–6 oder Punkte 0–15.
 - **Goodnotes-Tool** (`/tools/goodnotes/`): Text zu Handschrift, Export als `.goodnotes` oder PDF. Logik aus [Inkly](https://github.com/Benspiel/Inkly), läuft komplett im Browser.
 
-- **Mindmap-Generator** (`/tools/mindmap/`): Gemini erstellt pro Tag eine Mindmap (nur mit Konto), die sich 10-mal mit KI und beliebig oft von Hand im Editor ändern lässt. Der Schlüssel liegt serverseitig (siehe „Mindmap-Generator einrichten“).
+- **Mindmap-Generator** (`/tools/mindmap/`): Gemini erstellt pro Tag eine Mindmap (nur mit Konto), die sich 3-mal mit KI und beliebig oft von Hand im Editor ändern lässt. Der Schlüssel liegt serverseitig (siehe „Mindmap-Generator einrichten“).
 
 Ohne Konto bleiben Daten im `localStorage`. Mit Konto liegen sie in Appwrite und sind auf allen Geräten gleich.
 
@@ -33,14 +33,17 @@ js/auth.js                 zentrale Anmeldung (eine Session für alle Tools)
 js/db.js                   Datenbank-Zugriff, Rechte pro Zeile
 js/shell.js                Nav-Pill, Footer, Login-Dialog, Toasts
 js/tools.js                Tool-Verzeichnis
+js/parallax.js             Parallax-Scrolling und Einblenden der Startseite (respektiert „Bewegung reduzieren“)
 tools/notenrechner/        core.js (Rechnen), store.js (Gast/Konto), notenrechner.js (Oberfläche)
-tools/mindmap/             tree.js (Baum, Layout), mindmap.js (Editor)
+tools/mindmap/             tree.js (Baum, Layout), hand.js (eigene Handschrift), mindmap.js (Editor)
 functions/mindmap/         Appwrite-Function: Gemini-Aufruf und Tageslimits (lib.js = Logik, index.js = Anbindung)
 tools/goodnotes/           ink-engine.js (Inkly-Logik), goodnotes.js (Oberfläche), templates.js
 konto/passwort/            Zielseite für „Passwort zurücksetzen“
 vendor/                    Appwrite-SDK, JSZip, jsPDF, Schriften (alles lokal)
 appwrite.config.json       Datenbank-Schema für `appwrite push`
 ```
+
+**Design:** Alle Seiten nutzen dieselben Bausteine aus `css/pensum.css` (Abschnitt „Gemeinsame Bausteine“): `hero-card`, `tabs`/`segmented`, `panel`, `group`/`group-row`, `chips-row`, `form-stack`. Die Bewegung (Einblenden, Hover, Fokus) ist dort ebenfalls einheitlich definiert.
 
 **Neues Tool:** Ordner `tools/<id>/` mit `index.html` und Modul anlegen, in `js/tools.js` eintragen. Login gibt es über `import { onAuthChange } from "/js/auth.js"`.
 
@@ -70,13 +73,13 @@ Schlägt der Build mit „Download failed with status 500“ fehl, liegt es am S
 
 ### Mindmap-Generator einrichten
 
-Die Function `mindmap` (`functions/mindmap/`) ruft Gemini auf und zählt die Tageslimits (1 Mindmap, 10 KI-Änderungen pro Konto und Tag, Tageswechsel um Mitternacht deutscher Zeit). Der Gemini-Schlüssel steht nur dort als geheime Umgebungsvariable, nie im Repo oder Browser. Neue Tabellen: `mindmaps` (Mindmaps, nur für den Besitzer lesbar) und `mindmap_usage` (Zähler, ohne Nutzerrechte: nur die Function liest und schreibt sie).
+Die Function `mindmap` (`functions/mindmap/`) ruft Gemini auf und zählt die Tageslimits (1 Mindmap, 3 KI-Änderungen pro Konto und Tag, Tageswechsel um Mitternacht deutscher Zeit). Der Gemini-Schlüssel steht nur dort als geheime Umgebungsvariable, nie im Repo oder Browser. Neue Tabellen: `mindmaps` (Mindmaps, nur für den Besitzer lesbar) und `mindmap_usage` (Zähler, ohne Nutzerrechte: nur die Function liest und schreibt sie).
 
 ```bash
 appwrite push table --all --force
 appwrite push function --function-id mindmap --force
 appwrite functions create-variable --function-id mindmap --key GEMINI_API_KEY --value "<dein Schlüssel aus Google AI Studio>" --secret true
-# optional anderes Modell (Standard: gemini-2.5-flash)
+# optional anderes Modell (Standard: gemini-3.5-flash-lite)
 appwrite functions create-variable --function-id mindmap --key GEMINI_MODEL --value "<modellname>"
 ```
 

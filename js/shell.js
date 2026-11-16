@@ -7,7 +7,6 @@ import * as auth from "/js/auth.js";
 export const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 const ICON = {
-  menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg>',
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>',
 };
 export const closeIcon = ICON.close;
@@ -218,10 +217,6 @@ document.addEventListener("click", (e) => {
 
 class PensumNav extends HTMLElement {
   connectedCallback() {
-    const here = location.pathname.replace(/index\.html$/, "");
-    const links = tools
-      .map((t) => `<a class="nav-link" href="${t.href}"${here.startsWith(t.href) ? ' aria-current="page"' : ""}>${esc(t.name)}</a>`)
-      .join("");
     this.innerHTML = `
       <div class="nav-wrap">
         <nav class="nav-pill" aria-label="Hauptnavigation">
@@ -229,24 +224,9 @@ class PensumNav extends HTMLElement {
             <img class="nav-logo-full" src="/assets/logo.png" width="110" height="28" alt="Pensum">
             <img class="nav-logo-mark" src="/assets/icon.png" width="32" height="32" alt="Pensum">
           </a>
-          <div class="nav-links">${links}</div>
           <div class="nav-auth" data-nav-auth aria-live="polite"><span class="nav-skeleton" aria-hidden="true"></span></div>
-          <button class="icon-btn nav-menu-btn" type="button" aria-expanded="false" aria-controls="navMenu" aria-label="Menü öffnen">${ICON.menu}</button>
         </nav>
-        <div class="nav-menu" id="navMenu" hidden>${links}</div>
       </div>`;
-
-    const btn = this.querySelector(".nav-menu-btn");
-    const menu = this.querySelector(".nav-menu");
-    const setOpen = (open) => {
-      menu.hidden = !open;
-      btn.setAttribute("aria-expanded", String(open));
-      btn.setAttribute("aria-label", open ? "Menü schließen" : "Menü öffnen");
-      btn.innerHTML = open ? ICON.close : ICON.menu;
-    };
-    btn.addEventListener("click", () => setOpen(menu.hidden));
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !menu.hidden) { setOpen(false); btn.focus(); } });
-    document.addEventListener("click", (e) => { if (!menu.hidden && !this.contains(e.target)) setOpen(false); });
 
     this._off = auth.onAuthChange((s) => this.renderAuth(s));
   }

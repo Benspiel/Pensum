@@ -2,12 +2,13 @@
  * Erstellen und KI-Änderungen laufen über die Appwrite-Function „mindmap“ (functions/mindmap): Sie hält den
  * Gemini-Schlüssel und zählt die Tageslimits. Speichern und Bearbeiten von Hand geschieht direkt in der Tabelle
  * „mindmaps“ (nur für den eigenen Benutzer lesbar). Baum und Layout: tree.js. */
-import { onAuthChange, onBeforeLogout, client, authMessage } from "/js/auth.js";
+import { onAuthChange, onBeforeLogout, client, authMessage, getPrefs, savePrefs } from "/js/auth.js";
 import { toast, confirmDialog, esc } from "/js/shell.js";
 import { Functions, ExecutionMethod } from "/vendor/appwrite.js";
 import { tablesDB, databaseId, tableIds, listAllRows, Query } from "/js/db.js";
 import { config } from "/js/config.js";
 import * as T from "./tree.js";
+import * as H from "./hand.js";
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -17,12 +18,14 @@ const els = {
   canvas: $("canvas"), svg: $("svg"), nodeText: $("nodeText"), editError: $("editError"), saveState: $("saveState"),
   addChild: $("addChild"), addSibling: $("addSibling"), moveUp: $("moveUp"), moveDown: $("moveDown"), removeNode: $("removeNode"),
   undo: $("undoBtn"), redo: $("redoBtn"), zoomIn: $("zoomIn"), zoomOut: $("zoomOut"), zoomFit: $("zoomFit"),
+  foldNode: $("foldNode"), foldAll: $("foldAll"), unfoldAll: $("unfoldAll"), fontSwitch: $("fontSwitch"), fontHint: $("fontHint"),
   aiCard: $("aiCard"), aiInfo: $("aiInfo"), aiText: $("aiText"), aiBtn: $("aiBtn"), aiError: $("aiError"),
 };
 
+// stroke/solid: kräftige Farbe (Äste, Hauptpunkte mit weißer Schrift), fill: Tönung für tiefere Ebenen
 const PALETTE = [
-  { fill: "#e5f0ff", stroke: "#0066ff" }, { fill: "#e6f5ec", stroke: "#1d8a4e" }, { fill: "#fff1da", stroke: "#c77d00" },
-  { fill: "#fdeaf0", stroke: "#cc2f65" }, { fill: "#ede8fb", stroke: "#6a43dc" }, { fill: "#e2f5f5", stroke: "#0a7f7f" },
+  { solid: "#0057d9", fill: "#e5f0ff" }, { solid: "#187a43", fill: "#e6f5ec" }, { solid: "#a86400", fill: "#fff1da" },
+  { solid: "#b92658", fill: "#fdeaf0" }, { solid: "#5a37c4", fill: "#ede8fb" }, { solid: "#0a6e6e", fill: "#e2f5f5" },
 ];
 
 const state = {
@@ -35,6 +38,9 @@ const state = {
   selectedId: null,
   past: [], future: [],      // Rückgängig-Schritte als JSON
   zoom: 1,
+  font: "standard",          // "standard" | "hand"
+  hand: null,                // eigene Handschrift (aus dem Goodnotes-Tool) oder null
+  collapsed: new Set(),      // eingeklappte Knoten (nur Ansicht, wird nicht gespeichert)
   busy: false,
   save: { timer: null, running: false, dirty: false, failed: false },
 };
@@ -59,6 +65,10 @@ function measure(text) {
   return ctx.measureText(text).width;
 }
 
+const HAND_SIZE = 19; // Schriftgröße der Handschrift in Pixeln
+const useHand = () => state.font === "hand" && !!state.hand;
+const reduceMotion = () => !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+
 /** Aufruf der Function. Wirft Error mit einer Meldung, die man anzeigen darf. */
 async function callFunction(payload) {
   let ex;
@@ -75,7 +85,10 @@ async function callFunction(payload) {
   }
   let data = null;
   try { data = JSON.parse(ex.responseBody); } catch (_) { /* kein JSON */ }
-  if (!data || !data.ok) throw new Error((data && data.error) || "Der Mindmap-Dienst antwortet gerade nicht. Versuch es später noch einmal.");
+  if (!data || !data.ok) {
+    const base = (data && data.error) || "Der Mindmap-Dienst antwortet gerade nicht. Versuch es später noch einmal.";
+    throw new Error(data && data.detail ? `${base} (Technisch: ${data.detail})` : `${base} (Technisch: Status ${ex.responseStatusCode}${ex.errors ? ", " + String(ex.errors).slice(0, 200) : ""})`);
+  }
   return data;
 }
 
@@ -112,7 +125,7 @@ function renderPanels() {
   els.aiBtn.textContent = state.busy ? "KI arbeitet …" : today ? `Mit KI ändern (${Math.max(left, 0)} übrig)` : "Mit KI ändern";
   els.aiInfo.textContent = !hasMap ? ""
     : !today ? "KI-Änderungen gibt es nur für die Mindmap von heute. Diese hier kannst du von Hand bearbeiten."
-    : left <= 0 ? "Du hast heute alle KI-Änderungen verbraucht. Morgen sind es wieder 10. Von Hand kannst du weiter ändern."
+    : left <= 0 ? "Du hast heute alle KI-Änderungen verbraucht. Morgen sind es wieder 3. Von Hand kannst du weiter ändern."
     : `Beschreib in eigenen Worten, was geändert werden soll. Heute sind noch ${left} von ${state.usage.maxEdits} Änderungen frei.`;
 
   els.createBtn.disabled = state.busy;
@@ -135,36 +148,192 @@ function renderTools() {
   els.moveDown.disabled = !has || !sel.parent || sel.index === sel.parent.children.length - 1;
   els.undo.disabled = !state.past.length;
   els.redo.disabled = !state.future.length;
+  const folded = has && state.collapsed.has(state.selectedId);
+  els.foldNode.disabled = !has || !sel.node.children.length || !sel.parent;
+  els.foldNode.textContent = folded ? "Ast ausklappen" : "Ast einklappen";
+  els.foldAll.disabled = !state.current || !T.branchIds(state.current.root).length;
+  els.unfoldAll.disabled = !state.collapsed.size;
   els.nodeText.disabled = !has;
   if (document.activeElement !== els.nodeText) els.nodeText.value = has ? sel.node.text : "";
 }
 
-function renderMap() {
-  if (!state.current) { els.svg.replaceChildren(); return; }
-  const lay = T.layout(state.current.root, measure);
-  const W = lay.width, H = lay.height;
-  els.svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  els.svg.setAttribute("width", Math.round(W * state.zoom));
-  els.svg.setAttribute("height", Math.round(H * state.zoom));
+/* ---------- Zeichnen: Elemente bleiben erhalten und gleiten an ihren neuen Platz ---------- */
 
-  const edges = lay.edges.map(({ from, to }) => {
-    const x1 = from.x + from.w, y1 = from.y + from.h / 2, x2 = to.x, y2 = to.y + to.h / 2, mx = (x1 + x2) / 2;
-    return `<path class="mm-edge" stroke="${PALETTE[to.branch % PALETTE.length].stroke}" d="M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}"/>`;
-  }).join("");
+const SVGNS = "http://www.w3.org/2000/svg";
+const svgEl = (name, attrs = {}, parent = null) => {
+  const e = document.createElementNS(SVGNS, name);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.append(e);
+  return e;
+};
+const scene = { nodes: new Map(), edges: new Map(), pos: new Map(), size: new Map(), links: [], lay: null, raf: 0, edgeLayer: null, nodeLayer: null };
 
-  const nodes = lay.nodes.map((n) => {
-    const c = n.branch < 0 ? null : PALETTE[n.branch % PALETTE.length];
-    const fill = !c ? "#141414" : n.depth === 1 ? c.fill : "#ffffff";
-    const stroke = !c ? "#141414" : c.stroke;
-    const color = !c ? "#ffffff" : "#141414";
-    const text = n.lines.map((l, i) =>
-      `<text class="mm-text" x="${n.x + n.w / 2}" y="${n.y + 9 + 18 * (i + 0.5)}" text-anchor="middle" dominant-baseline="central" fill="${color}">${esc(l)}</text>`).join("");
-    return `<g class="mm-node${n.id === state.selectedId ? " is-selected" : ""}" data-id="${esc(n.id)}" tabindex="0" role="button" aria-label="${esc(n.text || "leerer Punkt")}">` +
-      `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="14" fill="${fill}" stroke="${stroke}" stroke-width="${n.depth === 0 ? 0 : 1.5}"/>${text}` +
-      `<rect class="mm-sel" x="${n.x - 4}" y="${n.y - 4}" width="${n.w + 8}" height="${n.h + 8}" rx="17"/></g>`;
-  }).join("");
+function sceneReset() {
+  cancelAnimationFrame(scene.raf);
+  scene.nodes.clear(); scene.edges.clear(); scene.pos.clear(); scene.size.clear(); scene.links = []; scene.lay = null;
+  els.svg.replaceChildren();
+  scene.edgeLayer = svgEl("g", {}, els.svg);
+  scene.nodeLayer = svgEl("g", {}, els.svg);
+}
 
-  els.svg.innerHTML = edges + nodes;
+const ease = (t) => 1 - Math.pow(1 - t, 3);
+
+function nodeColors(n) {
+  const c = n.branch < 0 ? null : PALETTE[n.branch % PALETTE.length];
+  if (!c) return { fill: "#e8f0ff", stroke: "#0057d9", text: "#141414", sw: 2.5 };
+  if (n.depth === 1) return { fill: c.solid, stroke: c.solid, text: "#ffffff", sw: 0 };
+  return { fill: c.fill, stroke: c.solid, text: "#141414", sw: 1.5 };
+}
+
+function createNodeView(n) {
+  const g = svgEl("g", { class: "mm-node", tabindex: "0", role: "button", "data-id": n.id }, scene.nodeLayer);
+  const v = { g, id: n.id, root: n.depth === 0, textKey: "" };
+  v.shape = svgEl(v.root ? "ellipse" : "rect", { class: "mm-shape" }, g);
+  v.textG = svgEl("g", {}, g);
+  v.sel = svgEl(v.root ? "ellipse" : "rect", { class: "mm-sel" }, g);
+  v.toggle = svgEl("g", { class: "mm-toggle", "data-toggle": n.id }, g);
+  v.toggleCircle = svgEl("circle", { r: 10 }, v.toggle);
+  v.toggleText = svgEl("text", { "text-anchor": "middle", "dominant-baseline": "central" }, v.toggle);
+  return v;
+}
+
+function updateNodeView(v, n, hand) {
+  const col = nodeColors(n);
+  const { w, h } = n;
+  if (v.root) {
+    for (const [e, pad] of [[v.shape, 0], [v.sel, 5]]) { e.setAttribute("cx", w / 2); e.setAttribute("cy", h / 2); e.setAttribute("rx", w / 2 + pad); e.setAttribute("ry", h / 2 + pad); }
+  } else {
+    v.shape.setAttribute("width", w); v.shape.setAttribute("height", h); v.shape.setAttribute("rx", 14);
+    v.sel.setAttribute("x", -4); v.sel.setAttribute("y", -4); v.sel.setAttribute("width", w + 8); v.sel.setAttribute("height", h + 8); v.sel.setAttribute("rx", 17);
+  }
+  v.shape.setAttribute("fill", col.fill); v.shape.setAttribute("stroke", col.stroke); v.shape.setAttribute("stroke-width", col.sw);
+
+  // Text nur neu bauen, wenn er sich geändert hat
+  const key = [hand ? "h" : "s", n.lines.join("\n"), col.text, w, h].join("|");
+  if (key !== v.textKey) {
+    v.textKey = key;
+    v.textG.replaceChildren();
+    n.lines.forEach((line, i) => {
+      if (hand) {
+        const size = v.root ? HAND_SIZE * 1.25 : HAND_SIZE;
+        const lw = H.width(state.hand, line, size);
+        const baseline = (v.root ? (h - n.lines.length * 26) / 2 : 11) + 26 * i + size * 0.82;
+        svgEl("path", { class: "mm-ink", d: H.pathData(state.hand, line, size, (w - lw) / 2, baseline), stroke: col.text, "stroke-width": Math.max(1.4, H.strokeWidth(size) * 1.1) }, v.textG);
+      } else {
+        const textEl = svgEl("text", { class: "mm-text" + (v.root ? " is-root" : ""), x: w / 2, y: (v.root ? (h - n.lines.length * 18) / 2 : 9) + 18 * (i + 0.5), "text-anchor": "middle", "dominant-baseline": "central", fill: col.text }, v.textG);
+        textEl.textContent = line;
+      }
+    });
+  }
+
+  v.g.classList.toggle("is-selected", n.id === state.selectedId);
+  v.g.classList.toggle("is-folded", n.folded);
+  v.g.setAttribute("aria-label", (n.text || "leerer Punkt") + (n.hasKids ? (n.folded ? ", eingeklappt" : ", ausgeklappt") : ""));
+  const showToggle = n.hasKids && n.depth > 0;
+  v.toggle.style.display = showToggle ? "" : "none";
+  if (showToggle) {
+    v.toggle.setAttribute("transform", `translate(${n.side > 0 ? w + 14 : -14} ${h / 2})`);
+    v.toggleCircle.setAttribute("stroke", col.stroke === "#0057d9" ? "#0057d9" : col.stroke);
+    v.toggleText.textContent = n.folded ? `+${n.hidden}` : "−";
+    v.toggleCircle.setAttribute("r", n.folded && n.hidden > 9 ? 13 : 10);
+  }
+}
+
+function edgePath(link, pos, size) {
+  const a = pos.get(link.from), b = pos.get(link.to);
+  const sa = size.get(link.from), sb = size.get(link.to);
+  if (!a || !b || !sa || !sb) return "";
+  const out = link.side > 0;
+  const x1 = out ? a.x + sa.w : a.x, y1 = a.y + sa.h / 2;
+  const x2 = out ? b.x : b.x + sb.w, y2 = b.y + sb.h / 2;
+  const mx = (x1 + x2) / 2;
+  return `M${x1.toFixed(1)} ${y1.toFixed(1)} C${mx.toFixed(1)} ${y1.toFixed(1)} ${mx.toFixed(1)} ${y2.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+}
+
+function paintFrame(fresh, alpha) {
+  for (const [id, p] of scene.pos) {
+    const v = scene.nodes.get(id);
+    if (!v) continue;
+    v.g.setAttribute("transform", `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`);
+    if (fresh.has(id)) v.g.style.opacity = String(alpha);
+  }
+  for (const link of scene.links) {
+    const e = scene.edges.get(link.to);
+    if (e) { e.setAttribute("d", edgePath(link, scene.pos, scene.size)); if (fresh.has(link.to)) e.style.opacity = String(alpha); }
+  }
+}
+
+/** Mindmap zeichnen. Bestehende Knoten gleiten an den neuen Platz, neue wachsen aus ihrem Elternknoten heraus. */
+function renderMap({ animate = true } = {}) {
+  if (!state.current) { sceneReset(); return; }
+  if (!scene.nodeLayer || !scene.nodeLayer.isConnected) sceneReset();
+  const hand = useHand();
+  const lay = T.layout(state.current.root, hand ? (t) => H.width(state.hand, t, HAND_SIZE) : measure, hand ? T.HAND_STYLE : T.STYLE, state.collapsed);
+  scene.lay = lay;
+  const W = lay.width, H_ = lay.height;
+  els.svg.setAttribute("viewBox", `0 0 ${W} ${H_}`);
+  els.svg.style.width = Math.round(W * state.zoom) + "px";
+  els.svg.style.height = Math.round(H_ * state.zoom) + "px";
+
+  const parentOf = new Map(lay.edges.map((e) => [e.to.id, e.from.id]));
+  const fresh = new Set();
+  const target = new Map();
+  for (const n of lay.nodes) {
+    target.set(n.id, n);
+    let v = scene.nodes.get(n.id);
+    if (v && v.root !== (n.depth === 0)) { v.g.remove(); scene.nodes.delete(n.id); scene.pos.delete(n.id); v = null; }
+    if (!v) {
+      v = createNodeView(n);
+      scene.nodes.set(n.id, v);
+      const from = scene.pos.get(parentOf.get(n.id)) || n;
+      scene.pos.set(n.id, { x: from.x, y: from.y });
+      fresh.add(n.id);
+    }
+    updateNodeView(v, n, hand);
+    scene.size.set(n.id, { w: n.w, h: n.h });
+  }
+  for (const [id, v] of [...scene.nodes]) {
+    if (target.has(id)) continue;
+    v.g.remove(); scene.nodes.delete(id); scene.pos.delete(id); scene.size.delete(id);
+  }
+
+  scene.links = lay.edges.map((e) => ({ from: e.from.id, to: e.to.id, side: e.to.side }));
+  const wantEdges = new Set(scene.links.map((l) => l.to));
+  for (const [id, e] of [...scene.edges]) if (!wantEdges.has(id)) { e.remove(); scene.edges.delete(id); }
+  for (const e of lay.edges) {
+    let path = scene.edges.get(e.to.id);
+    if (!path) { path = svgEl("path", { class: "mm-edge" }, scene.edgeLayer); scene.edges.set(e.to.id, path); fresh.add(e.to.id); }
+    const col = PALETTE[e.to.branch % PALETTE.length].solid;
+    path.setAttribute("stroke", col);
+    path.setAttribute("stroke-width", e.to.depth === 1 ? 5 : e.to.depth === 2 ? 3.5 : 2.5);
+  }
+
+  // Bewegung
+  cancelAnimationFrame(scene.raf);
+  const start = new Map([...scene.pos].map(([id, p]) => [id, { x: p.x, y: p.y }]));
+  const moves = [...target].some(([id, n]) => { const s = start.get(id); return !s || Math.abs(s.x - n.x) > 0.5 || Math.abs(s.y - n.y) > 0.5; });
+  const settle = () => {
+    for (const [id, n] of target) scene.pos.set(id, { x: n.x, y: n.y });
+    paintFrame(fresh, 1);
+    for (const id of fresh) { const v = scene.nodes.get(id); if (v) v.g.style.opacity = ""; const e = scene.edges.get(id); if (e) e.style.opacity = ""; }
+  };
+  if (!animate || reduceMotion() || (!moves && !fresh.size)) { settle(); return; }
+  const t0 = performance.now(), dur = 340;
+  const tick = (now) => {
+    const t = Math.min(1, (now - t0) / dur), k = ease(t);
+    for (const [id, n] of target) {
+      const s = start.get(id) || n;
+      scene.pos.set(id, { x: s.x + (n.x - s.x) * k, y: s.y + (n.y - s.y) * k });
+    }
+    paintFrame(fresh, k);
+    if (t < 1) scene.raf = requestAnimationFrame(tick); else settle();
+  };
+  scene.raf = requestAnimationFrame(tick);
+}
+
+/** Nur die Auswahl hervorheben, ohne neu zu zeichnen. */
+function markSelection() {
+  for (const [id, v] of scene.nodes) v.g.classList.toggle("is-selected", id === state.selectedId);
 }
 
 function renderAll() {
@@ -220,7 +389,7 @@ function applyChange(result, { coalesce = null, select = true } = {}) {
   state.future = [];
   state.current.root = result.root;
   state.current.topic = result.root.text;
-  if (select) state.selectedId = result.selectId || state.selectedId;
+  if (select) { state.selectedId = result.selectId || state.selectedId; reveal(state.selectedId); }
   saveSoon();
   renderMap(); renderTools(); renderPicker();
   return true;
@@ -238,23 +407,38 @@ function stepHistory(from, to) {
 }
 
 const selected = () => state.current && state.selectedId;
+const viewOf = (id) => scene.nodes.get(id);
+
+/** Klappt alle Vorfahren eines Knotens auf, damit er sichtbar ist. */
+function reveal(id) {
+  for (const a of T.ancestors(state.current.root, id)) state.collapsed.delete(a);
+}
 
 function select(id, { scroll = true } = {}) {
   state.selectedId = id;
-  renderMap(); renderTools();
-  if (scroll) els.svg.querySelector(`[data-id="${CSS.escape(id)}"]`)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  if (state.collapsed.size) reveal(id);
+  renderMap(); markSelection(); renderTools();
+  if (scroll) viewOf(id)?.g.scrollIntoView({ block: "nearest", inline: "nearest", behavior: reduceMotion() ? "auto" : "smooth" });
 }
 
-function setZoom(z) {
-  state.zoom = Math.min(2, Math.max(0.3, z));
-  renderMap();
+function setZoom(z, { keep = true } = {}) {
+  const old = state.zoom;
+  state.zoom = Math.min(2.5, Math.max(0.25, z));
+  // Zoom um die Mitte des sichtbaren Bereichs, damit man nicht den Faden verliert
+  if (keep && old !== state.zoom) {
+    const c = els.canvas, f = state.zoom / old;
+    const cx = (c.scrollLeft + c.clientWidth / 2) * f - c.clientWidth / 2, cy = (c.scrollTop + c.clientHeight / 2) * f - c.clientHeight / 2;
+    renderMap({ animate: false });
+    requestAnimationFrame(() => { c.scrollLeft = Math.max(0, cx); c.scrollTop = Math.max(0, cy); });
+  } else renderMap({ animate: false });
 }
 
 function fitZoom() {
   if (!state.current) return;
-  const lay = T.layout(state.current.root, measure);
+  renderMap({ animate: false });
+  const lay = scene.lay;
   const z = Math.min(1, (els.canvas.clientWidth - 4) / lay.width, (els.canvas.clientHeight - 4) / lay.height);
-  setZoom(Math.max(0.3, Math.floor(z * 20) / 20));
+  setZoom(Math.max(0.25, Math.floor(z * 20) / 20), { keep: false });
   els.canvas.scrollTo(0, 0);
 }
 
@@ -268,8 +452,10 @@ async function openMap(id) {
     if (!root) throw new Error("Die Mindmap ist beschädigt.");
     state.current = { id: row.$id, day: row.day, topic: row.topic, root };
     state.selectedId = root.id;
+    state.collapsed = T.autoCollapse(root);
     state.past = []; state.future = [];
     showMessage(els.editError, "");
+    sceneReset();
     renderAll();
     fitZoom();
   } catch (e) {
@@ -280,6 +466,16 @@ async function openMap(id) {
 async function start(user) {
   state.user = user;
   state.current = null; state.list = []; state.usage = null; state.serviceError = "";
+  state.font = getPrefs().mmFont === "hand" ? "hand" : "standard";
+  state.hand = null;
+  renderFont();
+  H.loadHand(user.$id).then((hand) => {
+    if (state.user !== user) return;
+    state.hand = hand;
+    if (!hand && state.font === "hand") state.font = "standard";
+    renderFont();
+    if (state.current) { sceneReset(); renderMap({ animate: false }); markSelection(); }
+  }).catch((e) => console.warn("Handschrift nicht geladen", e));
   const [status, rows] = await Promise.allSettled([
     callFunction({ action: "status" }),
     listAllRows(tableIds.mindmaps, [Query.equal("userId", user.$id), Query.orderDesc("$createdAt"), Query.select(["$id", "day", "topic"])]),
@@ -329,7 +525,9 @@ els.createForm.addEventListener("submit", (e) => {
     await flushSave();
     state.current = { id: r.id, day: r.day, topic: r.topic, root: T.sanitize(r.map) };
     state.selectedId = state.current.root.id;
+    state.collapsed = T.autoCollapse(state.current.root);
     state.past = []; state.future = [];
+    sceneReset();
     renderAll();
     fitZoom();
     toast("Mindmap erstellt.");
@@ -383,6 +581,14 @@ els.redo.addEventListener("click", () => stepHistory(state.future, state.past));
 els.zoomIn.addEventListener("click", () => setZoom(state.zoom + 0.15));
 els.zoomOut.addEventListener("click", () => setZoom(state.zoom - 0.15));
 els.zoomFit.addEventListener("click", fitZoom);
+els.foldNode.addEventListener("click", () => { if (selected()) toggleFold(state.selectedId); });
+els.foldAll.addEventListener("click", () => {
+  if (!state.current) return;
+  state.collapsed = new Set(T.branchIds(state.current.root));
+  state.selectedId = state.current.root.id;
+  renderMap(); renderTools();
+});
+els.unfoldAll.addEventListener("click", () => { state.collapsed.clear(); renderMap(); renderTools(); });
 
 function focusText() { els.nodeText.focus(); els.nodeText.select(); }
 
@@ -402,31 +608,79 @@ els.nodeText.addEventListener("keydown", (e) => {
   if (e.key === "Enter" || e.key === "Escape") { e.preventDefault(); els.nodeText.blur(); els.svg.querySelector(`[data-id="${CSS.escape(state.selectedId)}"]`)?.focus(); }
 });
 
+function toggleFold(id) {
+  if (!state.current) return;
+  const hit = T.find(state.current.root, id);
+  if (!hit || !hit.parent || !hit.node.children.length) return;
+  if (state.collapsed.has(id)) state.collapsed.delete(id);
+  else {
+    state.collapsed.add(id);
+    // liegt die Auswahl im eingeklappten Ast, wandert sie auf den Ast selbst
+    if (state.selectedId !== id && T.find(hit.node, state.selectedId)) state.selectedId = id;
+  }
+  renderMap(); renderTools();
+}
+
 els.svg.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-toggle]");
+  if (t) { e.stopPropagation(); toggleFold(t.dataset.toggle); return; }
   const g = e.target.closest(".mm-node");
   if (g) select(g.dataset.id, { scroll: false });
 });
-els.svg.addEventListener("dblclick", (e) => { if (e.target.closest(".mm-node")) focusText(); });
+els.svg.addEventListener("dblclick", (e) => { if (e.target.closest(".mm-node") && !e.target.closest("[data-toggle]")) focusText(); });
 els.svg.addEventListener("keydown", (e) => {
   const g = e.target.closest(".mm-node");
   if (!g || !state.current) return;
   const hit = T.find(state.current.root, g.dataset.id);
   if (!hit) return;
-  const go = (n) => { if (!n) return; e.preventDefault(); select(n.id); els.svg.querySelector(`[data-id="${CSS.escape(n.id)}"]`)?.focus(); };
+  const go = (n) => { if (!n) return false; e.preventDefault(); select(n.id); viewOf(n.id)?.g.focus(); return true; };
   const sibs = hit.parent ? hit.parent.children : [];
+  const sideOf = (id) => (scene.lay && scene.lay.nodes.find((n) => n.id === id) || { side: 1 }).side;
+  const outward = (n) => {          // Richtung nach außen: Äste auf der linken Seite wachsen nach links
+    const side = hit.parent ? sideOf(n.id) : 0;
+    return side;
+  };
+  const sd = outward(hit.node);
+  const first = (side) => hit.node.children.find((c) => sideOf(c.id) === side) || hit.node.children[0];
+  const goOut = () => {
+    if (hit.parent && state.collapsed.has(hit.node.id)) { toggleFold(hit.node.id); return true; }
+    return go(hit.parent ? hit.node.children[0] : first(e.key === "ArrowLeft" ? -1 : 1));
+  };
   switch (e.key) {
-    case "ArrowLeft": go(hit.parent); break;
-    case "ArrowRight": go(hit.node.children[0]); break;
+    case "ArrowLeft": if (!hit.parent ? goOut() : sd < 0 ? goOut() : go(hit.parent)) break; break;
+    case "ArrowRight": if (!hit.parent ? goOut() : sd < 0 ? go(hit.parent) : goOut()) break; break;
     case "ArrowUp": go(sibs[hit.index - 1]); break;
     case "ArrowDown": go(sibs[hit.index + 1]); break;
     case "Enter": case "F2": e.preventDefault(); select(g.dataset.id); focusText(); break;
     case " ": e.preventDefault(); select(g.dataset.id); break;
     case "Delete": case "Backspace":
-      if (hit.parent) { e.preventDefault(); applyChange(T.remove(state.current.root, g.dataset.id)); els.svg.querySelector(`[data-id="${CSS.escape(state.selectedId)}"]`)?.focus(); }
+      if (hit.parent) { e.preventDefault(); applyChange(T.remove(state.current.root, g.dataset.id)); viewOf(state.selectedId)?.g.focus(); }
       break;
     default:
   }
 });
+
+/* Fläche verschieben (Maus) und mit Strg/⌘ + Mausrad zoomen; auf Touchgeräten scrollt und zoomt der Browser selbst */
+let pan = null;
+els.svg.addEventListener("pointerdown", (e) => {
+  if (e.pointerType !== "mouse" || e.button !== 0 || e.target.closest(".mm-node")) return;
+  pan = { x: e.clientX, y: e.clientY, left: els.canvas.scrollLeft, top: els.canvas.scrollTop };
+  els.canvas.classList.add("is-panning");
+  els.svg.setPointerCapture(e.pointerId);
+});
+els.svg.addEventListener("pointermove", (e) => {
+  if (!pan) return;
+  els.canvas.scrollLeft = pan.left - (e.clientX - pan.x);
+  els.canvas.scrollTop = pan.top - (e.clientY - pan.y);
+});
+const endPan = () => { pan = null; els.canvas.classList.remove("is-panning"); };
+els.svg.addEventListener("pointerup", endPan);
+els.svg.addEventListener("pointercancel", endPan);
+els.canvas.addEventListener("wheel", (e) => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  e.preventDefault();
+  setZoom(state.zoom * (e.deltaY < 0 ? 1.1 : 0.9));
+}, { passive: false });
 
 document.addEventListener("keydown", (e) => {
   if (!state.current || !(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "z") return;
@@ -439,7 +693,27 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) flush
 window.addEventListener("pagehide", () => { flushSave(); });
 onBeforeLogout(flushSave);
 
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { ctx = null; if (state.current) renderMap(); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { ctx = null; if (state.current && !useHand()) { sceneReset(); renderMap({ animate: false }); markSelection(); } });
+
+/* ---------- Schrift: Standard oder eigene Handschrift ---------- */
+
+function renderFont() {
+  const handBtn = els.fontSwitch.querySelector('[data-font="hand"]');
+  handBtn.disabled = !state.hand;
+  els.fontSwitch.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.font === state.font)));
+  els.fontHint.innerHTML = state.hand ? "" : 'Noch keine Handschrift hinterlegt. <a href="/tools/goodnotes/">Im Goodnotes-Tool anlegen</a>, dann kannst du sie hier nutzen.';
+}
+
+els.fontSwitch.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-font]");
+  if (!b || b.disabled || b.dataset.font === state.font) return;
+  state.font = b.dataset.font;
+  savePrefs({ mmFont: state.font });
+  renderFont();
+  sceneReset();           // Text neu setzen, die andere Schrift braucht andere Größen
+  fitZoom();
+  markSelection();
+});
 
 /* ---------- Start ---------- */
 

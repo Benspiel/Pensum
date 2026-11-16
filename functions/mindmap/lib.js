@@ -6,7 +6,7 @@
 "use strict";
 const crypto = require("crypto");
 
-const LIMITS = { created: 1, edits: 10 };
+const LIMITS = { created: 1, edits: 3 };
 const MAP = { nodes: 80, depth: 5, children: 10, text: 80 };
 const INPUT = { topic: 120, notes: 500, instruction: 500 };
 
@@ -161,7 +161,9 @@ async function handle({ body, userId }, deps) {
   } catch (e) {
     if (e instanceof UserError) return fail(e);
     deps.error("Mindmap fehlgeschlagen: " + (e && e.message));
-    return fail(new UserError("Das hat gerade nicht geklappt. Versuch es später noch einmal. Dieser Versuch wurde nicht gezählt.", 500, "server"));
+    const out = fail(new UserError("Das hat gerade nicht geklappt. Versuch es später noch einmal. Dieser Versuch wurde nicht gezählt.", 500, "server"));
+    out.json.detail = String((e && e.message) || e).replace(/\s+/g, " ").slice(0, 300); // technische Ursache zur Fehlersuche, ohne Schlüssel
+    return out;
   }
 }
 

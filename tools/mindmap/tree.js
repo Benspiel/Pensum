@@ -102,9 +102,45 @@ export function move(root, id, dir) {
   return { root: next, selectId: id };
 }
 
-/* ---------- Layout: Thema links, Äste nach rechts ---------- */
+/* ---------- Layout: Thema in der Mitte, Äste links und rechts rundherum ---------- */
 
-export const STYLE = { maxW: 200, minW: 56, lineH: 18, padX: 14, padY: 9, gapX: 56, gapY: 12, margin: 20 };
+export const STYLE = { maxW: 200, minW: 56, lineH: 18, padX: 14, padY: 9, gapX: 56, gapY: 12, margin: 28, rootPadX: 20, rootPadY: 10 };
+/** Etwas größer und luftiger für die eigene Handschrift. */
+export const HAND_STYLE = { maxW: 230, minW: 64, lineH: 26, padX: 16, padY: 11, gapX: 60, gapY: 14 };
+
+/** Alle Vorfahren eines Knotens (ohne ihn selbst), vom Thema abwärts. */
+export function ancestors(root, id) {
+  const path = [];
+  const walk = (n) => {
+    if (n.id === id) return true;
+    for (const c of n.children) if (walk(c)) { path.unshift(n.id); return true; }
+    return false;
+  };
+  const found = walk(root);
+  if (!found) return [];
+  // path wurde von unten nach oben aufgebaut: Reihenfolge Thema → Elternknoten
+  return path;
+}
+
+/** Bei großen Mindmaps starten die Äste ab der dritten Ebene eingeklappt, damit man den Überblick behält. */
+export function autoCollapse(root, limit = 45) {
+  const set = new Set();
+  if (countNodes(root) <= limit) return set;
+  const walk = (n, depth) => {
+    if (depth === 2 && n.children.length) set.add(n.id);
+    else n.children.forEach((c) => walk(c, depth + 1));
+  };
+  walk(root, 0);
+  return set;
+}
+
+/** Alle Knoten mit Unterpunkten ab Ebene 1 (für „Alles einklappen“). */
+export function branchIds(root, fromDepth = 1) {
+  const out = [];
+  const walk = (n, depth) => { if (depth >= fromDepth && n.children.length) out.push(n.id); n.children.forEach((c) => walk(c, depth + 1)); };
+  walk(root, 0);
+  return out;
+}
 
 /** Bricht Text in Zeilen von höchstens maxWidth Pixeln (zu lange Wörter werden getrennt). */
 export function wrap(text, measure, maxWidth) {
@@ -130,41 +166,92 @@ export function wrap(text, measure, maxWidth) {
   return lines.length ? lines : [""];
 }
 
-/** @returns {{ nodes: object[], edges: {from: object, to: object}[], width: number, height: number }} */
-export function layout(root, measure, style = STYLE) {
+/**
+ * Das Thema steht in der Mitte. Die ersten Äste (im Uhrzeigersinn) gehen nach rechts, der Rest nach links,
+ * so verteilt, dass beide Seiten etwa gleich hoch werden. Unterpunkte wachsen immer weiter nach außen.
+ * @returns {{ nodes: object[], edges: object[], width: number, height: number }}
+ */
+export function layout(root, measure, style = STYLE, collapsed = new Set()) {
   const S = { ...STYLE, ...style };
-  const nodes = [];
-  const colW = [];
 
-  const build = (n, depth, branch) => {
+  // 1. Größen und Teilbaum-Höhen (noch ohne Seite)
+  const size = (n, depth) => {
     const lines = wrap(n.text || " ", measure, S.maxW - 2 * S.padX);
-    const w = Math.max(S.minW, Math.ceil(Math.max(...lines.map(measure))) + 2 * S.padX);
-    const h = lines.length * S.lineH + 2 * S.padY;
-    colW[depth] = Math.max(colW[depth] || 0, w);
-    const item = { id: n.id, text: n.text, lines, w, h, depth, branch, x: 0, y: 0, kids: [] };
-    item.kids = n.children.map((c, i) => build(c, depth + 1, depth === 0 ? i : branch));
-    const kidsH = item.kids.reduce((s, k) => s + k.block, 0) + S.gapY * Math.max(0, item.kids.length - 1);
-    item.block = Math.max(h, kidsH);
-    item.kidsH = kidsH;
-    nodes.push(item);
-    return item;
+    let w = Math.max(S.minW, Math.ceil(Math.max(...lines.map(measure))) + 2 * S.padX);
+    let h = lines.length * S.lineH + 2 * S.padY;
+    if (depth === 0) { w = Math.max(132, w + 2 * S.rootPadX); h += 2 * S.rootPadY; } // das Thema ist eine Ellipse
+    const folded = depth > 0 && collapsed.has(n.id) && n.children.length > 0;
+    const kids = folded ? [] : n.children.map((c) => size(c, depth + 1));
+    const kidsH = kids.reduce((t, k) => t + k.block, 0) + S.gapY * Math.max(0, kids.length - 1);
+    return {
+      id: n.id, text: n.text, lines, w, h, kids, kidsH, block: Math.max(h, kidsH), depth, x: 0, y: 0, side: 0, branch: -1,
+      hasKids: n.children.length > 0, folded, hidden: folded ? countNodes(n) - 1 : 0,
+    };
   };
-  const top = build(root, 0, -1);
+  const top = size(root, 0);
 
-  const xs = [];
-  colW.reduce((x, w, d) => { xs[d] = x; return x + w + S.gapX; }, S.margin);
+  // 2. Äste auf die Seiten verteilen
+  const stackH = (list) => list.reduce((t, k) => t + k.block, 0) + S.gapY * Math.max(0, list.length - 1);
+  const half = stackH(top.kids) / 2;
+  const right = [];
+  let acc = 0;
+  for (const k of top.kids) {
+    if (right.length && acc >= half) break;
+    right.push(k);
+    acc += k.block + S.gapY;
+  }
+  const left = top.kids.slice(right.length).reverse(); // im Uhrzeigersinn: links läuft von unten nach oben
+  top.kids.forEach((k, i) => tag(k, i));
+  function tag(item, branch) { item.branch = branch; item.kids.forEach((k) => tag(k, branch)); }
+  right.forEach((k) => mark(k, 1));
+  left.forEach((k) => mark(k, -1));
+  function mark(item, side) { item.side = side; item.kids.forEach((k) => mark(k, side)); }
 
+  // 3. Spaltenbreiten je Seite und Ebene
+  const colW = { 1: [], "-1": [] };
+  const widen = (item) => { colW[item.side][item.depth] = Math.max(colW[item.side][item.depth] || 0, item.w); item.kids.forEach(widen); };
+  top.kids.forEach(widen);
+
+  const rw = top.w;
+  const off = { 1: [], "-1": [] };
+  for (const side of [1, -1]) {
+    let x = rw / 2 + S.gapX;
+    for (let d = 1; d < colW[side].length; d++) { off[side][d] = x; x += (colW[side][d] || 0) + S.gapX; }
+  }
+
+  // 4. Plätze vergeben (Thema bei x = 0, y = 0)
   const place = (item, blockTop) => {
-    item.x = xs[item.depth];
+    item.x = item.side > 0 ? off[1][item.depth] : -off[-1][item.depth] - item.w;
     item.y = blockTop + item.block / 2 - item.h / 2;
     let y = blockTop + (item.block - item.kidsH) / 2;
     for (const k of item.kids) { place(k, y); y += k.block + S.gapY; }
   };
-  place(top, S.margin);
+  for (const list of [right, left]) {
+    let y = -stackH(list) / 2;
+    for (const k of list) { place(k, y); y += k.block + S.gapY; }
+  }
+  top.x = -top.w / 2;
+  top.y = -top.h / 2;
+
+  // 5. Alle Knoten einsammeln, in den positiven Bereich schieben, Linien berechnen
+  const nodes = [];
+  const collect = (item) => { nodes.push(item); item.kids.forEach(collect); };
+  collect(top);
+  const minX = Math.min(...nodes.map((n) => n.x)), maxX = Math.max(...nodes.map((n) => n.x + n.w));
+  const minY = Math.min(...nodes.map((n) => n.y)), maxY = Math.max(...nodes.map((n) => n.y + n.h));
+  for (const n of nodes) { n.x += S.margin - minX; n.y += S.margin - minY; }
 
   const edges = [];
-  for (const item of nodes) for (const k of item.kids) edges.push({ from: item, to: k });
+  for (const parent of nodes) {
+    for (const kid of parent.kids) {
+      const out = kid.side > 0;
+      edges.push({
+        from: parent, to: kid,
+        x1: out ? parent.x + parent.w : parent.x, y1: parent.y + parent.h / 2,
+        x2: out ? kid.x : kid.x + kid.w, y2: kid.y + kid.h / 2,
+      });
+    }
+  }
   nodes.sort((a, b) => a.depth - b.depth);
-  const width = xs[colW.length - 1] + colW[colW.length - 1] + S.margin;
-  return { nodes, edges, width, height: top.block + 2 * S.margin };
+  return { nodes, edges, width: maxX - minX + 2 * S.margin, height: maxY - minY + 2 * S.margin };
 }

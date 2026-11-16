@@ -1,6 +1,6 @@
 /* Konto verwalten: Profil, Zugangsdaten, Sitzungen, Datenexport, Löschen. */
 import { Functions, ExecutionMethod } from "/vendor/appwrite.js";
-import { client, account, onAuthChange, refresh, logout, authMessage } from "/js/auth.js";
+import { client, account, onAuthChange, refresh, logout, authMessage, initials } from "/js/auth.js";
 import { tablesDB, databaseId, tableIds, listAllRows, Query } from "/js/db.js";
 import { config } from "/js/config.js";
 import { toast, confirmDialog, esc } from "/js/shell.js";
@@ -35,10 +35,29 @@ async function run(form, fn, success) {
 /* ---------- Profil ---------- */
 
 function renderProfile() {
+  const label = user.name || user.email;
+  $("accAvatar").textContent = initials(user);
+  $("accName").textContent = label;
   $("accEmail").textContent = user.email;
-  $("accVerified").textContent = user.emailVerification ? "Die Adresse ist bestätigt." : "Die Adresse ist noch nicht bestätigt.";
-  $("nameForm").elements.name.value = user.name || "";
+  $("accVerified").textContent = user.emailVerification ? "E-Mail bestätigt" : "E-Mail nicht bestätigt";
+  $("valName").textContent = user.name || "Nicht festgelegt";
+  $("valEmail").textContent = user.email;
+  if (document.activeElement !== $("nameForm").elements.name) $("nameForm").elements.name.value = user.name || "";
 }
+
+/* ---------- Bereiche (Profil / Sicherheit / Daten) ---------- */
+
+function showTab(name) {
+  const known = ["profil", "sicherheit", "daten"].includes(name) ? name : "profil";
+  document.querySelectorAll("[data-panel]").forEach((p) => { p.hidden = p.dataset.panel !== known; });
+  document.querySelectorAll("#accTabs [data-tab]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.tab === known)));
+  return known;
+}
+$("accTabs").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-tab]");
+  if (b) history.replaceState(null, "", "#" + showTab(b.dataset.tab));
+});
+showTab(location.hash.slice(1));
 
 $("nameForm").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -87,7 +106,7 @@ async function loadSessions() {
   list.innerHTML = sessions.map((s) => {
     const what = [s.clientName, s.osName].filter(Boolean).join(" auf ") || s.provider || "Unbekanntes Gerät";
     const where = [s.countryName, s.ip].filter(Boolean).join(" · ");
-    return `<li class="acc-item">
+    return `<li class="plain-list-item">
       <span><strong>${esc(what)}</strong>${s.current ? " (dieses Gerät)" : ""}<small>Angemeldet ${esc(when(s.$createdAt))}${where ? " · " + esc(where) : ""}</small></span>
       ${s.current ? "" : `<button class="btn btn-outline btn-sm" type="button" data-end="${esc(s.$id)}">Beenden</button>`}
     </li>`;
@@ -128,7 +147,9 @@ async function loadCounts() {
   const msg = $("dataMsg");
   try {
     const [s, g, h, m] = await Promise.all([ownRows(tableIds.subjects), ownRows(tableIds.grades), ownRows(tableIds.handwriting), ownRows(tableIds.mindmaps)]);
-    $("dataCount").textContent = `Gespeichert: ${s.length} ${s.length === 1 ? "Fach" : "Fächer"}, ${g.length} ${g.length === 1 ? "Note" : "Noten"}, ${h.length ? "Handschrift-Profil vorhanden" : "kein Handschrift-Profil"}, ${m.length} ${m.length === 1 ? "Mindmap" : "Mindmaps"}.`;
+    const stat = (n, one, many) => `<span class="chip-stat"><strong>${n}</strong> ${n === 1 ? one : many}</span>`;
+    $("dataCount").innerHTML = stat(s.length, "Fach", "Fächer") + stat(g.length, "Note", "Noten") + stat(m.length, "Mindmap", "Mindmaps") +
+      `<span class="chip-stat">${h.length ? "Handschrift-Profil vorhanden" : "Kein Handschrift-Profil"}</span>`;
     msg.hidden = true;
     return { subjects: s, grades: g, handwriting: h, mindmaps: m };
   } catch (e) {
