@@ -33,6 +33,14 @@ export const tools = [
     icon: icon('<circle cx="12" cy="12" r="2.5"/><circle cx="4.5" cy="6" r="1.8"/><circle cx="4.5" cy="18" r="1.8"/><circle cx="19.5" cy="6" r="1.8"/><circle cx="19.5" cy="18" r="1.8"/><path d="M6 7l4.2 3.6M6 17l4.2-3.6M18 7l-4.2 3.6M18 17l-4.2-3.6"/>'),
     badge: "Neu",
   },
+  {
+    id: "spiele",
+    name: "Spiele",
+    href: "/tools/spiele/",
+    description: "2048, Snake, Tetris und Minesweeper für die Pause. Läuft im Browser, Bestwerte bleiben auf deinem Gerät.",
+    icon: icon('<rect x="2.5" y="7" width="19" height="11" rx="5.5"/><path d="M8 10.5v4M6 12.5h4"/><circle cx="15.5" cy="11.5" r="1"/><circle cx="18" cy="14" r="1"/>'),
+    badge: "Neu",
+  },
 ];
 
 export const toolById = (id) => tools.find((t) => t.id === id);
