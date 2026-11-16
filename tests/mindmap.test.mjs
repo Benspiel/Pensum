@@ -203,6 +203,7 @@ test("Fehlversuche zählen nicht: Rückgabe bei KI-Fehler, Datenbankfehler und k
   const r = await run(env, { action: "refine", instruction: "x", map: { text: "T", children: [{ text: "a" }] } });
   assert.equal(r.status, 500);
   assert.ok(!/Gemini/.test(r.json.error), "interne Fehlertexte bleiben im Log");
+  assert.match(r.json.detail, /Gemini 500/);                 // Ursache kommt separat zur Fehlersuche mit
   assert.equal((await run(env, { action: "status" })).json.usage.edits, 0);
 });
 

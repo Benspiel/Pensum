@@ -161,7 +161,9 @@ async function handle({ body, userId }, deps) {
   } catch (e) {
     if (e instanceof UserError) return fail(e);
     deps.error("Mindmap fehlgeschlagen: " + (e && e.message));
-    return fail(new UserError("Das hat gerade nicht geklappt. Versuch es später noch einmal. Dieser Versuch wurde nicht gezählt.", 500, "server"));
+    const out = fail(new UserError("Das hat gerade nicht geklappt. Versuch es später noch einmal. Dieser Versuch wurde nicht gezählt.", 500, "server"));
+    out.json.detail = String((e && e.message) || e).replace(/\s+/g, " ").slice(0, 300); // technische Ursache zur Fehlersuche, ohne Schlüssel
+    return out;
   }
 }
 
