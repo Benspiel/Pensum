@@ -19,6 +19,14 @@ export const tools = [
     badge: "Neu",
   },
   {
+    id: "karteikarten",
+    name: "Karteikarten",
+    href: "/tools/karteikarten/",
+    description: "Bis zu 5 Stapel mit Vorder- und Rückseite. Lerne mit 5 Leveln oder der Reihe nach, zum Umdrehen oder als schriftlicher Test.",
+    icon: icon('<rect x="3" y="6" width="14" height="12" rx="2.5"/><path d="M7 3h12a2 2 0 0 1 2 2v10"/>'),
+    badge: "Neu",
+  },
+  {
     id: "goodnotes",
     name: "Goodnotes-Tool",
     href: "/tools/goodnotes/",

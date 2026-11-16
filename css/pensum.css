@@ -796,3 +796,41 @@ body.home pensum-nav { position: relative; z-index: 20; }
 .tool-card-off .squircle, .tool-card-off h3, .tool-card-off p { opacity: 0.45; filter: grayscale(1); }
 .tool-card-off .tool-card-foot { color: var(--muted); }
 .footer-soon { display: block; min-height: 44px; padding-block: 10px; color: var(--faint); opacity: 0.6; cursor: default; font-size: 14px; line-height: 1.43; }
+
+/* ---------- Dunkler Modus ---------- */
+
+:root { color-scheme: light; }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #f2f2f2;
+  --ink-soft: #d9d9d9;
+  --muted: #a3a3a3;
+  --muted-on-tint: #a8a8a8;
+  --faint: #7d7d7d;
+  --canvas: #121212;
+  --canvas-soft: #1d1d1d;
+  --field: #262626;
+  --hairline-soft: #242424;
+  --hairline: #333333;
+  --accent: #3d8bff;
+  --on-primary: #141414;
+}
+:root[data-theme="dark"] .select,
+:root[data-theme="dark"] .faq-row summary::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none' stroke='%23f2f2f2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 7.5 5 5 5-5'/%3E%3C/svg%3E");
+}
+:root[data-theme="dark"] .nav-logo-full { content: url(/assets/logo-light.png); }
+:root[data-theme="dark"] .footer { background: var(--canvas-soft); color: var(--ink); }
+:root[data-theme="dark"] .footer-col h2 { color: var(--ink); }
+:root[data-theme="dark"] .footer-col a:hover, :root[data-theme="dark"] .footer-col button:hover { color: var(--ink); }
+:root[data-theme="dark"] .footer :focus-visible { outline-color: var(--ink); }
+:root[data-theme="dark"] dialog.modal::backdrop { background: rgba(0, 0, 0, 0.65); }
+:root[data-theme="dark"] .skip-link:focus { outline-color: var(--canvas); }
+
+/* Umschalter in der Nav */
+.theme-toggle { color: var(--ink); }
+.theme-toggle svg { width: 20px; height: 20px; }
+.theme-toggle .i-sun { display: none; }
+:root[data-theme="dark"] .theme-toggle .i-sun { display: block; }
+:root[data-theme="dark"] .theme-toggle .i-moon { display: none; }
+.nav-pill .theme-toggle { margin-left: var(--s-xs); }
