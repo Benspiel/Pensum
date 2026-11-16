@@ -66,6 +66,10 @@
             </label>
             <button class="btn btn-outline btn-sm" type="button" id="deleteMap" hidden>Löschen</button>
           </div>
+          <div class="mm-export" role="group" aria-label="Exportieren">
+            <button class="btn btn-outline btn-sm" type="button" id="exportPng">Als Bild (PNG)</button>
+            <button class="btn btn-outline btn-sm" type="button" id="exportPdf">Als PDF</button>
+          </div>
         </div>
 
         <div class="mm-toolbar panel on-tint" role="toolbar" aria-label="Mindmap bearbeiten">
@@ -99,6 +103,15 @@
               <button type="button" data-font="hand" aria-pressed="false">Eigene Handschrift</button>
             </div>
             <p class="field-hint" id="fontHint"></p>
+          </div>
+          <div class="mm-font">
+            <span class="field-label" id="inkLabel">Farbe</span>
+            <div class="mm-inks" id="inkSwitch" role="group" aria-labelledby="inkLabel">
+              <button class="mm-ink-dot" type="button" data-ink="#0b5fc7" style="--c:#0b5fc7" aria-label="Blau" aria-pressed="true"></button>
+              <button class="mm-ink-dot" type="button" data-ink="#262626" style="--c:#262626" aria-label="Schwarz" aria-pressed="false"></button>
+              <button class="mm-ink-dot" type="button" data-ink="#0f6b4f" style="--c:#0f6b4f" aria-label="Grün" aria-pressed="false"></button>
+              <button class="mm-ink-dot" type="button" data-ink="#9b1c31" style="--c:#9b1c31" aria-label="Rot" aria-pressed="false"></button>
+            </div>
           </div>
           <span class="mm-save body-sm muted" id="saveState" role="status"></span>
         </div>

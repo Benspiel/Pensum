@@ -102,11 +102,17 @@ export function move(root, id, dir) {
   return { root: next, selectId: id };
 }
 
-/* ---------- Layout: Thema in der Mitte, Äste links und rechts rundherum ---------- */
+/* ---------- Darstellung: Maße und Hilfen ---------- */
 
-export const STYLE = { maxW: 200, minW: 56, lineH: 18, padX: 14, padY: 9, gapX: 56, gapY: 12, margin: 28, rootPadX: 20, rootPadY: 10 };
-/** Etwas größer und luftiger für die eigene Handschrift. */
-export const HAND_STYLE = { maxW: 230, minW: 64, lineH: 26, padX: 16, padY: 11, gapX: 60, gapY: 14 };
+/* Maße der Darstellung. sizes/maxW gelten je Ebene (Thema, Hauptast, tiefere Ebenen). */
+export const STYLE = {
+  sizes: [24, 17, 14.5], lh: 1.3, padX: 9, padY: 5, minW: 24, maxW: [280, 190, 160],
+  rootPadX: 36, rootPadY: 18, margin: 40, gap: 32, pad: 14, fan: 2.8, fanBase: 0.4, fanPer: 0.35, spanK: 1, clearRounds: 3, clearStep: 8,
+};
+/** Eigene Handschrift: größer und luftiger, weil Handschrift bei gleicher Größe kleiner wirkt. */
+export const HAND_STYLE = {
+  ...STYLE, sizes: [46, 29, 22], lh: 1.25, padX: 10, padY: 6, maxW: [340, 230, 190], rootPadX: 44, rootPadY: 22, gap: 36, pad: 16,
+};
 
 /** Alle Vorfahren eines Knotens (ohne ihn selbst), vom Thema abwärts. */
 export function ancestors(root, id) {
@@ -116,10 +122,7 @@ export function ancestors(root, id) {
     for (const c of n.children) if (walk(c)) { path.unshift(n.id); return true; }
     return false;
   };
-  const found = walk(root);
-  if (!found) return [];
-  // path wurde von unten nach oben aufgebaut: Reihenfolge Thema → Elternknoten
-  return path;
+  return walk(root) ? path : [];
 }
 
 /** Bei großen Mindmaps starten die Äste ab der dritten Ebene eingeklappt, damit man den Überblick behält. */
@@ -142,116 +145,201 @@ export function branchIds(root, fromDepth = 1) {
   return out;
 }
 
-/** Bricht Text in Zeilen von höchstens maxWidth Pixeln (zu lange Wörter werden getrennt). */
+/* ---------- Layout wie auf einer handgezeichneten Mindmap ---------- */
+
+/** Bricht Text in Zeilen von höchstens maxWidth Pixeln (an Leerzeichen und nach Bindestrichen; zu lange Wörter werden getrennt). */
 export function wrap(text, measure, maxWidth) {
   const lines = [];
   let line = "";
   const push = () => { if (line) lines.push(line); line = ""; };
   for (const word of String(text).split(" ")) {
     if (!word) continue;
-    if (measure(word) > maxWidth) {
-      push();
-      let piece = "";
-      for (const ch of word) {
-        if (piece && measure(piece + ch) > maxWidth) { lines.push(piece); piece = ""; }
-        piece += ch;
+    // „Rock-'n'-Roll-Einflüsse“ darf nach jedem Bindestrich umbrechen
+    const parts = word.match(/[^-–]+[-–]*|[-–]+/g) || [word];
+    parts.forEach((part, pi) => {
+      const joiner = pi === 0 && line ? " " : "";
+      if (measure(part) > maxWidth) {
+        push();
+        let piece = "";
+        for (const ch of part) {
+          if (piece && measure(piece + ch) > maxWidth) { lines.push(piece); piece = ""; }
+          piece += ch;
+        }
+        line = piece;
+        return;
       }
-      line = piece;
-      continue;
-    }
-    const tryLine = line ? line + " " + word : word;
-    if (line && measure(tryLine) > maxWidth) { push(); line = word; } else line = tryLine;
+      const tryLine = line + joiner + part;
+      if (line && measure(tryLine) > maxWidth) { push(); line = part; } else line = tryLine;
+    });
   }
   push();
   return lines.length ? lines : [""];
 }
 
 /**
- * Das Thema steht in der Mitte. Die ersten Äste (im Uhrzeigersinn) gehen nach rechts, der Rest nach links,
- * so verteilt, dass beide Seiten etwa gleich hoch werden. Unterpunkte wachsen immer weiter nach außen.
- * @returns {{ nodes: object[], edges: object[], width: number, height: number }}
+ * Das Thema ist eine Ellipse in der Mitte. Die Hauptäste verteilen sich im Uhrzeigersinn rundherum, ihre Unterpunkte
+ * fächern sich nach außen um sie herum auf. Beschriftungen haben keinen Rahmen, verbunden wird mit geraden Linien.
+ * Danach schiebt ein Entzerr-Schritt überlappende Beschriftungen auseinander.
+ * measure(text, fontSize, depth) liefert die Textbreite in Pixeln.
+ * @returns {{ nodes: object[], edges: {from: object, to: object}[], width: number, height: number }}
  */
 export function layout(root, measure, style = STYLE, collapsed = new Set()) {
   const S = { ...STYLE, ...style };
+  const at = (list, d) => list[Math.min(d, list.length - 1)];
 
-  // 1. Größen und Teilbaum-Höhen (noch ohne Seite)
+  // 1. Größe jeder Beschriftung und Zahl der Blätter (bestimmt den Winkelanteil)
   const size = (n, depth) => {
-    const lines = wrap(n.text || " ", measure, S.maxW - 2 * S.padX);
-    let w = Math.max(S.minW, Math.ceil(Math.max(...lines.map(measure))) + 2 * S.padX);
-    let h = lines.length * S.lineH + 2 * S.padY;
-    if (depth === 0) { w = Math.max(132, w + 2 * S.rootPadX); h += 2 * S.rootPadY; } // das Thema ist eine Ellipse
+    const fontSize = at(S.sizes, depth), lineH = Math.round(fontSize * S.lh);
+    const m = (t) => measure(t, fontSize, depth);
+    const lines = wrap(n.text || " ", m, at(S.maxW, depth) - 2 * S.padX);
+    let w = Math.max(S.minW, Math.ceil(Math.max(...lines.map(m))) + 2 * S.padX);
+    let h = lines.length * lineH + 2 * S.padY;
+    if (depth === 0) { w += 2 * S.rootPadX; h += 2 * S.rootPadY; }
     const folded = depth > 0 && collapsed.has(n.id) && n.children.length > 0;
     const kids = folded ? [] : n.children.map((c) => size(c, depth + 1));
-    const kidsH = kids.reduce((t, k) => t + k.block, 0) + S.gapY * Math.max(0, kids.length - 1);
     return {
-      id: n.id, text: n.text, lines, w, h, kids, kidsH, block: Math.max(h, kidsH), depth, x: 0, y: 0, side: 0, branch: -1,
+      id: n.id, text: n.text, lines, w, h, fontSize, lineH, depth, kids,
+      leaves: kids.length ? kids.reduce((t, k) => t + k.leaves, 0) : 1,
       hasKids: n.children.length > 0, folded, hidden: folded ? countNodes(n) - 1 : 0,
+      x: 0, y: 0, cx: 0, cy: 0, side: 1, branch: -1, angle: 0, span: 0,
     };
   };
   const top = size(root, 0);
 
-  // 2. Äste auf die Seiten verteilen
-  const stackH = (list) => list.reduce((t, k) => t + k.block, 0) + S.gapY * Math.max(0, list.length - 1);
-  const half = stackH(top.kids) / 2;
-  const right = [];
-  let acc = 0;
-  for (const k of top.kids) {
-    if (right.length && acc >= half) break;
-    right.push(k);
-    acc += k.block + S.gapY;
-  }
-  const left = top.kids.slice(right.length).reverse(); // im Uhrzeigersinn: links läuft von unten nach oben
-  top.kids.forEach((k, i) => tag(k, i));
-  function tag(item, branch) { item.branch = branch; item.kids.forEach((k) => tag(k, branch)); }
-  right.forEach((k) => mark(k, 1));
-  left.forEach((k) => mark(k, -1));
-  function mark(item, side) { item.side = side; item.kids.forEach((k) => mark(k, side)); }
-
-  // 3. Spaltenbreiten je Seite und Ebene
-  const colW = { 1: [], "-1": [] };
-  const widen = (item) => { colW[item.side][item.depth] = Math.max(colW[item.side][item.depth] || 0, item.w); item.kids.forEach(widen); };
-  top.kids.forEach(widen);
-
-  const rw = top.w;
-  const off = { 1: [], "-1": [] };
-  for (const side of [1, -1]) {
-    let x = rw / 2 + S.gapX;
-    for (let d = 1; d < colW[side].length; d++) { off[side][d] = x; x += (colW[side][d] || 0) + S.gapX; }
-  }
-
-  // 4. Plätze vergeben (Thema bei x = 0, y = 0)
-  const place = (item, blockTop) => {
-    item.x = item.side > 0 ? off[1][item.depth] : -off[-1][item.depth] - item.w;
-    item.y = blockTop + item.block / 2 - item.h / 2;
-    let y = blockTop + (item.block - item.kidsH) / 2;
-    for (const k of item.kids) { place(k, y); y += k.block + S.gapY; }
+  // 2. Platzieren: Kinder verteilen sich in einem Fächer um die Richtung ihres Elternknotens
+  const reach = (it, u) => Math.abs(u[0]) * it.w / 2 + Math.abs(u[1]) * it.h / 2; // halbe Ausdehnung in Richtung u
+  const place = (parent, kids, centre, width) => {
+    if (!kids.length) return;
+    const total = kids.reduce((t, k) => t + k.leaves, 0);
+    let a = centre - width / 2;
+    kids.forEach((k, i) => {
+      const part = width * k.leaves / total;
+      k.angle = a + part / 2; k.span = part; a += part;
+      const u = [Math.cos(k.angle), Math.sin(k.angle)];
+      const start = parent.depth === 0
+        ? 1 / Math.sqrt((u[0] / (parent.w / 2)) ** 2 + (u[1] / (parent.h / 2)) ** 2) // Rand der Ellipse
+        : reach(parent, u);
+      const dist = start + reach(k, u) + S.gap;
+      k.cx = parent.cx + u[0] * dist; k.cy = parent.cy + u[1] * dist;
+      k.branch = parent.depth === 0 ? i : parent.branch;
+      // Unterpunkte fächern sich um ihren Ast auf, auch breiter als dessen Winkelanteil (Nachbarn weichen im Entzerr-Schritt aus)
+      place(k, k.kids, k.angle, Math.min(S.fan, Math.max(k.span * S.spanK, S.fanBase + S.fanPer * k.kids.length)));
+    });
   };
-  for (const list of [right, left]) {
-    let y = -stackH(list) / 2;
-    for (const k of list) { place(k, y); y += k.block + S.gapY; }
-  }
-  top.x = -top.w / 2;
-  top.y = -top.h / 2;
+  if (top.kids.length === 1) place(top, top.kids, 0, 0.0001);
+  else place(top, top.kids, Math.PI / 2, 2 * Math.PI); // erster Ast oben, dann im Uhrzeigersinn
 
-  // 5. Alle Knoten einsammeln, in den positiven Bereich schieben, Linien berechnen
-  const nodes = [];
-  const collect = (item) => { nodes.push(item); item.kids.forEach(collect); };
-  collect(top);
-  const minX = Math.min(...nodes.map((n) => n.x)), maxX = Math.max(...nodes.map((n) => n.x + n.w));
-  const minY = Math.min(...nodes.map((n) => n.y)), maxY = Math.max(...nodes.map((n) => n.y + n.h));
-  for (const n of nodes) { n.x += S.margin - minX; n.y += S.margin - minY; }
-
-  const edges = [];
-  for (const parent of nodes) {
-    for (const kid of parent.kids) {
-      const out = kid.side > 0;
-      edges.push({
-        from: parent, to: kid,
-        x1: out ? parent.x + parent.w : parent.x, y1: parent.y + parent.h / 2,
-        x2: out ? kid.x : kid.x + kid.w, y2: kid.y + kid.h / 2,
-      });
+  // 3. Entzerren: Überlappende Beschriftungen wandern entlang ihrer Richtung nach außen (samt ihren Unterpunkten).
+  //    So bleiben die Linien kurz und strahlenförmig, statt sich zu kreuzen.
+  const all = [];
+  const parentOf = new Map();
+  const collect = (it, parent) => { all.push(it); parentOf.set(it, parent); it.kids.forEach((k) => collect(k, it)); };
+  collect(top, null);
+  const shift = (it, dx, dy) => { it.cx += dx; it.cy += dy; it.kids.forEach((k) => shift(k, dx, dy)); };
+  const STEP = 5, MAX_OUT = 110; // höchstens so weit darf ein Knoten nach außen wandern
+  let pushed = new Map(all.map((n) => [n, 0]));
+  const overlaps = (a, b) => Math.abs(a.cx - b.cx) < (a.w + b.w) / 2 + S.pad && Math.abs(a.cy - b.cy) < (a.h + b.h) / 2 + S.pad;
+  const relax = () => {
+    pushed = new Map(all.map((n) => [n, 0]));
+    for (let iter = 0; iter < 400; iter++) {
+      let moved = false;
+      for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) {
+        const a = all[i], b = all[j];
+        if (!overlaps(a, b)) continue;
+        // wer weicht? der tiefere; bei gleicher Tiefe beide
+        const movers = a.depth === b.depth ? [a, b] : [a.depth > b.depth ? a : b];
+        for (const m of movers) {
+          if (m.depth === 0 || pushed.get(m) >= MAX_OUT) continue;
+          const par = parentOf.get(m);
+          let ux = m.cx - par.cx, uy = m.cy - par.cy;
+          const len = Math.hypot(ux, uy) || 1;
+          shift(m, (ux / len) * STEP, (uy / len) * STEP);
+          pushed.set(m, pushed.get(m) + STEP);
+          moved = true;
+        }
+      }
+      if (!moved) break;
     }
+    // Was dann noch überlappt, wird seitlich auseinandergeschoben (das Thema bleibt stehen, äußere Knoten geben eher nach)
+    const weight = (it) => (it.depth === 0 ? 0 : 1 / it.depth);
+    for (let iter = 0; iter < 200; iter++) {
+      let moved = false;
+      for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) {
+        const a = all[i], b = all[j];
+        if (!overlaps(a, b)) continue;
+        const ox = (a.w + b.w) / 2 + S.pad - Math.abs(a.cx - b.cx), oy = (a.h + b.h) / 2 + S.pad - Math.abs(a.cy - b.cy);
+        const wa = weight(a), wb = weight(b);
+        if (wa + wb === 0) continue;
+        const fa = wa / (wa + wb), fb = wb / (wa + wb);
+        if (ox < oy) { const dir = a.cx <= b.cx ? -1 : 1; a.cx += dir * ox * fa; b.cx -= dir * ox * fb; }
+        else { const dir = a.cy <= b.cy ? -1 : 1; a.cy += dir * oy * fa; b.cy -= dir * oy * fb; }
+        moved = true;
+      }
+      if (!moved) break;
+    }
+  };
+
+  // Keine Linie soll durch eine fremde Beschriftung laufen: solche Beschriftungen werden seitlich von der Linie weggeschoben
+  const hitsRect = (l, n, pad) => {
+    const x0 = n.cx - n.w / 2 - pad, x1 = n.cx + n.w / 2 + pad, y0 = n.cy - n.h / 2 - pad, y1 = n.cy + n.h / 2 + pad;
+    let t0 = 0, t1 = 1;
+    const dx = l.x2 - l.x1, dy = l.y2 - l.y1;
+    for (const [p, q] of [[-dx, l.x1 - x0], [dx, x1 - l.x1], [-dy, l.y1 - y0], [dy, y1 - l.y1]]) {
+      if (p === 0) { if (q < 0) return false; continue; }
+      const r = q / p;
+      if (p < 0) { if (r > t1) return false; if (r > t0) t0 = r; } else { if (r < t0) return false; if (r < t1) t1 = r; }
+    }
+    return t0 <= t1;
+  };
+  const box = (n) => ({ x: n.cx - n.w / 2, y: n.cy - n.h / 2, w: n.w, h: n.h, depth: n.depth });
+  const clearLines = () => {
+    let moved = false;
+    for (const p of all) for (const k of p.kids) {
+      const l = edgeLine(box(p), box(k));
+      if (!l) continue;
+      for (const n of all) {
+        if (n === p || n === k || n.depth === 0 || !hitsRect(l, n, 4)) continue;
+        // Normale der Linie, zum Knoten hin
+        const lx = l.x2 - l.x1, ly = l.y2 - l.y1, len = Math.hypot(lx, ly) || 1;
+        let nx = -ly / len, ny = lx / len;
+        if ((n.cx - l.x1) * nx + (n.cy - l.y1) * ny < 0) { nx = -nx; ny = -ny; }
+        shift(n, nx * S.clearStep, ny * S.clearStep);
+        moved = true;
+      }
+    }
+    return moved;
+  };
+  relax();
+  for (let round = 0; round < S.clearRounds; round++) { if (!clearLines()) break; relax(); }
+
+  // 4. In den positiven Bereich schieben
+  const minX = Math.min(...all.map((n) => n.cx - n.w / 2)), maxX = Math.max(...all.map((n) => n.cx + n.w / 2));
+  const minY = Math.min(...all.map((n) => n.cy - n.h / 2)), maxY = Math.max(...all.map((n) => n.cy + n.h / 2));
+  for (const n of all) {
+    n.x = n.cx - n.w / 2 + S.margin - minX;
+    n.y = n.cy - n.h / 2 + S.margin - minY;
+    n.side = n.depth === 0 ? 0 : (n.cx >= top.cx ? 1 : -1);
   }
-  nodes.sort((a, b) => a.depth - b.depth);
-  return { nodes, edges, width: maxX - minX + 2 * S.margin, height: maxY - minY + 2 * S.margin };
+  const edges = [];
+  for (const p of all) for (const k of p.kids) edges.push({ from: p, to: k });
+  all.sort((a, b) => a.depth - b.depth);
+  return { nodes: all, edges, width: maxX - minX + 2 * S.margin, height: maxY - minY + 2 * S.margin };
+}
+
+/**
+ * Gerade Verbindungslinie zwischen zwei Beschriftungen (Kästen { x, y, w, h, depth }), jeweils mit etwas Abstand zum
+ * Rand; das Thema (depth 0) ist eine Ellipse. Liegen beide zu dicht, gibt es keine Linie (leer).
+ */
+export function edgeLine(a, b, gap = 7) {
+  const ca = [a.x + a.w / 2, a.y + a.h / 2], cb = [b.x + b.w / 2, b.y + b.h / 2];
+  const dx = cb[0] - ca[0], dy = cb[1] - ca[1];
+  if (!dx && !dy) return null;
+  const reachTo = (box, ux, uy) => {          // Anteil der Mittelpunktsstrecke, bis der Rand (plus Abstand) erreicht ist
+    const hw = box.w / 2 + gap, hh = box.h / 2 + gap;
+    if (box.depth === 0) return 1 / Math.sqrt((ux / hw) ** 2 + (uy / hh) ** 2);
+    return Math.min(ux ? hw / Math.abs(ux) : Infinity, uy ? hh / Math.abs(uy) : Infinity);
+  };
+  const ta = reachTo(a, dx, dy), tb = reachTo(b, -dx, -dy);
+  if (ta + tb >= 1) return null;
+  return { x1: ca[0] + dx * ta, y1: ca[1] + dy * ta, x2: cb[0] - dx * tb, y2: cb[1] - dy * tb };
 }

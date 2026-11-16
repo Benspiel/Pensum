@@ -18,15 +18,15 @@ const els = {
   canvas: $("canvas"), svg: $("svg"), nodeText: $("nodeText"), editError: $("editError"), saveState: $("saveState"),
   addChild: $("addChild"), addSibling: $("addSibling"), moveUp: $("moveUp"), moveDown: $("moveDown"), removeNode: $("removeNode"),
   undo: $("undoBtn"), redo: $("redoBtn"), zoomIn: $("zoomIn"), zoomOut: $("zoomOut"), zoomFit: $("zoomFit"),
+  exportPng: $("exportPng"), exportPdf: $("exportPdf"), inkSwitch: $("inkSwitch"),
   foldNode: $("foldNode"), foldAll: $("foldAll"), unfoldAll: $("unfoldAll"), fontSwitch: $("fontSwitch"), fontHint: $("fontHint"),
   aiCard: $("aiCard"), aiInfo: $("aiInfo"), aiText: $("aiText"), aiBtn: $("aiBtn"), aiError: $("aiError"),
 };
 
-// stroke/solid: kräftige Farbe (Äste, Hauptpunkte mit weißer Schrift), fill: Tönung für tiefere Ebenen
-const PALETTE = [
-  { solid: "#0057d9", fill: "#e5f0ff" }, { solid: "#187a43", fill: "#e6f5ec" }, { solid: "#a86400", fill: "#fff1da" },
-  { solid: "#b92658", fill: "#fdeaf0" }, { solid: "#5a37c4", fill: "#ede8fb" }, { solid: "#0a6e6e", fill: "#e2f5f5" },
-];
+// Wie auf einer handgezeichneten Mindmap: eine Tintenfarbe für alles
+const INKS = [{ id: "#0b5fc7", name: "Blau" }, { id: "#262626", name: "Schwarz" }, { id: "#0f6b4f", name: "Grün" }, { id: "#9b1c31", name: "Rot" }];
+const STD_FONT = '"Inter Variable", -apple-system, "Helvetica Neue", Arial, sans-serif';
+const weightOf = (depth) => (depth === 0 ? 650 : depth === 1 ? 600 : 450);
 
 const state = {
   user: null,
@@ -39,6 +39,7 @@ const state = {
   past: [], future: [],      // Rückgängig-Schritte als JSON
   zoom: 1,
   font: "standard",          // "standard" | "hand"
+  ink: INKS[0].id,           // Tintenfarbe
   hand: null,                // eigene Handschrift (aus dem Goodnotes-Tool) oder null
   collapsed: new Set(),      // eingeklappte Knoten (nur Ansicht, wird nicht gespeichert)
   busy: false,
@@ -57,16 +58,15 @@ const dayLabel = (day) => {
 };
 
 let ctx = null;
-function measure(text) {
-  if (!ctx) {
-    ctx = document.createElement("canvas").getContext("2d");
-    ctx.font = '500 14px "Inter Variable", -apple-system, "Helvetica Neue", Arial, sans-serif';
-  }
+function measureStd(text, size, depth) {
+  if (!ctx) ctx = document.createElement("canvas").getContext("2d");
+  ctx.font = `${weightOf(depth)} ${size}px ${STD_FONT}`;
   return ctx.measureText(text).width;
 }
-
-const HAND_SIZE = 19; // Schriftgröße der Handschrift in Pixeln
+const measureHand = (text, size) => H.width(state.hand, text, size);
 const useHand = () => state.font === "hand" && !!state.hand;
+const currentMeasure = () => (useHand() ? measureHand : measureStd);
+const currentStyle = () => (useHand() ? T.HAND_STYLE : T.STYLE);
 const reduceMotion = () => !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
 
 /** Aufruf der Function. Wirft Error mit einer Meldung, die man anzeigen darf. */
@@ -128,6 +128,7 @@ function renderPanels() {
     : left <= 0 ? "Du hast heute alle KI-Änderungen verbraucht. Morgen sind es wieder 3. Von Hand kannst du weiter ändern."
     : `Beschreib in eigenen Worten, was geändert werden soll. Heute sind noch ${left} von ${state.usage.maxEdits} Änderungen frei.`;
 
+  els.exportPng.disabled = els.exportPdf.disabled = !hasMap;
   els.createBtn.disabled = state.busy;
   els.createBtn.textContent = state.busy ? "KI arbeitet …" : "Mindmap erstellen";
   els.topic.disabled = els.notes.disabled = state.busy;
@@ -177,18 +178,16 @@ function sceneReset() {
 }
 
 const ease = (t) => 1 - Math.pow(1 - t, 3);
-
-function nodeColors(n) {
-  const c = n.branch < 0 ? null : PALETTE[n.branch % PALETTE.length];
-  if (!c) return { fill: "#e8f0ff", stroke: "#0057d9", text: "#141414", sw: 2.5 };
-  if (n.depth === 1) return { fill: c.solid, stroke: c.solid, text: "#ffffff", sw: 0 };
-  return { fill: c.fill, stroke: c.solid, text: "#141414", sw: 1.5 };
-}
+const edgeWidth = (depth) => (depth <= 1 ? 3.2 : depth === 2 ? 2.2 : 1.6);
+/** Vertikaler Textanfang und Grundlinie der Handschrift in einer Beschriftung. */
+const textTop = (n) => (n.h - n.lines.length * n.lineH) / 2;
+const handBaseline = (n, i) => textTop(n) + n.lineH * i + n.fontSize * 0.88;
+const handStroke = (n) => Math.max(1.3, H.strokeWidth(n.fontSize) * (n.depth <= 1 ? 1.2 : 1.05));
 
 function createNodeView(n) {
   const g = svgEl("g", { class: "mm-node", tabindex: "0", role: "button", "data-id": n.id }, scene.nodeLayer);
   const v = { g, id: n.id, root: n.depth === 0, textKey: "" };
-  v.shape = svgEl(v.root ? "ellipse" : "rect", { class: "mm-shape" }, g);
+  v.shape = svgEl(v.root ? "ellipse" : "rect", { class: "mm-shape" + (v.root ? " is-root" : "") }, g);
   v.textG = svgEl("g", {}, g);
   v.sel = svgEl(v.root ? "ellipse" : "rect", { class: "mm-sel" }, g);
   v.toggle = svgEl("g", { class: "mm-toggle", "data-toggle": n.id }, g);
@@ -198,30 +197,29 @@ function createNodeView(n) {
 }
 
 function updateNodeView(v, n, hand) {
-  const col = nodeColors(n);
+  const ink = state.ink;
   const { w, h } = n;
   if (v.root) {
-    for (const [e, pad] of [[v.shape, 0], [v.sel, 5]]) { e.setAttribute("cx", w / 2); e.setAttribute("cy", h / 2); e.setAttribute("rx", w / 2 + pad); e.setAttribute("ry", h / 2 + pad); }
+    for (const [e, pad] of [[v.shape, 0], [v.sel, 6]]) { e.setAttribute("cx", w / 2); e.setAttribute("cy", h / 2); e.setAttribute("rx", w / 2 + pad); e.setAttribute("ry", h / 2 + pad); }
+    v.shape.setAttribute("stroke", ink); v.shape.setAttribute("stroke-width", 2.5);
   } else {
-    v.shape.setAttribute("width", w); v.shape.setAttribute("height", h); v.shape.setAttribute("rx", 14);
-    v.sel.setAttribute("x", -4); v.sel.setAttribute("y", -4); v.sel.setAttribute("width", w + 8); v.sel.setAttribute("height", h + 8); v.sel.setAttribute("rx", 17);
+    v.shape.setAttribute("width", w); v.shape.setAttribute("height", h); v.shape.setAttribute("rx", 12);
+    v.sel.setAttribute("x", -3); v.sel.setAttribute("y", -3); v.sel.setAttribute("width", w + 6); v.sel.setAttribute("height", h + 6); v.sel.setAttribute("rx", 14);
   }
-  v.shape.setAttribute("fill", col.fill); v.shape.setAttribute("stroke", col.stroke); v.shape.setAttribute("stroke-width", col.sw);
+  v.shape.setAttribute("fill", ink);
 
   // Text nur neu bauen, wenn er sich geändert hat
-  const key = [hand ? "h" : "s", n.lines.join("\n"), col.text, w, h].join("|");
+  const key = [hand ? "h" : "s", n.lines.join("\n"), ink, w, h, n.fontSize].join("|");
   if (key !== v.textKey) {
     v.textKey = key;
     v.textG.replaceChildren();
     n.lines.forEach((line, i) => {
       if (hand) {
-        const size = v.root ? HAND_SIZE * 1.25 : HAND_SIZE;
-        const lw = H.width(state.hand, line, size);
-        const baseline = (v.root ? (h - n.lines.length * 26) / 2 : 11) + 26 * i + size * 0.82;
-        svgEl("path", { class: "mm-ink", d: H.pathData(state.hand, line, size, (w - lw) / 2, baseline), stroke: col.text, "stroke-width": Math.max(1.4, H.strokeWidth(size) * 1.1) }, v.textG);
+        const lw = H.width(state.hand, line, n.fontSize);
+        svgEl("path", { class: "mm-ink", d: H.pathData(state.hand, line, n.fontSize, (w - lw) / 2, handBaseline(n, i)), stroke: ink, "stroke-width": handStroke(n) }, v.textG);
       } else {
-        const textEl = svgEl("text", { class: "mm-text" + (v.root ? " is-root" : ""), x: w / 2, y: (v.root ? (h - n.lines.length * 18) / 2 : 9) + 18 * (i + 0.5), "text-anchor": "middle", "dominant-baseline": "central", fill: col.text }, v.textG);
-        textEl.textContent = line;
+        const t = svgEl("text", { class: "mm-text", x: w / 2, y: textTop(n) + n.lineH * (i + 0.5), "text-anchor": "middle", "dominant-baseline": "central", fill: ink, "font-size": n.fontSize, "font-weight": weightOf(n.depth) }, v.textG);
+        t.textContent = line;
       }
     });
   }
@@ -233,21 +231,17 @@ function updateNodeView(v, n, hand) {
   v.toggle.style.display = showToggle ? "" : "none";
   if (showToggle) {
     v.toggle.setAttribute("transform", `translate(${n.side > 0 ? w + 14 : -14} ${h / 2})`);
-    v.toggleCircle.setAttribute("stroke", col.stroke === "#0057d9" ? "#0057d9" : col.stroke);
+    v.toggleCircle.setAttribute("stroke", ink);
     v.toggleText.textContent = n.folded ? `+${n.hidden}` : "−";
     v.toggleCircle.setAttribute("r", n.folded && n.hidden > 9 ? 13 : 10);
   }
 }
 
 function edgePath(link, pos, size) {
-  const a = pos.get(link.from), b = pos.get(link.to);
-  const sa = size.get(link.from), sb = size.get(link.to);
+  const a = pos.get(link.from), b = pos.get(link.to), sa = size.get(link.from), sb = size.get(link.to);
   if (!a || !b || !sa || !sb) return "";
-  const out = link.side > 0;
-  const x1 = out ? a.x + sa.w : a.x, y1 = a.y + sa.h / 2;
-  const x2 = out ? b.x : b.x + sb.w, y2 = b.y + sb.h / 2;
-  const mx = (x1 + x2) / 2;
-  return `M${x1.toFixed(1)} ${y1.toFixed(1)} C${mx.toFixed(1)} ${y1.toFixed(1)} ${mx.toFixed(1)} ${y2.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+  const l = T.edgeLine({ x: a.x, y: a.y, w: sa.w, h: sa.h, depth: sa.depth }, { x: b.x, y: b.y, w: sb.w, h: sb.h, depth: sb.depth });
+  return l ? `M${l.x1.toFixed(1)} ${l.y1.toFixed(1)}L${l.x2.toFixed(1)} ${l.y2.toFixed(1)}` : "";
 }
 
 function paintFrame(fresh, alpha) {
@@ -263,17 +257,17 @@ function paintFrame(fresh, alpha) {
   }
 }
 
-/** Mindmap zeichnen. Bestehende Knoten gleiten an den neuen Platz, neue wachsen aus ihrem Elternknoten heraus. */
+/** Mindmap zeichnen. Bestehende Beschriftungen gleiten an den neuen Platz, neue wachsen aus ihrem Elternknoten heraus. */
 function renderMap({ animate = true } = {}) {
   if (!state.current) { sceneReset(); return; }
   if (!scene.nodeLayer || !scene.nodeLayer.isConnected) sceneReset();
   const hand = useHand();
-  const lay = T.layout(state.current.root, hand ? (t) => H.width(state.hand, t, HAND_SIZE) : measure, hand ? T.HAND_STYLE : T.STYLE, state.collapsed);
+  const lay = T.layout(state.current.root, currentMeasure(), currentStyle(), state.collapsed);
   scene.lay = lay;
-  const W = lay.width, H_ = lay.height;
-  els.svg.setAttribute("viewBox", `0 0 ${W} ${H_}`);
-  els.svg.style.width = Math.round(W * state.zoom) + "px";
-  els.svg.style.height = Math.round(H_ * state.zoom) + "px";
+  els.svg.setAttribute("viewBox", `0 0 ${lay.width} ${lay.height}`);
+  els.svg.style.width = Math.round(lay.width * state.zoom) + "px";
+  els.svg.style.height = Math.round(lay.height * state.zoom) + "px";
+  els.svg.style.setProperty("--mm-ink", state.ink);
 
   const parentOf = new Map(lay.edges.map((e) => [e.to.id, e.from.id]));
   const fresh = new Set();
@@ -285,45 +279,44 @@ function renderMap({ animate = true } = {}) {
     if (!v) {
       v = createNodeView(n);
       scene.nodes.set(n.id, v);
-      const from = scene.pos.get(parentOf.get(n.id)) || n;
-      scene.pos.set(n.id, { x: from.x, y: from.y });
+      const pp = scene.pos.get(parentOf.get(n.id)), ps = scene.size.get(parentOf.get(n.id));
+      scene.pos.set(n.id, pp && ps ? { x: pp.x + ps.w / 2 - n.w / 2, y: pp.y + ps.h / 2 - n.h / 2 } : { x: n.x, y: n.y });
       fresh.add(n.id);
     }
     updateNodeView(v, n, hand);
-    scene.size.set(n.id, { w: n.w, h: n.h });
+    scene.size.set(n.id, { w: n.w, h: n.h, depth: n.depth });
   }
   for (const [id, v] of [...scene.nodes]) {
     if (target.has(id)) continue;
     v.g.remove(); scene.nodes.delete(id); scene.pos.delete(id); scene.size.delete(id);
   }
 
-  scene.links = lay.edges.map((e) => ({ from: e.from.id, to: e.to.id, side: e.to.side }));
+  scene.links = lay.edges.map((e) => ({ from: e.from.id, to: e.to.id }));
   const wantEdges = new Set(scene.links.map((l) => l.to));
   for (const [id, e] of [...scene.edges]) if (!wantEdges.has(id)) { e.remove(); scene.edges.delete(id); }
   for (const e of lay.edges) {
     let path = scene.edges.get(e.to.id);
     if (!path) { path = svgEl("path", { class: "mm-edge" }, scene.edgeLayer); scene.edges.set(e.to.id, path); fresh.add(e.to.id); }
-    const col = PALETTE[e.to.branch % PALETTE.length].solid;
-    path.setAttribute("stroke", col);
-    path.setAttribute("stroke-width", e.to.depth === 1 ? 5 : e.to.depth === 2 ? 3.5 : 2.5);
+    path.setAttribute("stroke", state.ink);
+    path.setAttribute("stroke-width", edgeWidth(e.to.depth));
   }
 
   // Bewegung
   cancelAnimationFrame(scene.raf);
   const start = new Map([...scene.pos].map(([id, p]) => [id, { x: p.x, y: p.y }]));
-  const moves = [...target].some(([id, n]) => { const s = start.get(id); return !s || Math.abs(s.x - n.x) > 0.5 || Math.abs(s.y - n.y) > 0.5; });
+  const moves = [...target].some(([id, n]) => { const s0 = start.get(id); return !s0 || Math.abs(s0.x - n.x) > 0.5 || Math.abs(s0.y - n.y) > 0.5; });
   const settle = () => {
     for (const [id, n] of target) scene.pos.set(id, { x: n.x, y: n.y });
     paintFrame(fresh, 1);
     for (const id of fresh) { const v = scene.nodes.get(id); if (v) v.g.style.opacity = ""; const e = scene.edges.get(id); if (e) e.style.opacity = ""; }
   };
   if (!animate || reduceMotion() || (!moves && !fresh.size)) { settle(); return; }
-  const t0 = performance.now(), dur = 340;
+  const t0 = performance.now(), dur = 380;
   const tick = (now) => {
     const t = Math.min(1, (now - t0) / dur), k = ease(t);
     for (const [id, n] of target) {
-      const s = start.get(id) || n;
-      scene.pos.set(id, { x: s.x + (n.x - s.x) * k, y: s.y + (n.y - s.y) * k });
+      const s0 = start.get(id) || n;
+      scene.pos.set(id, { x: s0.x + (n.x - s0.x) * k, y: s0.y + (n.y - s0.y) * k });
     }
     paintFrame(fresh, k);
     if (t < 1) scene.raf = requestAnimationFrame(tick); else settle();
@@ -437,7 +430,9 @@ function fitZoom() {
   if (!state.current) return;
   renderMap({ animate: false });
   const lay = scene.lay;
-  const z = Math.min(1, (els.canvas.clientWidth - 4) / lay.width, (els.canvas.clientHeight - 4) / lay.height);
+  // Passt in die Breite; in der Höhe wird nicht unter 55 % verkleinert (lieber senkrecht scrollen als unleserlich klein)
+  const fitW = (els.canvas.clientWidth - 4) / lay.width, fitH = (els.canvas.clientHeight - 4) / lay.height;
+  const z = Math.min(1, fitW, Math.max(fitH, 0.55));
   setZoom(Math.max(0.25, Math.floor(z * 20) / 20), { keep: false });
   els.canvas.scrollTo(0, 0);
 }
@@ -467,6 +462,8 @@ async function start(user) {
   state.user = user;
   state.current = null; state.list = []; state.usage = null; state.serviceError = "";
   state.font = getPrefs().mmFont === "hand" ? "hand" : "standard";
+  state.ink = INKS.some((i) => i.id === getPrefs().mmInk) ? getPrefs().mmInk : INKS[0].id;
+  renderInk();
   state.hand = null;
   renderFont();
   H.loadHand(user.$id).then((hand) => {
@@ -713,6 +710,121 @@ els.fontSwitch.addEventListener("click", (e) => {
   sceneReset();           // Text neu setzen, die andere Schrift braucht andere Größen
   fitZoom();
   markSelection();
+});
+
+/* ---------- Farbe ---------- */
+
+function renderInk() {
+  els.inkSwitch.querySelectorAll("[data-ink]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.ink === state.ink)));
+}
+els.inkSwitch.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-ink]");
+  if (!b || b.dataset.ink === state.ink) return;
+  state.ink = b.dataset.ink;
+  savePrefs({ mmInk: state.ink });
+  renderInk();
+  renderMap({ animate: false });
+});
+
+/* ---------- Exportieren: PNG und PDF, gezeichnet wie auf dem Bildschirm (aktuelle Schrift, Farbe und eingeklappte Äste) ---------- */
+
+/** Zeichnet die Mindmap auf eine Leinwand (scale = Pixel je Einheit). */
+function drawToCanvas(scale = 2) {
+  const hand = useHand();
+  const lay = T.layout(state.current.root, currentMeasure(), currentStyle(), state.collapsed);
+  const limit = Math.min(scale, 8000 / Math.max(lay.width, lay.height)); // Leinwände haben Größengrenzen
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil(lay.width * limit);
+  canvas.height = Math.ceil(lay.height * limit);
+  const c = canvas.getContext("2d");
+  c.scale(limit, limit);
+  c.fillStyle = "#ffffff";
+  c.fillRect(0, 0, lay.width, lay.height);
+  const ink = state.ink;
+
+  c.lineCap = "round"; c.lineJoin = "round"; c.strokeStyle = ink;
+  for (const e of lay.edges) {
+    const l = T.edgeLine(e.from, e.to);
+    if (!l) continue;
+    c.lineWidth = edgeWidth(e.to.depth);
+    c.beginPath(); c.moveTo(l.x1, l.y1); c.lineTo(l.x2, l.y2); c.stroke();
+  }
+  for (const n of lay.nodes) {
+    if (n.depth === 0) {
+      c.beginPath(); c.ellipse(n.x + n.w / 2, n.y + n.h / 2, n.w / 2, n.h / 2, 0, 0, Math.PI * 2);
+      c.globalAlpha = 0.1; c.fillStyle = ink; c.fill(); c.globalAlpha = 1;
+      c.lineWidth = 2.5; c.strokeStyle = ink; c.stroke();
+    }
+    n.lines.forEach((line, i) => {
+      if (hand) {
+        const lw = H.width(state.hand, line, n.fontSize);
+        c.lineWidth = handStroke(n); c.strokeStyle = ink;
+        c.stroke(new Path2D(H.pathData(state.hand, line, n.fontSize, n.x + (n.w - lw) / 2, n.y + handBaseline(n, i))));
+      } else {
+        c.font = `${weightOf(n.depth)} ${n.fontSize}px ${STD_FONT}`;
+        c.textAlign = "center"; c.textBaseline = "middle"; c.fillStyle = ink;
+        c.fillText(line, n.x + n.w / 2, n.y + textTop(n) + n.lineH * (i + 0.5));
+      }
+    });
+    if (n.folded) { // Hinweis auf verborgene Unterpunkte
+      const cx = n.side > 0 ? n.x + n.w + 14 : n.x - 14, cy = n.y + n.h / 2;
+      c.beginPath(); c.arc(cx, cy, 11, 0, Math.PI * 2); c.fillStyle = "#fff"; c.fill(); c.lineWidth = 1.8; c.strokeStyle = ink; c.stroke();
+      c.font = `650 11px ${STD_FONT}`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillStyle = "#141414"; c.fillText(`+${n.hidden}`, cx, cy + 0.5);
+    }
+  }
+  return { canvas, width: lay.width, height: lay.height };
+}
+
+const fileBase = () => (((state.current && state.current.root.text) || "Mindmap").trim().replace(/[\\/:*?"<>|]+/g, "-").slice(0, 80) || "Mindmap");
+const stamp = () => (state.current && state.current.day) || new Date().toISOString().slice(0, 10);
+
+function saveBlob(blob, name) {
+  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: name });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+function loadJsPdf() {
+  if (window.jspdf) return Promise.resolve(window.jspdf);
+  return new Promise((resolve, reject) => {
+    const el = Object.assign(document.createElement("script"), { src: "/vendor/jspdf.umd.min.js" });
+    el.onload = () => (window.jspdf ? resolve(window.jspdf) : reject(new Error("PDF-Bibliothek fehlt.")));
+    el.onerror = () => reject(new Error("Die PDF-Bibliothek konnte nicht geladen werden."));
+    document.head.append(el);
+  });
+}
+
+els.exportPng.addEventListener("click", () => {
+  if (!state.current) return;
+  try {
+    drawToCanvas(2).canvas.toBlob((blob) => {
+      if (!blob) { toast("Das Bild konnte nicht erstellt werden.", { error: true }); return; }
+      saveBlob(blob, `${fileBase()} ${stamp()}.png`);
+      toast("Bild gespeichert.");
+    }, "image/png");
+  } catch (e) { console.error(e); toast("Das Bild konnte nicht erstellt werden.", { error: true }); }
+});
+
+els.exportPdf.addEventListener("click", async () => {
+  if (!state.current) return;
+  els.exportPdf.disabled = true;
+  try {
+    const { jsPDF } = await loadJsPdf();
+    const { canvas, width, height } = drawToCanvas(2);
+    const pdf = new jsPDF({ orientation: width >= height ? "landscape" : "portrait", unit: "pt", format: "a4" });
+    const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight(), m = 28;
+    const k = Math.min((pw - 2 * m) / width, (ph - 2 * m) / height);
+    pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", (pw - width * k) / 2, (ph - height * k) / 2, width * k, height * k); // weißer Grund: JPEG hält das PDF klein
+    pdf.save(`${fileBase()} ${stamp()}.pdf`);
+    toast("PDF gespeichert.");
+  } catch (e) {
+    console.error(e);
+    toast(e && e.message ? e.message : "Das PDF konnte nicht erstellt werden.", { error: true });
+  } finally {
+    els.exportPdf.disabled = false;
+  }
 });
 
 /* ---------- Start ---------- */
