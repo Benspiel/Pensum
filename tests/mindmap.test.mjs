@@ -77,22 +77,56 @@ test("wrap: bricht an Wortgrenzen und trennt zu lange Wörter", () => {
   assert.deepEqual(T.wrap("", measure, 80), [""]);
 });
 
-test("layout: Spalten wachsen nach rechts, Geschwister überlappen nie, Eltern stehen mittig", () => {
+test("layout: Thema in der Mitte, Äste verteilen sich links und rechts und wachsen nach außen", () => {
   const root = T.sanitize({ text: "Thema", children: [
-    { text: "A", children: [{ text: "A1" }, { text: "A2" }, { text: "A3" }] },
-    { text: "B mit einem ziemlich langen Text der umbrechen muss" },
+    { text: "A", children: [{ text: "A1", children: [{ text: "A1x" }] }, { text: "A2" }, { text: "A3" }] },
+    { text: "B mit einem ziemlich langen Text der umbrechen muss", children: [{ text: "B1" }] },
+    { text: "C", children: [{ text: "C1" }, { text: "C2" }] },
+    { text: "D" },
   ] });
   const lay = T.layout(root, measure);
-  const by = Object.fromEntries(lay.nodes.map((n) => [n.text.slice(0, 1) === "B" ? "B" : n.text, n]));
-  assert.ok(by.A.x > by.Thema.x + by.Thema.w && by.A1.x > by.A.x + by.A.w);
-  assert.ok(by.B.lines.length > 1);
-  const col = (d) => lay.nodes.filter((n) => n.depth === d).sort((a, b) => a.y - b.y);
-  for (const d of [1, 2]) for (let i = 1; i < col(d).length; i++) assert.ok(col(d)[i].y >= col(d)[i - 1].y + col(d)[i - 1].h, "Überlappung in Spalte " + d);
-  const mid = (n) => n.y + n.h / 2;
-  assert.ok(Math.abs(mid(by.A) - mid(by.A2)) < 1e-9);
-  assert.equal(lay.edges.length, 5);
+  const by = Object.fromEntries(lay.nodes.map((n) => [n.text.slice(0, 1) === "B" && n.depth === 1 ? "B" : n.text, n]));
+  const cx = (n) => n.x + n.w / 2;
+  const t = by.Thema;
+  assert.equal(t.depth, 0);
+  const sides = ["A", "B", "C", "D"].map((k) => by[k].side);
+  assert.ok(sides.includes(1) && sides.includes(-1), "beide Seiten belegt");
+  assert.deepEqual(sides, [...sides].sort((a, b) => b - a), "erst rechts, dann links (Uhrzeigersinn)");
+  for (const n of lay.nodes.filter((n) => n.depth > 0)) {
+    assert.ok(n.side > 0 ? n.x >= t.x + t.w : n.x + n.w <= t.x, n.text + " liegt auf der falschen Seite");
+  }
+  // Unterpunkte liegen weiter außen als ihr Elternknoten
+  for (const [p, c] of [["A", "A1"], ["A1", "A1x"], ["C", "C1"]]) {
+    assert.ok(Math.abs(cx(by[c]) - cx(t)) > Math.abs(cx(by[p]) - cx(t)), c);
+    assert.equal(by[c].side, by[p].side);
+  }
+  // keine Überlappung zwischen irgendwelchen zwei Knoten
+  for (const a of lay.nodes) for (const b of lay.nodes) {
+    if (a === b) continue;
+    const apart = a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y;
+    assert.ok(apart, `${a.text} überlappt ${b.text}`);
+  }
+  // beide Seiten etwa gleich hoch, Thema vertikal mittig
+  const rightH = Math.max(...lay.nodes.filter((n) => n.side > 0).map((n) => n.y + n.h)) - Math.min(...lay.nodes.filter((n) => n.side > 0).map((n) => n.y));
+  const leftH = Math.max(...lay.nodes.filter((n) => n.side < 0).map((n) => n.y + n.h)) - Math.min(...lay.nodes.filter((n) => n.side < 0).map((n) => n.y));
+  assert.ok(Math.abs(rightH - leftH) < 120);
+  assert.ok(Math.abs(t.y + t.h / 2 - lay.height / 2) < 1e-6 + 60);
+  assert.equal(lay.edges.length, T.countNodes(root) - 1);
   for (const n of lay.nodes) assert.ok(n.x >= 0 && n.y >= 0 && n.x + n.w <= lay.width && n.y + n.h <= lay.height);
-  assert.deepEqual([by.A.branch, by.A1.branch, by.B.branch, by.Thema.branch], [0, 0, 1, -1]);
+  assert.ok(by.B.lines.length > 1);
+  assert.deepEqual([by.A.branch, by.A1x.branch, by.B.branch, by.Thema.branch], [0, 0, 1, -1]);
+  // Linien verbinden die zugewandten Seiten
+  const e = lay.edges.find((e) => e.to.text === "A1");
+  assert.equal(e.x1, by.A.side > 0 ? by.A.x + by.A.w : by.A.x);
+  assert.equal(e.x2, by.A.side > 0 ? by.A1.x : by.A1.x + by.A1.w);
+});
+
+test("layout: ein einzelner Ast und nur das Thema funktionieren", () => {
+  const one = T.layout(T.sanitize({ text: "T", children: [{ text: "x" }] }), measure);
+  assert.equal(one.nodes.length, 2);
+  const alone = T.layout(T.sanitize({ text: "T" }), measure);
+  assert.equal(alone.nodes.length, 1);
+  assert.ok(alone.width > 0 && alone.height > 0);
 });
 
 /* ---------- Function: Aufbereiten der KI-Antwort ---------- */

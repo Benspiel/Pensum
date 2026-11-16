@@ -20,9 +20,10 @@ const els = {
   aiCard: $("aiCard"), aiInfo: $("aiInfo"), aiText: $("aiText"), aiBtn: $("aiBtn"), aiError: $("aiError"),
 };
 
+// stroke/solid: kräftige Farbe (Äste, Hauptpunkte mit weißer Schrift), fill: Tönung für tiefere Ebenen
 const PALETTE = [
-  { fill: "#e5f0ff", stroke: "#0066ff" }, { fill: "#e6f5ec", stroke: "#1d8a4e" }, { fill: "#fff1da", stroke: "#c77d00" },
-  { fill: "#fdeaf0", stroke: "#cc2f65" }, { fill: "#ede8fb", stroke: "#6a43dc" }, { fill: "#e2f5f5", stroke: "#0a7f7f" },
+  { solid: "#0057d9", fill: "#e5f0ff" }, { solid: "#187a43", fill: "#e6f5ec" }, { solid: "#a86400", fill: "#fff1da" },
+  { solid: "#b92658", fill: "#fdeaf0" }, { solid: "#5a37c4", fill: "#ede8fb" }, { solid: "#0a6e6e", fill: "#e2f5f5" },
 ];
 
 const state = {
@@ -150,21 +151,22 @@ function renderMap() {
   els.svg.setAttribute("width", Math.round(W * state.zoom));
   els.svg.setAttribute("height", Math.round(H * state.zoom));
 
-  const edges = lay.edges.map(({ from, to }) => {
-    const x1 = from.x + from.w, y1 = from.y + from.h / 2, x2 = to.x, y2 = to.y + to.h / 2, mx = (x1 + x2) / 2;
-    return `<path class="mm-edge" stroke="${PALETTE[to.branch % PALETTE.length].stroke}" d="M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}"/>`;
+  const edges = lay.edges.map(({ to, x1, y1, x2, y2 }) => {
+    const mx = (x1 + x2) / 2;
+    const width = to.depth === 1 ? 5 : to.depth === 2 ? 3.5 : 2.5; // zur Mitte hin dicker
+    return `<path class="mm-edge" stroke="${PALETTE[to.branch % PALETTE.length].solid}" stroke-width="${width}" d="M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}"/>`;
   }).join("");
 
   const nodes = lay.nodes.map((n) => {
     const c = n.branch < 0 ? null : PALETTE[n.branch % PALETTE.length];
-    const fill = !c ? "#141414" : n.depth === 1 ? c.fill : "#ffffff";
-    const stroke = !c ? "#141414" : c.stroke;
-    const color = !c ? "#ffffff" : "#141414";
+    const fill = !c ? "#141414" : n.depth === 1 ? c.solid : c.fill;
+    const stroke = !c ? "#141414" : c.solid;
+    const color = !c || n.depth === 1 ? "#ffffff" : "#141414";
     const text = n.lines.map((l, i) =>
       `<text class="mm-text" x="${n.x + n.w / 2}" y="${n.y + 9 + 18 * (i + 0.5)}" text-anchor="middle" dominant-baseline="central" fill="${color}">${esc(l)}</text>`).join("");
     return `<g class="mm-node${n.id === state.selectedId ? " is-selected" : ""}" data-id="${esc(n.id)}" tabindex="0" role="button" aria-label="${esc(n.text || "leerer Punkt")}">` +
-      `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="14" fill="${fill}" stroke="${stroke}" stroke-width="${n.depth === 0 ? 0 : 1.5}"/>${text}` +
-      `<rect class="mm-sel" x="${n.x - 4}" y="${n.y - 4}" width="${n.w + 8}" height="${n.h + 8}" rx="17"/></g>`;
+      `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="${n.depth === 0 ? 20 : 14}" fill="${fill}" stroke="${stroke}" stroke-width="${n.depth <= 1 ? 0 : 1.5}"/>${text}` +
+      `<rect class="mm-sel" x="${n.x - 4}" y="${n.y - 4}" width="${n.w + 8}" height="${n.h + 8}" rx="${n.depth === 0 ? 24 : 17}"/></g>`;
   }).join("");
 
   els.svg.innerHTML = edges + nodes;
