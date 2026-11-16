@@ -70,7 +70,7 @@ async function callFunction(payload) {
       method: ExecutionMethod.POST,
     });
   } catch (e) {
-    if (e && e.code === 404) throw new Error("Der Mindmap-Dienst ist noch nicht eingerichtet.");
+    if (e && e.code === 404) throw new Error(`Der Mindmap-Dienst ist noch nicht eingerichtet (Function-ID „${config.functions.mindmap}“, Appwrite meldet: ${e.message || e.type}).`);
     throw new Error(authMessage(e));
   }
   let data = null;
