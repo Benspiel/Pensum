@@ -14,7 +14,7 @@ export const tools = [
     id: "notenrechner",
     name: "Notenrechner",
     href: "/tools/notenrechner/",
-    description: "Gewichteter Durchschnitt pro Fach und insgesamt, in Noten oder Punkten. Mit Zielnote-Rechner.",
+    description: "Trag pro Fach deine Zeugnisnote ein und sieh sofort deinen Zeugnisdurchschnitt, in Noten oder Punkten.",
     icon: icon('<path d="M5 19 19 5"/><circle cx="7.5" cy="7.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/>'),
     badge: "Neu",
   },

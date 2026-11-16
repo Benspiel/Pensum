@@ -2,7 +2,7 @@
 
 Schüler-Toolkit: mehrere Tools unter einem gemeinsamen Login. Statische Seite (HTML, CSS, ES-Module), kein Build-Schritt.
 
-- **Notenrechner** (`/tools/notenrechner/`): gewichtete Durchschnitte, Noten 1–6 und 0–15 Punkte, Zielnote.
+- **Notenrechner** (`/tools/notenrechner/`): eine Zeugnisnote pro Fach und Halbjahr, daraus der Zeugnisdurchschnitt; Noten 1–6 oder Punkte 0–15.
 - **Goodnotes-Tool** (`/tools/goodnotes/`): Text zu Handschrift, Export als `.goodnotes` oder PDF. Logik aus [Inkly](https://github.com/Benspiel/Inkly), läuft komplett im Browser.
 
 - **Mindmap-Generator** (`/tools/mindmap/`): Gemini erstellt pro Tag eine Mindmap (nur mit Konto), die sich 3-mal mit KI und beliebig oft von Hand im Editor ändern lässt. Der Schlüssel liegt serverseitig (siehe „Mindmap-Generator einrichten“).

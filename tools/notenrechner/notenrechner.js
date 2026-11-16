@@ -1,9 +1,9 @@
-/* Notenrechner – Oberfläche.
+/* Notenrechner – Oberfläche. Pro Fach wird eine Zeugnisnote eingetragen, daraus entsteht der Zeugnisdurchschnitt.
  * Rechnen: core.js · Speichern: store.js (Gast = localStorage, Konto = Appwrite) · Login: /js/auth.js */
 import { onAuthChange, onBeforeLogout, getPrefs, savePrefs } from "/js/auth.js";
 import { toast, confirmDialog, esc, closeIcon } from "/js/shell.js";
 import {
-  SYSTEMS, DEFAULT_SUBJECTS, MORE_SUBJECTS, zeugnisNote, zeugnisAverage, convert, parseGrade, parseWeight, subjectAverage, toSystem, overallAverage, requiredGrade,
+  SYSTEMS, DEFAULT_SUBJECTS, MORE_SUBJECTS, convert, parseGrade, overallAverage, subjectAverage,
   formatNumber, formatInput, formatOther, schoolYearOf, halfOf, schoolYearOptions, pointsToNote, noteToPoints,
 } from "./core.js";
 import { createGuestStore, createCloudStore, importGuestData } from "./store.js";
@@ -18,7 +18,6 @@ const els = {
   system: $("systemSwitch"),
   note: $("storageNote"),
   overall: $("overallValue"),
-  overallInfo: $("overallInfo"),
   zeugnis: $("zeugnisValue"),
   zeugnisInfo: $("zeugnisInfo"),
   suggest: $("suggestions"),
@@ -32,7 +31,7 @@ const els = {
 };
 
 const TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>';
-const HALF_LABEL = { 1: "1. Halbjahr", 2: "2. Halbjahr", 0: "ganzes Schuljahr" };
+const HALF_LABEL = { 1: "1. Halbjahr", 2: "2. Halbjahr" };
 
 const guest = createGuestStore();
 
@@ -41,9 +40,9 @@ const state = {
   store: guest,
   loading: true,
   subjects: [],          // { id, name, schoolYear }
-  grades: [],            // { id, subjectId, label, value, system, weight, half } + saved, valueOk, weightOk, valueError, weightError
-  view: defaultView(),   // { system, schoolYear, half } – half 0 = ganzes Schuljahr
-  targets: new Map(),    // Fach-ID → { target, weight, open } (nur für die Sitzung)
+  grades: [],            // { id, subjectId, label, value, system, weight, half } + saved – je Fach und Halbjahr genau eine
+  view: defaultView(),   // { system, schoolYear, half }
+  errors: new Map(),     // Fach-ID → Fehlertext der Eingabe (nur für die Sitzung)
   saveStatus: "saved",
 };
 
@@ -59,7 +58,7 @@ function sanitizeView(v) {
   return {
     system: SYSTEMS[v.system] ? v.system : d.system,
     schoolYear: /^\d{4}\/\d{2}$/.test(v.schoolYear) ? v.schoolYear : d.schoolYear,
-    half: [0, 1, 2].includes(Number(v.half)) ? Number(v.half) : d.half,
+    half: [1, 2].includes(Number(v.half)) ? Number(v.half) : d.half, // frühere Ansicht „ganzes Schuljahr“ (0) fällt auf das aktuelle Halbjahr zurück
   };
 }
 
@@ -80,85 +79,54 @@ function saveView() {
 /* ---------- Modell ---------- */
 
 const isNum = (x) => typeof x === "number" && Number.isFinite(x);
-const hydrateGrade = (g) => ({ ...g, saved: true, valueOk: isNum(g.value), weightOk: isNum(g.weight), valueError: "", weightError: "" });
 const visibleSubjects = () => state.subjects.filter((s) => s.schoolYear === state.view.schoolYear);
-const gradesOf = (subjectId) => state.grades.filter((g) => g.subjectId === subjectId && (state.view.half === 0 || g.half === state.view.half));
-const countable = (grades) => grades.filter((g) => g.valueOk && g.weightOk);
-const targetOf = (subjectId) => {
-  if (!state.targets.has(subjectId)) state.targets.set(subjectId, { target: "", weight: "1", open: false });
-  return state.targets.get(subjectId);
-};
-const displayValue = (g) => (isNum(g.value) ? formatInput(convert(g.value, g.system, state.view.system)) : "");
+const gradesOf = (subjectId) => state.grades.filter((g) => g.subjectId === subjectId && g.half === state.view.half && isNum(g.value));
+
+/** Zeugnisnote des Fachs im gewählten System (null = keine). Mehrere Noten aus früheren Versionen werden gewichtet gemittelt. */
+function gradeValue(subjectId) {
+  const list = gradesOf(subjectId);
+  if (list.length === 1) return convert(list[0].value, list[0].system, state.view.system);
+  return subjectAverage(list.filter((g) => isNum(g.weight)), state.view.system);
+}
+const displayValue = (subjectId) => formatInput(gradeValue(subjectId));
 
 function applyData(data) {
   state.subjects = data.subjects;
-  state.grades = data.grades.map(hydrateGrade);
+  state.grades = data.grades.map((g) => ({ ...g, saved: true }));
 }
 
-function persistGrade(g) {
-  if (!g.valueOk || !g.weightOk) return; // unfertige Zeilen bleiben nur auf dem Bildschirm
-  const data = { label: g.label.trim(), value: g.value, system: g.system, weight: g.weight, half: g.half };
-  if (!g.saved) {
-    g.saved = true;
-    state.store.addGrade({ id: g.id, subjectId: g.subjectId, ...data }).catch(() => { g.saved = false; });
+function dropGrade(g) {
+  state.grades = state.grades.filter((x) => x !== g);
+  if (g.saved) state.store.removeGrade(g.id).catch(() => {});
+}
+
+/** Setzt die Zeugnisnote eines Fachs im gewählten Halbjahr (null = Note entfernen). Es bleibt immer höchstens eine Note je Fach. */
+function setSubjectGrade(subjectId, value) {
+  const [keep, ...extra] = gradesOf(subjectId);
+  extra.forEach(dropGrade);
+  if (value === null) { if (keep) dropGrade(keep); return; }
+  const data = { label: "", value, system: state.view.system, weight: 1, half: state.view.half };
+  if (keep) {
+    Object.assign(keep, data);
+    if (keep.saved) state.store.updateGrade(keep.id, data).catch(() => {});
   } else {
-    state.store.updateGrade(g.id, data).catch(() => {});
+    const g = { id: state.store.newId(), subjectId, ...data, saved: true };
+    state.grades.push(g);
+    state.store.addGrade({ id: g.id, subjectId, ...data }).catch(() => { g.saved = false; });
   }
 }
 
 /* ---------- Darstellung ---------- */
 
-function gradeRow(g) {
-  const sys = SYSTEMS[state.view.system];
-  const yearView = state.view.half === 0;
-  return `
-    <li class="nr-grade" data-grade="${esc(g.id)}">
-      <input class="input" data-cell="label" data-field="label" value="${esc(g.label)}" maxlength="120" placeholder="z. B. Klausur" aria-label="Bezeichnung" autocomplete="off">
-      <input class="input tabular" data-cell="value" data-field="value" inputmode="decimal" value="${esc(displayValue(g))}" placeholder="${sys.unit}" aria-label="${sys.unit}" autocomplete="off">
-      <span class="nr-weight" data-cell="weight"><input class="input tabular" data-field="weight" inputmode="decimal" value="${esc(formatInput(g.weight))}" aria-label="Gewichtung" autocomplete="off"></span>
-      ${yearView ? `<select class="select" data-cell="half" data-field="half" aria-label="Halbjahr"><option value="1"${g.half === 1 ? " selected" : ""}>1. Hj.</option><option value="2"${g.half === 2 ? " selected" : ""}>2. Hj.</option></select>` : ""}
-      <button class="icon-btn" type="button" data-cell="remove" data-action="remove-grade" aria-label="Note löschen">${closeIcon}</button>
-    </li>`;
-}
-
 function subjectCard(s) {
   const sys = SYSTEMS[state.view.system];
-  const t = targetOf(s.id);
-  const yearView = state.view.half === 0;
   return `
-    <article class="card nr-subject" data-subject="${esc(s.id)}">
-      <div class="nr-subject-head">
-        <input class="nr-subject-name" data-field="name" value="${esc(s.name)}" maxlength="120" aria-label="Fachname" autocomplete="off">
-        <button class="icon-btn" type="button" data-action="remove-subject" aria-label="Fach ${esc(s.name)} löschen">${TRASH}</button>
-      </div>
-      <div class="nr-avg">
-        <span class="nr-avg-value tabular" data-out="avg">–</span>
-        <span class="body-sm muted" data-out="avg-info"></span>
-        <span class="nr-zeugnis" data-out="zeugnis" title="Auf eine ganze Note gerundet"></span>
-      </div>
-      <div class="nr-grade-head caption" aria-hidden="true"><span>Bezeichnung</span><span>${sys.unit}</span><span>Gewicht</span>${yearView ? "<span>Halbjahr</span>" : ""}<span></span></div>
-      <ul class="nr-grades">${gradesOf(s.id).map(gradeRow).join("")}</ul>
+    <div class="nr-subject" data-subject="${esc(s.id)}">
+      <input class="nr-subject-name" data-field="name" value="${esc(s.name)}" maxlength="120" aria-label="Fachname" autocomplete="off">
+      <input class="input tabular nr-grade-input" data-field="value" inputmode="decimal" value="${esc(displayValue(s.id))}" placeholder="${sys.unit}" aria-label="Zeugnisnote ${esc(s.name)} (${sys.unit})" autocomplete="off">
+      <button class="icon-btn" type="button" data-action="remove-subject" aria-label="Fach ${esc(s.name)} löschen">${TRASH}</button>
       <p class="nr-row-error" data-out="error" role="alert"></p>
-      <div class="nr-subject-actions">
-        <button class="btn btn-soft btn-sm" type="button" data-action="add-grade">Note hinzufügen</button>
-      </div>
-      <details class="nr-target on-tint"${t.open ? " open" : ""}>
-        <summary>Zielnote berechnen</summary>
-        <div class="nr-target-body">
-          <div class="nr-target-fields">
-            <label class="field">
-              <span class="field-label">Wunsch-Durchschnitt</span>
-              <input class="input tabular" data-field="target" inputmode="decimal" value="${esc(t.target)}" placeholder="${sys.id === "note" ? "2,0" : "11"}" autocomplete="off">
-            </label>
-            <label class="field">
-              <span class="field-label">Gewicht nächste Arbeit</span>
-              <span class="nr-weight"><input class="input tabular" data-field="target-weight" inputmode="decimal" value="${esc(t.weight)}" autocomplete="off"></span>
-            </label>
-          </div>
-          <p class="nr-target-result body-sm" data-out="target" aria-live="polite"></p>
-        </div>
-      </details>
-    </article>`;
+    </div>`;
 }
 
 function renderControls() {
@@ -193,7 +161,6 @@ function renderSaveState() {
 }
 
 function renderSubjects() {
-  els.subjects.classList.toggle("nr-year-view", state.view.half === 0);
   if (state.loading) {
     els.subjects.innerHTML = '<div class="card-soft nr-empty"><p class="body muted-tint">Lade deine Noten …</p></div>';
   } else {
@@ -213,55 +180,22 @@ function renderAll() {
   renderSubjects();
 }
 
-function targetResult(subject, ok) {
-  const sys = state.view.system;
-  const t = targetOf(subject.id);
-  if (!t.target.trim()) return "";
-  const target = parseGrade(t.target, sys);
-  if (!target.ok) return esc(target.error);
-  const weight = parseWeight(t.weight);
-  if (!weight.ok) return "Gewichtung der nächsten Arbeit eingeben.";
-  const r = requiredGrade({ grades: toSystem(ok, sys), target: target.value, nextWeight: weight.value, system: sys });
-  if (r.status === "invalid") return esc(r.error);
-  if (r.status === "guaranteed") return "Schon sicher.<span>Egal, wie die nächste Arbeit ausfällt: Du hältst deinen Wunsch-Durchschnitt.</span>";
-  if (r.status === "unreachable") {
-    return `Mit einer Arbeit nicht zu schaffen.<span>Selbst mit ${sys === "note" ? "einer 1" : "15 Punkten"} kommst du auf ${formatNumber(r.bestCase, 2)}.</span>`;
-  }
-  return sys === "note"
-    ? `Du brauchst eine ${formatInput(r.practical)} oder besser.<span>${formatOther(r.practical, sys)} · rechnerisch ${formatNumber(r.needed, 2)}</span>`
-    : `Du brauchst mindestens ${formatInput(r.practical)} Punkte.<span>${formatOther(r.practical, sys)} · rechnerisch ${formatNumber(r.needed, 2)}</span>`;
-}
-
 /** Alle berechneten Werte neu schreiben, ohne Eingabefelder anzufassen (läuft bei jedem Tastendruck). */
 function updateComputed() {
   const sys = state.view.system;
-  const averages = [];
-  for (const s of visibleSubjects()) {
+  const subjects = visibleSubjects();
+  const values = [];
+  for (const s of subjects) {
+    const v = gradeValue(s.id);
+    if (isNum(v)) values.push(v);
     const card = els.subjects.querySelector(`[data-subject="${CSS.escape(s.id)}"]`);
-    if (!card) continue;
-    const all = gradesOf(s.id), ok = countable(all);
-    const avg = subjectAverage(ok, sys);
-    averages.push(avg);
-    const zn = zeugnisNote(avg, sys);
-    card.querySelector('[data-out="zeugnis"]').textContent = zn === null ? "" : `Zeugnis: ${formatInput(zn)}`;
-    card.querySelector('[data-out="avg"]').textContent = formatNumber(avg, 2);
-    card.querySelector('[data-out="avg-info"]').textContent =
-      avg !== null ? `${formatOther(avg, sys)} · ${ok.length} ${ok.length === 1 ? "Note" : "Noten"}`
-      : ok.length ? "Gewichtung ergibt 0. Es gibt nichts zu berechnen."
-      : all.length ? "Trag eine Note ein."
-      : `Noch keine Noten (${HALF_LABEL[state.view.half]}).`;
-    const bad = all.find((g) => g.valueError || g.weightError);
-    card.querySelector('[data-out="error"]').textContent = bad ? bad.valueError || bad.weightError : "";
-    card.querySelector('[data-out="target"]').innerHTML = targetResult(s, ok);
+    if (card) card.querySelector('[data-out="error"]').textContent = state.errors.get(s.id) || "";
   }
-  const overall = overallAverage(averages);
-  const zeugnis = zeugnisAverage(averages, sys);
-  const n = averages.filter((a) => a !== null).length;
-  els.zeugnis.textContent = formatNumber(zeugnis, 2);
-  els.zeugnisInfo.textContent = zeugnis === null
-    ? "Noch keine Noten eingetragen."
-    : `${formatOther(zeugnis, sys)} · Mittel aus ${n} ${n === 1 ? "Zeugnisnote" : "Zeugnisnoten"} (je Fach auf ganze ${sys === "note" ? "Noten" : "Punkte"} gerundet) · ${HALF_LABEL[state.view.half]}`;
-  els.overallInfo.textContent = overall === null ? "" : `Ungerundet: ${formatNumber(overall, 2)} (${formatOther(overall, sys)})`;
+  const avg = overallAverage(values);
+  els.zeugnis.textContent = formatNumber(avg, 2);
+  els.zeugnisInfo.textContent = avg === null
+    ? "Trag bei deinen Fächern die Zeugnisnote ein."
+    : `${formatOther(avg, sys)} · Mittel aus ${values.length} von ${subjects.length} ${subjects.length === 1 ? "Fach" : "Fächern"} · ${HALF_LABEL[state.view.half]}`;
 }
 
 /* ---------- Standardfächer ---------- */
@@ -300,41 +234,22 @@ function renderSuggestions() {
 
 /* ---------- Eingaben ---------- */
 
-function onGradeInput(id, field, el) {
-  const g = state.grades.find((x) => x.id === id);
-  if (!g) return;
-  if (field === "label") g.label = el.value;
-  if (field === "half") g.half = Number(el.value) === 2 ? 2 : 1;
-  if (field === "value") {
-    const r = parseGrade(el.value, state.view.system);
-    g.valueOk = r.ok;
-    g.valueError = r.ok || r.empty ? "" : r.error;
-    if (r.ok) { g.value = r.value; g.system = state.view.system; }
-    el.setAttribute("aria-invalid", String(!!g.valueError));
-  }
-  if (field === "weight") {
-    const r = parseWeight(el.value);
-    g.weightOk = r.ok;
-    g.weightError = r.ok || r.empty ? "" : r.error;
-    if (r.ok) g.weight = r.value;
-    el.setAttribute("aria-invalid", String(!!g.weightError));
-  }
-  persistGrade(g);
-}
-
 els.subjects.addEventListener("input", (e) => {
   const field = e.target.dataset.field;
   const card = e.target.closest("[data-subject]");
   if (!field || !card) return;
   const subjectId = card.dataset.subject;
-  const row = e.target.closest("[data-grade]");
-  if (row) onGradeInput(row.dataset.grade, field, e.target);
-  else if (field === "name") {
+  if (field === "name") {
     const s = state.subjects.find((x) => x.id === subjectId);
     const name = e.target.value.trim();
     if (s && name) { s.name = name; state.store.updateSubject(s.id, { name }).catch(() => {}); }
-  } else if (field === "target") targetOf(subjectId).target = e.target.value;
-  else if (field === "target-weight") targetOf(subjectId).weight = e.target.value;
+  } else if (field === "value") {
+    const r = parseGrade(e.target.value, state.view.system);
+    if (r.ok) { state.errors.delete(subjectId); setSubjectGrade(subjectId, r.value); }
+    else if (r.empty) { state.errors.delete(subjectId); setSubjectGrade(subjectId, null); }
+    else state.errors.set(subjectId, r.error);
+    e.target.setAttribute("aria-invalid", String(!r.ok && !r.empty));
+  }
   updateComputed();
 });
 
@@ -344,11 +259,6 @@ els.subjects.addEventListener("focusout", (e) => {
   const s = state.subjects.find((x) => x.id === e.target.closest("[data-subject]").dataset.subject);
   if (s) e.target.value = s.name;
 });
-
-els.subjects.addEventListener("toggle", (e) => {
-  const card = e.target.closest && e.target.closest("[data-subject]");
-  if (card && e.target.matches(".nr-target")) targetOf(card.dataset.subject).open = e.target.open;
-}, true);
 
 els.subjects.addEventListener("click", (e) => {
   if (!e.target.closest('[data-action="seed-defaults"]') || state.loading) return;
@@ -375,41 +285,20 @@ els.subjects.addEventListener("click", async (e) => {
   if (!btn || !card) return;
   const subjectId = card.dataset.subject;
 
-  if (btn.dataset.action === "add-grade") {
-    const g = {
-      id: state.store.newId(), subjectId, label: "", value: NaN, system: state.view.system, weight: 1,
-      half: state.view.half || halfOf(), saved: false, valueOk: false, weightOk: true, valueError: "", weightError: "",
-    };
-    state.grades.push(g);
-    card.querySelector(".nr-grades").insertAdjacentHTML("beforeend", gradeRow(g));
-    card.querySelector(`[data-grade="${CSS.escape(g.id)}"] [data-field="label"]`).focus();
-    updateComputed();
-  }
-
-  if (btn.dataset.action === "remove-grade") {
-    const row = btn.closest("[data-grade]");
-    const g = state.grades.find((x) => x.id === row.dataset.grade);
-    state.grades = state.grades.filter((x) => x !== g);
-    if (g && g.saved) state.store.removeGrade(g.id).catch(() => {});
-    row.remove();
-    card.querySelector('[data-action="add-grade"]').focus();
-    updateComputed();
-  }
-
   if (btn.dataset.action === "remove-subject") {
     const s = state.subjects.find((x) => x.id === subjectId);
     const grades = state.grades.filter((g) => g.subjectId === subjectId);
     if (grades.length) {
       const ok = await confirmDialog({
         title: `„${s.name}“ löschen?`,
-        text: `${grades.length === 1 ? "Die eine Note" : `Alle ${grades.length} Noten`} dieses Fachs ${grades.length === 1 ? "wird" : "werden"} mit gelöscht. Das lässt sich nicht rückgängig machen.`,
+        text: `${grades.length === 1 ? "Die Note" : `Alle ${grades.length} Noten`} dieses Fachs ${grades.length === 1 ? "wird" : "werden"} mit gelöscht. Das lässt sich nicht rückgängig machen.`,
         confirm: "Fach löschen",
       });
       if (!ok) return;
     }
     state.subjects = state.subjects.filter((x) => x.id !== subjectId);
     state.grades = state.grades.filter((g) => g.subjectId !== subjectId);
-    state.targets.delete(subjectId);
+    state.errors.delete(subjectId);
     state.store.removeSubject(subjectId, grades.filter((g) => g.saved).map((g) => g.id)).catch(() => {});
     renderSubjects();
     renderControls();
@@ -434,10 +323,11 @@ els.addForm.addEventListener("submit", (e) => {
 });
 els.addName.addEventListener("input", () => { els.addError.hidden = true; els.addName.removeAttribute("aria-invalid"); });
 
-els.year.addEventListener("change", () => { state.view.schoolYear = els.year.value; saveView(); renderAll(); });
+els.year.addEventListener("change", () => { state.errors.clear(); state.view.schoolYear = els.year.value; saveView(); renderAll(); });
 els.half.addEventListener("click", (e) => {
   const b = e.target.closest("[data-half]");
   if (!b) return;
+  state.errors.clear();
   state.view.half = Number(b.dataset.half);
   saveView();
   renderAll();
@@ -445,11 +335,7 @@ els.half.addEventListener("click", (e) => {
 els.system.addEventListener("click", (e) => {
   const b = e.target.closest("[data-system]");
   if (!b || b.dataset.system === state.view.system) return;
-  // Wunsch-Durchschnitte gehören zum alten System und werden mit umgerechnet
-  for (const t of state.targets.values()) {
-    const r = parseGrade(t.target, state.view.system);
-    t.target = r.ok ? formatInput(convert(r.value, state.view.system, b.dataset.system)) : "";
-  }
+  state.errors.clear();
   state.view.system = b.dataset.system;
   saveView();
   renderAll();
@@ -529,7 +415,7 @@ onAuthChange(async ({ status, user }) => {
   state.loading = true;
   state.subjects = [];
   state.grades = [];
-  state.targets.clear();
+  state.errors.clear();
   state.view = loadView();
   renderAll();
   try {

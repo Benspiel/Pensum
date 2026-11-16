@@ -6,16 +6,25 @@
 .legal ul { padding-left: 1.25em; list-style: disc; }
 .legal li + li { margin-top: var(--s-xs); }
 .legal a, .legal-stand a { text-decoration: underline; text-underline-offset: 3px; }
+.legal { overflow-wrap: anywhere; }
 .legal code { font-size: .9em; background: var(--field); border-radius: 8px; padding: 1px 6px; overflow-wrap: anywhere; }
 .legal-address { font-style: normal; line-height: 1.6; }
 .legal-stand { margin-top: var(--s-xxl); }
 .legal-missing { background: #fff3c4; color: var(--ink); border-radius: 8px; padding: 0 6px; }
-.legal-table { margin-top: var(--s-sm); overflow-x: auto; border: 1px solid var(--hairline); border-radius: var(--r-sm); }
-.legal-table:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-.legal-table table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: 14px; line-height: 1.43; }
+.legal-table { margin-top: var(--s-sm); border: 1px solid var(--hairline); border-radius: var(--r-sm); }
+.legal-table table { width: 100%; border-collapse: collapse; font-size: 14px; line-height: 1.43; }
 .legal-table th, .legal-table td { text-align: left; vertical-align: top; padding: var(--s-sm) var(--s-md); border-bottom: 1px solid var(--hairline-soft); }
 .legal-table th { font-weight: 600; background: var(--canvas-soft); }
 .legal-table tr:last-child td { border-bottom: 0; }
+/* schmal: jede Zeile wird eine Karte mit Beschriftung, nichts scrollt seitlich */
+@media (max-width: 720px) {
+  .legal-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .legal-table table, .legal-table tbody, .legal-table tr, .legal-table td { display: block; width: 100%; }
+  .legal-table tr { padding: var(--s-xs) 0; border-bottom: 1px solid var(--hairline); }
+  .legal-table tr:last-child { border-bottom: 0; }
+  .legal-table td { display: grid; grid-template-columns: 6.5em minmax(0, 1fr); gap: var(--s-sm); padding: var(--s-xxs) var(--s-md); border: 0; }
+  .legal-table td::before { content: attr(data-label); font-weight: 600; color: var(--muted); }
+}
 
 /* Konto-Verwaltung */
 .avatar-lg { width: 64px; height: 64px; font-size: 22px; }
@@ -28,8 +37,8 @@
 .acc-tabs { margin-block: var(--s-lg); }
 [data-panel] > * + * { margin-top: var(--s-lg); }
 
-.acc-group { display: grid; gap: var(--s-xs); padding: var(--s-xs); border-radius: var(--r-md); background: var(--canvas-soft); }
-.acc-row { border-radius: var(--r-sm); background: var(--canvas); }
+.acc-group { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-xs); padding: var(--s-xs); border-radius: var(--r-md); background: var(--canvas-soft); }
+.acc-row { min-width: 0; border-radius: var(--r-sm); background: var(--canvas); }
 .acc-row summary { display: flex; align-items: center; gap: var(--s-md); min-height: 64px; padding: var(--s-sm) var(--s-md); cursor: pointer; list-style: none; border-radius: var(--r-sm); }
 .acc-row summary::-webkit-details-marker { display: none; }
 .acc-row summary:focus-visible { outline: 2px dashed var(--ink); outline-offset: -2px; }

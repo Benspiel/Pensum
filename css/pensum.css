@@ -50,6 +50,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 html {
+  overflow-x: clip;               /* nie seitlich scrollen: Sicherung, die eigentlichen Ursachen sind einzeln behoben */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   scroll-padding-top: var(--nav-offset);
@@ -57,6 +58,8 @@ html {
 
 body {
   margin: 0;
+  overflow-x: clip;
+  max-width: 100%;
   background: var(--canvas);
   color: var(--ink);
   font-family: var(--font);
@@ -80,6 +83,7 @@ img, svg, canvas { max-width: 100%; }
 /* ---------- Typografie ---------- */
 
 h1, h2, h3, h4, p { margin: 0; }
+h1, h2, h3, h4 { overflow-wrap: anywhere; hyphens: auto; }  /* lange Wörter wie „Nutzungsbedingungen“ brechen um statt zu überlaufen */
 
 .display, h1, h2, h3, h4 {
   font-weight: var(--w-head);
@@ -191,11 +195,13 @@ a { color: inherit; }
   line-height: 1.38;
   text-decoration: none;
   white-space: nowrap;
+  max-width: 100%;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .btn[disabled], .btn[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; }
+@media (max-width: 479px) { .btn { white-space: normal; text-align: center; padding-block: var(--s-xs); } }
 
 .btn-primary { background: var(--ink); color: var(--on-primary); }
 .btn-primary:hover:not([disabled]) { background: var(--ink-soft); }
@@ -504,6 +510,7 @@ pensum-footer { display: block; margin-top: var(--s-section); }
 .footer-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-lg); }
 .footer-col h2 { margin-bottom: var(--s-xs); font-size: 14px; font-weight: 600; line-height: 1.43; color: var(--on-primary); }
 .footer-col a, .footer-col button {
+  overflow-wrap: anywhere;
   display: flex;
   align-items: center;
   min-height: 44px;
