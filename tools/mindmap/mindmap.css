@@ -27,7 +27,7 @@
 /* Zeichenfläche */
 .mm-canvas {
   min-height: 240px;
-  max-height: min(72vh, 680px);
+  max-height: min(82vh, 900px);
   overflow: auto;
   background:
     radial-gradient(circle at 1px 1px, var(--hairline) 1px, transparent 0) 0 0 / 22px 22px,
@@ -39,24 +39,34 @@
   animation: fade 0.4s ease backwards;
 }
 .mm-canvas.is-panning { cursor: grabbing; user-select: none; }
-.mm-canvas svg { display: block; font-family: var(--font); transition: width 0.28s var(--ease), height 0.28s var(--ease); }
+.mm-canvas svg { display: block; margin-inline: auto; font-family: var(--font); transition: width 0.28s var(--ease), height 0.28s var(--ease); }
 
-.mm-edge { fill: none; stroke-linecap: round; opacity: 0.9; }
+.mm-edge { fill: none; stroke-linecap: round; }
 .mm-node { cursor: pointer; outline: none; }
-.mm-shape { transition: filter 0.15s ease; }
-.mm-node:hover .mm-shape { filter: brightness(0.96); }
-.mm-text { font-size: 14px; font-weight: 500; pointer-events: none; user-select: none; }
-.mm-text.is-root { font-size: 17px; font-weight: 650; }
+/* Beschriftungen haben keinen Rahmen: beim Zeigen nur ein zarter Hintergrund, das Thema ist eine leicht getönte Ellipse */
+.mm-shape { fill-opacity: 0; transition: fill-opacity 0.15s ease; }
+.mm-shape.is-root { fill-opacity: 0.1; }
+.mm-node:hover .mm-shape { fill-opacity: 0.08; }
+.mm-node:hover .mm-shape.is-root { fill-opacity: 0.15; }
+.mm-text { pointer-events: none; user-select: none; }
 .mm-ink { fill: none; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
-.mm-sel { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-dasharray: 5 4; pointer-events: none; opacity: 0; transition: opacity 0.15s ease; }
+.mm-sel { fill: none; stroke: var(--mm-ink, var(--ink)); stroke-width: 1.8; stroke-dasharray: 4 4; pointer-events: none; opacity: 0; transition: opacity 0.15s ease; }
 .mm-node.is-selected .mm-sel, .mm-node:focus-visible .mm-sel { opacity: 1; }
 
 /* Ein-/Ausklappen: erscheint beim Zeigen, bei Auswahl und immer bei eingeklappten Ästen */
 .mm-toggle { cursor: pointer; opacity: 0; transition: opacity 0.15s ease; }
-.mm-toggle circle { fill: var(--canvas); stroke-width: 2; }
+.mm-toggle circle { fill: var(--canvas); stroke-width: 1.8; }
 .mm-toggle text { font-size: 11px; font-weight: 650; fill: var(--ink); pointer-events: none; user-select: none; }
 .mm-node:hover .mm-toggle, .mm-node.is-selected .mm-toggle, .mm-node.is-folded .mm-toggle, .mm-node:focus-visible .mm-toggle { opacity: 1; }
 @media (hover: none) { .mm-toggle { opacity: 1; } }
+
+.mm-export { display: flex; gap: var(--s-xs); flex-wrap: wrap; }
+
+.mm-inks { display: flex; gap: var(--s-xxs); }
+.mm-ink-dot { width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--r-full); background: transparent; cursor: pointer; display: grid; place-items: center; transition: transform 0.12s ease; }
+.mm-ink-dot::before { content: ""; width: 26px; height: 26px; border-radius: var(--r-full); background: var(--c); }
+.mm-ink-dot[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: -4px; }
+.mm-ink-dot:active { transform: scale(0.9); }
 
 .mm-meta { display: flex; flex-wrap: wrap; gap: var(--s-sm) var(--s-lg); align-items: flex-start; justify-content: space-between; }
 .mm-font { display: grid; gap: var(--s-xxs); }
@@ -73,7 +83,8 @@
 .mm-node-edit > .panel-title, .mm-ai > .panel-title { margin-bottom: 0; }
 
 @media (max-width: 640px) {
-  .mm-pick { flex: 1 1 100%; }
+  .mm-pick, .mm-export { flex: 1 1 100%; }
+  .mm-export .btn { flex: 1; }
   .mm-pick .select { flex: 1; min-width: 0; }
   .mm-save { flex: 1 1 100%; min-height: 0; }
   .mm-font .segmented { width: 100%; }

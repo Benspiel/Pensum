@@ -68,65 +68,97 @@ test("Bearbeiten respektiert Knoten-, Tiefen- und Kinderlimit", () => {
 
 /* ---------- Layout ---------- */
 
-const measure = (s) => s.length * 8;
+const measure = (s, size = 14) => s.length * size * 0.55;
+
+const sampleBig = () => T.sanitize({ text: "Beatles", children: [
+  { text: "Musikalische Entwicklung", children: [{ text: "Einflussreiche Alben" }, { text: "Neue Techniken" }, { text: "Frühe Rock-'n'-Roll-Einflüsse" }] },
+  { text: "Einfluss für die Gesellschaft", children: [{ text: "Jugendkultur der 1960er" }, { text: "Mode & Lifestyle" }, { text: "Friedensbewegung" }] },
+  { text: "Aufstieg", children: [{ text: "Durchbruch in Großbritannien" }, { text: "erste Erfolge in Hamburg" }] },
+  { text: "Nachwirkungen", children: [{ text: "Einfluss in Rock- und Popmusik" }, { text: "Kulturikonen" }, { text: "bis heute Kultstatus" }] },
+  { text: "Das Ende", children: [{ text: "Trennung umstritten" }, { text: "Soloprojekte" }, { text: "Offizielle Trennung 1970" }, { text: "Spannung innerhalb der Band" }] },
+  { text: "Mitglieder & Entstehung", children: [{ text: "George Harrison" }, { text: "Ringo Starr" }, { text: "John Lennon", children: [{ text: "Gitarre" }, { text: "Gesang" }] }, { text: "Paul McCartney" }, { text: "Ursprünge in Liverpool" }] },
+] });
 
 test("wrap: bricht an Wortgrenzen und trennt zu lange Wörter", () => {
-  assert.deepEqual(T.wrap("ein kurzer Satz hier", measure, 100), ["ein kurzer", "Satz hier"]);
-  const lines = T.wrap("Donaudampfschifffahrt", measure, 80);
-  assert.ok(lines.length > 1 && lines.every((l) => measure(l) <= 80));
-  assert.deepEqual(T.wrap("", measure, 80), [""]);
+  const m = (s) => s.length * 8;
+  assert.deepEqual(T.wrap("ein kurzer Satz hier", m, 100), ["ein kurzer", "Satz hier"]);
+  const lines = T.wrap("Donaudampfschifffahrt", m, 80);
+  assert.ok(lines.length > 1 && lines.every((l) => m(l) <= 80));
+  assert.deepEqual(T.wrap("", m, 80), [""]);
+  // nach Bindestrichen darf umgebrochen werden, Wörter bleiben heil
+  const hy = T.wrap("Frühe Rock-'n'-Roll-Einflüsse", m, 120);
+  assert.ok(hy.length > 1 && hy.every((l) => m(l) <= 120) && hy.join("").replace(/\s/g, "") === "FrüheRock-'n'-Roll-Einflüsse", JSON.stringify(hy));
+  assert.ok(!hy.some((l) => /^sse/.test(l)), "Einflüsse bleibt ganz");
 });
 
-test("layout: Thema in der Mitte, Äste verteilen sich links und rechts und wachsen nach außen", () => {
-  const root = T.sanitize({ text: "Thema", children: [
-    { text: "A", children: [{ text: "A1", children: [{ text: "A1x" }] }, { text: "A2" }, { text: "A3" }] },
-    { text: "B mit einem ziemlich langen Text der umbrechen muss", children: [{ text: "B1" }] },
-    { text: "C", children: [{ text: "C1" }, { text: "C2" }] },
-    { text: "D" },
-  ] });
+test("layout: Thema in der Mitte, Hauptäste rundherum, Unterpunkte außen, nichts überlappt", () => {
+  const root = sampleBig();
   const lay = T.layout(root, measure);
-  const by = Object.fromEntries(lay.nodes.map((n) => [n.text.slice(0, 1) === "B" && n.depth === 1 ? "B" : n.text, n]));
-  const cx = (n) => n.x + n.w / 2;
-  const t = by.Thema;
-  assert.equal(t.depth, 0);
-  const sides = ["A", "B", "C", "D"].map((k) => by[k].side);
-  assert.ok(sides.includes(1) && sides.includes(-1), "beide Seiten belegt");
-  assert.deepEqual(sides, [...sides].sort((a, b) => b - a), "erst rechts, dann links (Uhrzeigersinn)");
-  for (const n of lay.nodes.filter((n) => n.depth > 0)) {
-    assert.ok(n.side > 0 ? n.x >= t.x + t.w : n.x + n.w <= t.x, n.text + " liegt auf der falschen Seite");
+  const by = Object.fromEntries(lay.nodes.map((n) => [n.text, n]));
+  const t = by.Beatles;
+  const cx = (n) => n.x + n.w / 2, cy = (n) => n.y + n.h / 2;
+  const dist = (n) => Math.hypot(cx(n) - cx(t), cy(n) - cy(t));
+
+  // Hauptäste verteilen sich auf alle vier Seiten des Themas
+  const mains = lay.nodes.filter((n) => n.depth === 1);
+  assert.equal(mains.length, 6);
+  assert.ok(mains.some((n) => cx(n) < cx(t)) && mains.some((n) => cx(n) > cx(t)), "links und rechts");
+  assert.ok(mains.some((n) => cy(n) < cy(t)) && mains.some((n) => cy(n) > cy(t)), "oben und unten");
+  // Unterpunkte liegen weiter außen als ihr Hauptast
+  for (const [p, c] of [["Aufstieg", "Durchbruch in Großbritannien"], ["Das Ende", "Soloprojekte"], ["John Lennon", "Gitarre"]]) {
+    assert.ok(dist(by[c]) > dist(by[p]), `${c} liegt nicht außen`);
   }
-  // Unterpunkte liegen weiter außen als ihr Elternknoten
-  for (const [p, c] of [["A", "A1"], ["A1", "A1x"], ["C", "C1"]]) {
-    assert.ok(Math.abs(cx(by[c]) - cx(t)) > Math.abs(cx(by[p]) - cx(t)), c);
-    assert.equal(by[c].side, by[p].side);
-  }
-  // keine Überlappung zwischen irgendwelchen zwei Knoten
+  // keine Überlappung zwischen zwei Beschriftungen und kein Hauptast im Thema
   for (const a of lay.nodes) for (const b of lay.nodes) {
     if (a === b) continue;
     const apart = a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y;
     assert.ok(apart, `${a.text} überlappt ${b.text}`);
   }
-  // beide Seiten etwa gleich hoch, Thema vertikal mittig
-  const rightH = Math.max(...lay.nodes.filter((n) => n.side > 0).map((n) => n.y + n.h)) - Math.min(...lay.nodes.filter((n) => n.side > 0).map((n) => n.y));
-  const leftH = Math.max(...lay.nodes.filter((n) => n.side < 0).map((n) => n.y + n.h)) - Math.min(...lay.nodes.filter((n) => n.side < 0).map((n) => n.y));
-  assert.ok(Math.abs(rightH - leftH) < 120);
-  assert.ok(Math.abs(t.y + t.h / 2 - lay.height / 2) < 1e-6 + 60);
-  assert.equal(lay.edges.length, T.countNodes(root) - 1);
+  // alles liegt im positiven Bereich der Zeichenfläche
   for (const n of lay.nodes) assert.ok(n.x >= 0 && n.y >= 0 && n.x + n.w <= lay.width && n.y + n.h <= lay.height);
-  assert.ok(by.B.lines.length > 1);
-  assert.deepEqual([by.A.branch, by.A1x.branch, by.B.branch, by.Thema.branch], [0, 0, 1, -1]);
-  // Linien verbinden die zugewandten Seiten
-  const e = lay.edges.find((e) => e.to.text === "A1");
-  assert.equal(e.x1, by.A.side > 0 ? by.A.x + by.A.w : by.A.x);
-  assert.equal(e.x2, by.A.side > 0 ? by.A1.x : by.A1.x + by.A1.w);
+  assert.equal(lay.edges.length, T.countNodes(root) - 1);
+  assert.deepEqual(lay.nodes[0].id, root.id);
+  assert.equal(lay.nodes[0].depth, 0);
 });
 
-test("layout: ein einzelner Ast und nur das Thema funktionieren", () => {
+test("layout: bleibt bei gleicher Eingabe gleich und bewältigt große Karten", () => {
+  const a = JSON.stringify(T.layout(sampleBig(), measure).nodes.map((n) => [n.text, Math.round(n.x), Math.round(n.y)]));
+  const b = JSON.stringify(T.layout(sampleBig(), measure).nodes.map((n) => [n.text, Math.round(n.x), Math.round(n.y)]));
+  assert.equal(a, b);
+  const big = T.sanitize({ text: "r", children: Array.from({ length: 8 }, (_, i) => ({ text: "Ast " + i, children: Array.from({ length: 4 }, (_, j) => ({ text: `Punkt ${i}.${j}`, children: [{ text: "Detail a" }, { text: "Detail b" }] })) })) });
+  const t0 = Date.now();
+  const lay = T.layout(big, measure);
+  assert.ok(Date.now() - t0 < 1500, "Layout zu langsam");
+  for (const x of lay.nodes) for (const y of lay.nodes) {
+    if (x === y) continue;
+    assert.ok(x.x + x.w <= y.x || y.x + y.w <= x.x || x.y + x.h <= y.y || y.y + y.h <= x.y, `${x.text} überlappt ${y.text}`);
+  }
+});
+
+test("layout: eingeklappte Äste verbergen ihre Unterpunkte, einzelne Äste und nur das Thema gehen", () => {
+  const root = sampleBig();
+  const aufstieg = root.children[2];
+  const lay = T.layout(root, measure, T.STYLE, new Set([aufstieg.id]));
+  const hit = lay.nodes.find((n) => n.id === aufstieg.id);
+  assert.ok(hit.folded && hit.hidden === 2);
+  assert.ok(!lay.nodes.some((n) => n.text === "erste Erfolge in Hamburg"));
+  assert.equal(lay.nodes.length, T.countNodes(root) - 2);
+  assert.equal(T.layout(T.sanitize({ text: "T" }), measure).nodes.length, 1);
   const one = T.layout(T.sanitize({ text: "T", children: [{ text: "x" }] }), measure);
   assert.equal(one.nodes.length, 2);
-  const alone = T.layout(T.sanitize({ text: "T" }), measure);
-  assert.equal(alone.nodes.length, 1);
-  assert.ok(alone.width > 0 && alone.height > 0);
+  assert.ok(one.nodes[1].x > one.nodes[0].x + one.nodes[0].w - 1, "ein einzelner Ast liegt rechts");
+});
+
+test("edgeLine: gerade Linie zwischen den Rändern, nicht durch den Text, bei zu dichten Kästen keine", () => {
+  const a = { x: 0, y: 0, w: 100, h: 40, depth: 1 }, b = { x: 300, y: 0, w: 100, h: 40, depth: 1 };
+  const e = T.edgeLine(a, b, 7);
+  assert.ok(Math.abs(e.x1 - 107) < 1e-6 && Math.abs(e.x2 - 293) < 1e-6 && Math.abs(e.y1 - 20) < 1e-6 && Math.abs(e.y2 - 20) < 1e-6);
+  const diag = T.edgeLine(a, { x: 300, y: 300, w: 100, h: 40, depth: 2 }, 7);
+  assert.ok(diag.x1 > 50 && diag.y1 > 20 && diag.x2 < 350 && diag.y2 < 320);
+  const ell = T.edgeLine({ x: 0, y: 0, w: 200, h: 100, depth: 0 }, { x: 400, y: 35, w: 60, h: 30, depth: 1 }, 0);
+  assert.ok(Math.abs(ell.x1 - 200) < 1e-6, "Rand der Ellipse");        // Mitte 100, Halbachse 100
+  assert.equal(T.edgeLine({ x: 0, y: 0, w: 100, h: 40, depth: 1 }, { x: 105, y: 0, w: 100, h: 40, depth: 1 }), null);
+  assert.equal(T.edgeLine(a, a), null);
 });
 
 /* ---------- Function: Aufbereiten der KI-Antwort ---------- */
