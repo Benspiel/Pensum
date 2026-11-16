@@ -75,8 +75,10 @@ async function callFunction(payload) {
   }
   let data = null;
   try { data = JSON.parse(ex.responseBody); } catch (_) { /* kein JSON */ }
-  if (!data || !data.ok) const base = (data && data.error) || "Der Mindmap-Dienst antwortet gerade nicht. Versuch es später noch einmal.";
+  if (!data || !data.ok) {
+    const base = (data && data.error) || "Der Mindmap-Dienst antwortet gerade nicht. Versuch es später noch einmal.";
     throw new Error(data && data.detail ? `${base} (Technisch: ${data.detail})` : `${base} (Technisch: Status ${ex.responseStatusCode}${ex.errors ? ", " + String(ex.errors).slice(0, 200) : ""})`);
+  }
   return data;
 }
 
