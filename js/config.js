@@ -13,6 +13,8 @@ export const config = {
     grades: "grades",
     handwriting: "handwriting",
     mindmaps: "mindmaps",
+    decks: "decks",
+    cards: "cards",
   },
 
   // Appwrite-Funktion, die Konto und Daten serverseitig löscht (functions/delete-account)

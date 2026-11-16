@@ -159,3 +159,9 @@
 .kk-tabs button[aria-selected="true"] { background: var(--canvas); color: var(--ink); }
 .kk-panel { display: grid; gap: var(--s-md); animation: kk-swap .3s var(--ease); }
 .kk-panel > * { min-width: 0; }
+
+/* Speicher-Hinweis */
+.kk-note { display: flex; align-items: flex-start; gap: var(--s-xs); font-size: 14px; line-height: 1.43; color: var(--muted-on-tint); }
+.kk-note .dot-s { flex: none; width: 8px; height: 8px; margin-top: 7px; border-radius: var(--r-full); background: var(--ink); }
+.kk-note .dot-s.is-hollow { background: transparent; border: 2px solid var(--ink); }
+.kk-note .text-link { min-height: 0; }

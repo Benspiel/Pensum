@@ -2,11 +2,17 @@
  * Ansichten: Stapelliste → Stapel (Karten verwalten, Level) → Lernrunde (Üben oder Test) → Ergebnis. */
 import { esc, toast, confirmDialog, closeIcon } from "/js/shell.js";
 import { MAX_DECKS, LEVELS, MODES, isLevelMode, levelCounts, dueCount, buildQueue, answerCard, resetLevels, isCorrect } from "./core.js";
-import { load, save, newId } from "./store.js";
+import { onAuthChange, onBeforeLogout } from "/js/auth.js";
+import { createGuestStore, createCloudStore, newId } from "./store.js";
 
 const app = document.getElementById("app");
-const data = load();
-let view = { name: "list" };
+const guest = createGuestStore();
+let store = guest;       // Gast: localStorage · angemeldet: Konto (Appwrite)
+let user = null;
+let data = { decks: [] };
+let saveStatus = "saved";
+let loadToken = 0;
+let view = { name: "boot" };
 let warned = false;
 
 const ICON = {
@@ -25,9 +31,34 @@ const deckById = (id) => data.decks.find((d) => d.id === id);
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
 function persist() {
-  if (!save(data) && !warned) {
+  if (store.save(data) === false && !warned) {
     warned = true;
     toast("Der Browser verweigert das Speichern. Deine Karten gehen beim Schließen verloren.", { error: true });
+  }
+}
+
+/* ---------- Speicher-Hinweis (Gast oder Konto) ---------- */
+
+function noteHtml() {
+  if (view.name === "boot") return "";
+  if (!user) return '<span class="dot-s is-hollow"></span><span>Nur auf diesem Gerät gespeichert. <button type="button" class="text-link" data-auth-action="login">Anmelden</button>, um sie in deinem Konto zu sichern.</span>';
+  if (saveStatus === "saving") return '<span class="dot-s is-hollow"></span><span>Speichert …</span>';
+  if (saveStatus === "error") return '<span class="dot-s is-hollow"></span><span>Speichern fehlgeschlagen. Es wird erneut versucht, sobald du wieder online bist.</span>';
+  return '<span class="dot-s"></span><span>In deinem Konto gespeichert, auf allen deinen Geräten.</span>';
+}
+
+function updateNote() {
+  const el = document.getElementById("kkNote");
+  if (el) el.innerHTML = noteHtml();
+}
+
+function onSaveStatus(status, error) {
+  const was = saveStatus;
+  saveStatus = status;
+  updateNote();
+  if (status === "error" && was !== "error") {
+    console.error(error);
+    toast("Speichern fehlgeschlagen. Prüfe deine Verbindung, die Änderung ist noch nicht im Konto.", { error: true });
   }
 }
 
@@ -41,6 +72,10 @@ const levelBar = (deck) => {
 function deckMeta(deck) {
   const mode = isLevelMode(deck) ? "Level" : "Alle hintereinander";
   return `${plural(deck.cards.length, "Karte", "Karten")} · ${mode}`;
+}
+
+function renderBoot() {
+  app.innerHTML = '<section class="kk-loading" role="status"><div class="kk-shuffle" aria-hidden="true"><i></i><i></i><i></i></div><h2 class="h3">Deine Karten werden geladen</h2></section>';
 }
 
 function renderList() {
@@ -62,6 +97,7 @@ function renderList() {
         <div class="kk-stat"><b>${cards}</b><span>Karten</span></div>
         <div class="kk-stat"><b>${due}</b><span>zu lernen</span></div>
       </div>
+      <p class="kk-note" id="kkNote">${noteHtml()}</p>
       <div class="kk-banner"><span class="dot" aria-hidden="true">${due || "✓"}</span><span>${banner}</span></div>
     </section>
     ${data.decks.length ? `<section class="kk-decks" aria-label="Deine Stapel">${data.decks.map(deckRow).join("")}</section>
@@ -432,7 +468,7 @@ function startDialog(deck) {
 /* ---------- Ereignisse ---------- */
 
 function render() {
-  ({ list: renderList, deck: renderDeck, loading: renderLoading, study: renderStudy, result: renderResult })[view.name]();
+  ({ boot: renderBoot, list: renderList, deck: renderDeck, loading: renderLoading, study: renderStudy, result: renderResult })[view.name]();
 }
 
 app.addEventListener("click", async (e) => {
@@ -498,3 +534,70 @@ app.addEventListener("submit", (e) => {
 });
 
 render();
+
+/* ---------- Konto: laden, Gast-Daten übernehmen ---------- */
+
+const DECLINED_KEY = "pensum.karteikarten.declined.v1";
+const declined = () => { try { return JSON.parse(localStorage.getItem(DECLINED_KEY) || "[]"); } catch (_) { return []; } };
+
+async function runImport(local) {
+  const room = MAX_DECKS - data.decks.length;
+  const take = local.decks.slice(0, Math.max(0, room));
+  if (!take.length) { toast("Dein Konto hat schon 5 Stapel. Lösche einen, um lokale Stapel zu übernehmen.", { error: true }); return; }
+  for (const d of take) {
+    data.decks.push({ id: newId(), name: d.name, mode: d.mode, cards: d.cards.map((c) => ({ id: newId(), front: c.front, back: c.back, level: c.level })) });
+  }
+  persist();
+  if (take.length === local.decks.length) guest.clear();
+  render();
+  const n = take.reduce((sum, d) => sum + d.cards.length, 0);
+  toast(`${plural(take.length, "Stapel", "Stapel")} mit ${plural(n, "Karte", "Karten")} in dein Konto übernommen.${take.length < local.decks.length ? " Mehr als 5 Stapel passen nicht." : ""}`);
+}
+
+async function offerImport(token) {
+  const local = guest.peek();
+  if (!local.decks.length || declined().includes(user.$id)) return;
+  const n = local.decks.reduce((sum, d) => sum + d.cards.length, 0);
+  const ok = await confirmDialog({
+    title: "Lokale Karten übernehmen?",
+    text: `Auf diesem Gerät ${local.decks.length === 1 ? "liegt 1 Stapel" : `liegen ${local.decks.length} Stapel`} mit ${plural(n, "Karte", "Karten")} aus dem Gast-Modus. Sollen sie in dein Konto übernommen werden? Sonst bleiben sie getrennt auf diesem Gerät.`,
+    confirm: "Ins Konto übernehmen",
+    cancel: "Nicht übernehmen",
+  });
+  if (token !== loadToken || !user) return;
+  if (!ok) {
+    try { localStorage.setItem(DECLINED_KEY, JSON.stringify([...new Set([...declined(), user.$id])])); } catch (_) { /* egal */ }
+    return;
+  }
+  await runImport(local);
+}
+
+onAuthChange(async ({ status, user: u }) => {
+  if (status !== "ready") return;
+  const token = ++loadToken;
+  user = u;
+  store = u ? createCloudStore(u, onSaveStatus) : guest;
+  saveStatus = "saved";
+  view = { name: "boot" };
+  render();
+  try {
+    data = await store.load();
+  } catch (e) {
+    if (token !== loadToken) return;
+    console.error(e);
+    data = { decks: [] };
+    toast("Deine Karten konnten nicht geladen werden. Lade die Seite neu, wenn du wieder online bist.", { error: true });
+    view = { name: "list" };
+    render();
+    store = guest; // nichts Falsches ins Konto schreiben
+    return;
+  }
+  if (token !== loadToken) return;
+  view = { name: "list" };
+  render();
+  if (u) offerImport(token);
+});
+
+// Vor dem Abmelden und beim Verlassen der Seite alles Ausstehende speichern
+onBeforeLogout(() => store.flush());
+addEventListener("pagehide", () => { store.flush(); });
