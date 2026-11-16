@@ -790,3 +790,9 @@ body.home pensum-nav { position: relative; z-index: 20; }
   .js-reveal .reveal.is-in { animation: none; }
   .hero-copy, .hero-cloud .squircle, .px > * { will-change: auto; }
 }
+
+/* Noch nicht freigeschaltet: ausgegraut, nicht klickbar */
+.tool-card-off { cursor: default; background: var(--canvas-soft); border-color: var(--canvas-soft); }
+.tool-card-off .squircle, .tool-card-off h3, .tool-card-off p { opacity: 0.45; filter: grayscale(1); }
+.tool-card-off .tool-card-foot { color: var(--muted); }
+.footer-soon { display: block; min-height: 44px; padding-block: 10px; color: var(--faint); opacity: 0.6; cursor: default; font-size: 14px; line-height: 1.43; }

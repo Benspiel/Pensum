@@ -1,5 +1,6 @@
 /* Spiele – Auswahl und gemeinsame Steuerung. Jedes Spiel steckt in einem eigenen Modul (ui-*.js) mit seiner Logik daneben. */
 import { $, host, esc, reduceMotion } from "./common.js";
+import { toolById } from "/js/tools.js";
 import { make2048, makeSnake, makeTetris, makeMinesweeper } from "./ui-klassiker.js";
 import { makeSudoku, makeMemory, makeConnect4, makeTicTacToe, makeSlide, makeLightsOut, makeMastermind, makeHangman, makeMathSprint } from "./ui-denken.js";
 import { makeBreakout, makePong, makeHuepfer, makeSimon } from "./ui-geschick.js";
@@ -78,4 +79,12 @@ document.addEventListener("keydown", (e) => {
 });
 document.addEventListener("visibilitychange", () => { if (document.hidden && current && current.canPause) current.pause(); });
 
-select(GAMES[location.hash.slice(1)] ? location.hash.slice(1) : "2048", { push: false });
+if (toolById("spiele") && toolById("spiele").soon) {
+  // Noch nicht freigeschaltet: nur der Hinweis „Kommt bald“ statt der Spiele
+  $("soon").hidden = false;
+  $("gameTabs").hidden = true;
+  document.querySelector(".sp-panel").hidden = true;
+  document.querySelector(".tool-head .body-lg").textContent = "Noch nicht freigeschaltet.";
+} else {
+  select(GAMES[location.hash.slice(1)] ? location.hash.slice(1) : "2048", { push: false });
+}

@@ -266,7 +266,7 @@ class PensumFooter extends HTMLElement {
             <div class="footer-cols">
               <div class="footer-col">
                 <h2>Tools</h2>
-                ${tools.map((t) => `<a href="${t.href}">${esc(t.name)}</a>`).join("")}
+                ${tools.map((t) => (t.soon ? `<span class="footer-soon" aria-disabled="true">${esc(t.name)} · kommt bald</span>` : `<a href="${t.href}">${esc(t.name)}</a>`)).join("")}
               </div>
               <div class="footer-col">
                 <h2>Konto</h2>

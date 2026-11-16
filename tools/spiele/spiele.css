@@ -194,3 +194,6 @@ canvas.sp-canvas { display: block; width: 100%; height: auto; border-radius: var
 .si-pad.is-lit { opacity: 1; transform: scale(1.03); }
 .si-pad:disabled { cursor: default; }
 .si-pad:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+
+.sp-soon { max-width: 560px; display: grid; gap: var(--s-md); justify-items: start; }
+.sp-soon > * + * { margin-top: 0; }
