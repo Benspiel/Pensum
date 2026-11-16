@@ -5,6 +5,8 @@ Schüler-Toolkit: mehrere Tools unter einem gemeinsamen Login. Statische Seite (
 - **Notenrechner** (`/tools/notenrechner/`): gewichtete Durchschnitte, Noten 1–6 und 0–15 Punkte, Zielnote.
 - **Goodnotes-Tool** (`/tools/goodnotes/`): Text zu Handschrift, Export als `.goodnotes` oder PDF. Logik aus [Inkly](https://github.com/Benspiel/Inkly), läuft komplett im Browser.
 
+- **Mindmap-Generator** (`/tools/mindmap/`): Gemini erstellt pro Tag eine Mindmap (nur mit Konto), die sich 10-mal mit KI und beliebig oft von Hand im Editor ändern lässt. Der Schlüssel liegt serverseitig (siehe „Mindmap-Generator einrichten“).
+
 Ohne Konto bleiben Daten im `localStorage`. Mit Konto liegen sie in Appwrite und sind auf allen Geräten gleich.
 
 ## Lokal starten
@@ -32,6 +34,8 @@ js/db.js                   Datenbank-Zugriff, Rechte pro Zeile
 js/shell.js                Nav-Pill, Footer, Login-Dialog, Toasts
 js/tools.js                Tool-Verzeichnis
 tools/notenrechner/        core.js (Rechnen), store.js (Gast/Konto), notenrechner.js (Oberfläche)
+tools/mindmap/             tree.js (Baum, Layout), mindmap.js (Editor)
+functions/mindmap/         Appwrite-Function: Gemini-Aufruf und Tageslimits (lib.js = Logik, index.js = Anbindung)
 tools/goodnotes/           ink-engine.js (Inkly-Logik), goodnotes.js (Oberfläche), templates.js
 konto/passwort/            Zielseite für „Passwort zurücksetzen“
 vendor/                    Appwrite-SDK, JSZip, jsPDF, Schriften (alles lokal)
@@ -63,6 +67,20 @@ appwrite push function --function-id delete-account --force
 ```
 
 Schlägt der Build mit „Download failed with status 500“ fehl, liegt es am Server: `docker logs appwrite-worker-builds` ansehen.
+
+### Mindmap-Generator einrichten
+
+Die Function `mindmap` (`functions/mindmap/`) ruft Gemini auf und zählt die Tageslimits (1 Mindmap, 10 KI-Änderungen pro Konto und Tag, Tageswechsel um Mitternacht deutscher Zeit). Der Gemini-Schlüssel steht nur dort als geheime Umgebungsvariable, nie im Repo oder Browser. Neue Tabellen: `mindmaps` (Mindmaps, nur für den Besitzer lesbar) und `mindmap_usage` (Zähler, ohne Nutzerrechte: nur die Function liest und schreibt sie).
+
+```bash
+appwrite push table --all --force
+appwrite push function --function-id mindmap --force
+appwrite functions create-variable --function-id mindmap --key GEMINI_API_KEY --value "<dein Schlüssel aus Google AI Studio>" --secret true
+# optional anderes Modell (Standard: gemini-2.5-flash)
+appwrite functions create-variable --function-id mindmap --key GEMINI_MODEL --value "<modellname>"
+```
+
+Danach `appwrite push function` erneut ausführen, falls die Variable erst nach dem ersten Deploy gesetzt wurde. Läuft die Function nicht, zeigt das Tool „Der Mindmap-Dienst ist noch nicht eingerichtet“ und alte Mindmaps bleiben bearbeitbar. Da die Function jede Anfrage bezahlt, begrenzen die Limits die Kosten pro Konto; im Google-Konto lohnt sich zusätzlich eine Budgetgrenze für den Schlüssel.
 
 ### Rechtsseiten
 

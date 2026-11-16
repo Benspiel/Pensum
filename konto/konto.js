@@ -127,10 +127,10 @@ const strip = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !k
 async function loadCounts() {
   const msg = $("dataMsg");
   try {
-    const [s, g, h] = await Promise.all([ownRows(tableIds.subjects), ownRows(tableIds.grades), ownRows(tableIds.handwriting)]);
-    $("dataCount").textContent = `Gespeichert: ${s.length} ${s.length === 1 ? "Fach" : "Fächer"}, ${g.length} ${g.length === 1 ? "Note" : "Noten"}, ${h.length ? "Handschrift-Profil vorhanden" : "kein Handschrift-Profil"}.`;
+    const [s, g, h, m] = await Promise.all([ownRows(tableIds.subjects), ownRows(tableIds.grades), ownRows(tableIds.handwriting), ownRows(tableIds.mindmaps)]);
+    $("dataCount").textContent = `Gespeichert: ${s.length} ${s.length === 1 ? "Fach" : "Fächer"}, ${g.length} ${g.length === 1 ? "Note" : "Noten"}, ${h.length ? "Handschrift-Profil vorhanden" : "kein Handschrift-Profil"}, ${m.length} ${m.length === 1 ? "Mindmap" : "Mindmaps"}.`;
     msg.hidden = true;
-    return { subjects: s, grades: g, handwriting: h };
+    return { subjects: s, grades: g, handwriting: h, mindmaps: m };
   } catch (e) {
     msg.textContent = authMessage(e);
     msg.hidden = false;
@@ -147,6 +147,7 @@ $("exportBtn").addEventListener("click", async () => {
     faecher: data.subjects.map(strip),
     noten: data.grades.map(strip),
     handschrift: data.handwriting.map(strip),
+    mindmaps: data.mindmaps.map(strip),
   };
   const url = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], { type: "application/json" }));
   const a = Object.assign(document.createElement("a"), { href: url, download: `pensum-daten-${new Date().toISOString().slice(0, 10)}.json` });
@@ -157,7 +158,7 @@ $("exportBtn").addEventListener("click", async () => {
 });
 
 async function deleteAllRows() {
-  for (const tableId of [tableIds.grades, tableIds.subjects, tableIds.handwriting]) {
+  for (const tableId of [tableIds.grades, tableIds.subjects, tableIds.handwriting, tableIds.mindmaps]) {
     const rows = await ownRows(tableId);
     for (let i = 0; i < rows.length; i += 5) {
       await Promise.all(rows.slice(i, i + 5).map((r) => tablesDB.deleteRow({ databaseId, tableId, rowId: r.$id })));
@@ -166,7 +167,7 @@ async function deleteAllRows() {
 }
 
 $("wipeBtn").addEventListener("click", async () => {
-  const ok = await confirmDialog({ title: "Inhalte löschen?", text: "Alle Fächer, Noten und dein Handschrift-Profil im Konto werden gelöscht. Das Konto selbst bleibt. Das lässt sich nicht rückgängig machen.", confirm: "Inhalte löschen" });
+  const ok = await confirmDialog({ title: "Inhalte löschen?", text: "Alle Fächer, Noten, Mindmaps und dein Handschrift-Profil im Konto werden gelöscht. Das Konto selbst bleibt. Das lässt sich nicht rückgängig machen.", confirm: "Inhalte löschen" });
   if (!ok) return;
   try {
     await deleteAllRows();

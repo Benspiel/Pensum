@@ -12,10 +12,11 @@ export const config = {
     subjects: "subjects",
     grades: "grades",
     handwriting: "handwriting",
+    mindmaps: "mindmaps",
   },
 
   // Appwrite-Funktion, die Konto und Daten serverseitig löscht (functions/delete-account)
-  functions: { deleteAccount: "delete-account" },
+  functions: { deleteAccount: "delete-account", mindmap: "mindmap" },
 
   // Betreiberangaben für Impressum und Datenschutz. Hier einmal ausfüllen, dann erscheinen sie auf allen Rechtsseiten.
   // Leere Felder werden auf den Seiten als „[bitte ergänzen]“ markiert.

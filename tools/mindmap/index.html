@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mindmap-Generator – Pensum</title>
+  <meta name="description" content="Mindmap-Generator: Die KI erstellt jeden Tag eine Mindmap zu deinem Thema, du kannst sie mit KI und von Hand weiter bearbeiten.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="icon" href="/assets/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="/assets/favicon.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="preload" href="/vendor/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/vendor/fonts.css">
+  <link rel="stylesheet" href="/css/pensum.css">
+  <link rel="stylesheet" href="/tools/mindmap/mindmap.css">
+  <script type="module" src="/js/shell.js"></script>
+  <script type="module" src="/tools/mindmap/mindmap.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+  <pensum-nav></pensum-nav>
+
+  <main id="inhalt" class="container">
+    <header class="tool-head">
+      <h1>Mindmap-Generator.</h1>
+      <p class="body-lg">Nenn ein Thema, die KI baut die Mindmap. Danach änderst du sie mit KI oder direkt im Editor.</p>
+    </header>
+
+    <section class="card-soft on-tint mm-gate" id="gate" hidden aria-live="polite">
+      <h2 class="h4">Melde dich an, um loszulegen.</h2>
+      <p class="body-sm muted-tint">Die Mindmaps liegen in deinem Konto, und die Tageslimits gelten pro Konto. Jeden Tag gibt es eine neue Mindmap und 10 KI-Änderungen.</p>
+      <div class="row">
+        <button class="btn btn-primary" type="button" data-auth-action="login">Anmelden</button>
+        <button class="btn btn-soft" type="button" data-auth-action="register">Konto erstellen</button>
+      </div>
+    </section>
+
+    <div id="app" hidden>
+      <div class="mm-usage on-tint" id="usage" aria-live="polite"></div>
+
+      <section class="card mm-create" id="createCard" aria-labelledby="createTitle" hidden>
+        <h2 class="h4" id="createTitle">Mindmap für heute erstellen.</h2>
+        <form id="createForm" class="stack" novalidate>
+          <label class="field">
+            <span class="field-label">Thema</span>
+            <input class="input" id="topic" maxlength="120" autocomplete="off" placeholder="z. B. Die Französische Revolution">
+          </label>
+          <label class="field">
+            <span class="field-label">Hinweise (optional)</span>
+            <textarea class="textarea mm-notes" id="notes" maxlength="500" placeholder="z. B. für eine Klausur in Klasse 9, Schwerpunkt Ursachen"></textarea>
+          </label>
+          <button class="btn btn-primary" type="submit" id="createBtn">Mindmap erstellen</button>
+          <p class="form-message" id="createError" role="alert" hidden></p>
+        </form>
+        <p class="body-sm muted">Du kannst pro Tag eine Mindmap erstellen. Sie lässt sich danach 10-mal von der KI verändern.</p>
+      </section>
+
+      <section class="mm-editor" id="editor" aria-labelledby="editorTitle" hidden>
+        <div class="mm-head">
+          <h2 class="h3" id="editorTitle">Deine Mindmap.</h2>
+          <div class="mm-pick">
+            <label class="field">
+              <span class="sr-only">Mindmap auswählen</span>
+              <select class="select" id="mapSelect"></select>
+            </label>
+            <button class="btn btn-outline btn-sm" type="button" id="deleteMap" hidden>Löschen</button>
+          </div>
+        </div>
+
+        <div class="mm-toolbar" role="toolbar" aria-label="Mindmap bearbeiten">
+          <button class="btn btn-soft btn-sm" type="button" id="addChild">+ Unterpunkt</button>
+          <button class="btn btn-soft btn-sm" type="button" id="addSibling">+ Nebenpunkt</button>
+          <button class="btn btn-soft btn-sm" type="button" id="moveUp" aria-label="Nach oben schieben">↑</button>
+          <button class="btn btn-soft btn-sm" type="button" id="moveDown" aria-label="Nach unten schieben">↓</button>
+          <button class="btn btn-soft btn-sm" type="button" id="removeNode">Punkt löschen</button>
+          <span class="mm-sep" aria-hidden="true"></span>
+          <button class="btn btn-soft btn-sm" type="button" id="undoBtn" aria-label="Rückgängig">↶</button>
+          <button class="btn btn-soft btn-sm" type="button" id="redoBtn" aria-label="Wiederholen">↷</button>
+          <span class="mm-sep" aria-hidden="true"></span>
+          <button class="btn btn-soft btn-sm" type="button" id="zoomOut" aria-label="Verkleinern">−</button>
+          <button class="btn btn-soft btn-sm" type="button" id="zoomFit">Einpassen</button>
+          <button class="btn btn-soft btn-sm" type="button" id="zoomIn" aria-label="Vergrößern">+</button>
+          <span class="mm-save body-sm muted" id="saveState" role="status"></span>
+        </div>
+
+        <div class="mm-canvas" id="canvas" tabindex="-1">
+          <svg id="svg" role="group" aria-label="Mindmap" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+
+        <label class="field mm-node-edit">
+          <span class="field-label">Text des ausgewählten Punkts</span>
+          <input class="input" id="nodeText" maxlength="80" autocomplete="off" placeholder="Punkt anklicken, dann hier ändern">
+          <span class="field-hint">Tipp: Pfeiltasten wechseln den Punkt, Entf löscht ihn, Enter springt in dieses Feld.</span>
+        </label>
+        <p class="form-message" id="editError" role="alert" hidden></p>
+      </section>
+
+      <section class="card mm-ai" id="aiCard" aria-labelledby="aiTitle" hidden>
+        <h2 class="h4" id="aiTitle">Mit KI ändern.</h2>
+        <p class="body-sm muted" id="aiInfo"></p>
+        <label class="field">
+          <span class="field-label">Was soll sich ändern?</span>
+          <textarea class="textarea mm-notes" id="aiText" maxlength="500" placeholder="z. B. Füge unter „Ursachen“ mehr Details hinzu und kürze den Ast „Folgen“"></textarea>
+        </label>
+        <button class="btn btn-primary" type="button" id="aiBtn">Mit KI ändern</button>
+        <p class="form-message" id="aiError" role="alert" hidden></p>
+        <p class="body-sm muted">KI-Inhalte können Fehler enthalten. Prüf sie, bevor du sie lernst. Jede Änderung lässt sich mit „Rückgängig“ zurücknehmen, zählt aber trotzdem.</p>
+      </section>
+    </div>
+  </main>
+
+  <pensum-footer></pensum-footer>
+</body>
+</html>

@@ -1,0 +1,50 @@
+/* Mindmap-Generator – Layout. Farben, Radien und Typografie kommen aus /css/pensum.css. */
+
+.mm-gate { display: grid; gap: var(--s-md); max-width: 560px; }
+.mm-gate .row { margin-top: var(--s-xs); }
+
+.mm-usage { display: flex; flex-wrap: wrap; gap: var(--s-xs); margin-bottom: var(--s-md); }
+.mm-usage .badge { min-height: 32px; }
+
+.mm-create { max-width: 640px; margin-bottom: var(--s-xl); }
+.mm-create > * + * { margin-top: var(--s-md); }
+.mm-notes { min-height: 96px; }
+
+.mm-editor { margin-top: var(--s-md); }
+.mm-head { display: flex; flex-wrap: wrap; gap: var(--s-sm); align-items: center; justify-content: space-between; }
+.mm-pick { display: flex; gap: var(--s-xs); align-items: center; }
+.mm-pick .select { width: auto; min-width: 200px; max-width: 100%; }
+
+.mm-toolbar { display: flex; flex-wrap: wrap; gap: var(--s-xs); align-items: center; margin-block: var(--s-md); }
+.mm-sep { width: 1px; height: 24px; background: var(--hairline); margin-inline: var(--s-xxs); }
+.mm-save { margin-left: auto; }
+
+.mm-canvas {
+  min-height: 220px;
+  max-height: min(70vh, 640px);
+  overflow: auto;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  touch-action: pan-x pan-y pinch-zoom;
+}
+.mm-canvas svg { display: block; font-family: var(--font); }
+
+.mm-edge { fill: none; stroke-width: 2; stroke-linecap: round; opacity: 0.85; }
+.mm-node { cursor: pointer; outline: none; }
+.mm-text { font-size: 14px; font-weight: 500; pointer-events: none; user-select: none; }
+.mm-sel { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-dasharray: 5 4; pointer-events: none; opacity: 0; }
+.mm-node.is-selected .mm-sel,
+.mm-node:focus-visible .mm-sel { opacity: 1; }
+
+.mm-node-edit { margin-top: var(--s-md); max-width: 640px; }
+.mm-editor .form-message { margin-top: var(--s-sm); }
+
+.mm-ai { margin-top: var(--s-lg); max-width: 640px; }
+.mm-ai > * + * { margin-top: var(--s-md); }
+
+@media (max-width: 640px) {
+  .mm-save { margin-left: 0; flex: 1 1 100%; }
+  .mm-pick { flex: 1 1 100%; }
+  .mm-pick .select { flex: 1; min-width: 0; }
+}
