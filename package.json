@@ -6,6 +6,6 @@
   "description": "Pensum – Schüler-Toolkit: Notenrechner und Goodnotes-Tool unter einem Login.",
   "scripts": {
     "dev": "node scripts/serve.mjs",
-    "test": "node --test tests/"
+    "test": "node --test"
   }
 }
