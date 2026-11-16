@@ -463,24 +463,8 @@ pensum-nav {
   .nav-logo { min-width: 44px; justify-content: center; margin-right: 0; }
   .nav-pill { padding-left: var(--s-xs); }
 }
-.nav-links { display: none; align-items: center; }
-.nav-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 var(--s-sm);
-  border-radius: var(--r-full);
-  font-size: 16px;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-}
-.nav-link:hover { background: var(--canvas); }
-.nav-link[aria-current="page"] { background: var(--canvas); }
 .nav-auth { display: flex; align-items: center; gap: var(--s-xxs); margin-left: auto; }
 .nav-auth .btn { min-height: 44px; }
-.nav-menu-btn { color: var(--ink); }
-.nav-menu-btn:hover { background: var(--canvas); }
 
 .avatar {
   display: grid;
@@ -499,23 +483,7 @@ pensum-nav {
 .nav-user-name { display: none; max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .nav-skeleton { width: 96px; height: 44px; border-radius: var(--r-full); background: var(--hairline); opacity: 0.6; }
 
-.nav-menu {
-  position: absolute;
-  top: calc(100% + var(--s-xs));
-  left: 0;
-  right: 0;
-  min-width: 260px;
-  padding: var(--s-xs);
-  border: 4px solid var(--canvas);
-  border-radius: var(--r-md);
-  background: var(--canvas-soft);
-  background-clip: padding-box;
-}
-.nav-menu .nav-link { display: flex; min-height: 48px; padding: 0 var(--s-md); border-radius: var(--r-sm); }
-
 @media (min-width: 768px) {
-  .nav-links { display: flex; }
-  .nav-menu-btn, .nav-menu { display: none; }
   .nav-user-name { display: block; }
   .nav-auth { margin-left: var(--s-md); }
 }
