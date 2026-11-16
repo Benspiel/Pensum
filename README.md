@@ -76,7 +76,7 @@ Die Function `mindmap` (`functions/mindmap/`) ruft Gemini auf und zählt die Tag
 appwrite push table --all --force
 appwrite push function --function-id mindmap --force
 appwrite functions create-variable --function-id mindmap --key GEMINI_API_KEY --value "<dein Schlüssel aus Google AI Studio>" --secret true
-# optional anderes Modell (Standard: gemini-2.5-flash)
+# optional anderes Modell (Standard: gemini-3.5-flash-lite)
 appwrite functions create-variable --function-id mindmap --key GEMINI_MODEL --value "<modellname>"
 ```
 
