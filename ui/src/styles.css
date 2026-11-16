@@ -52,3 +52,6 @@
 
 /* Ohne Tailwind-Preflight erben Buttons die Schrift nicht von selbst */
 .ui-island button { font-family: inherit; }
+
+/* Tabs: Browser-Standardfläche und -Rahmen der Buttons entfernen (kommt sonst als graue Kästen durch) */
+.ui-island [role="tab"] { background: transparent; border: 0; margin: 0; cursor: pointer; }
