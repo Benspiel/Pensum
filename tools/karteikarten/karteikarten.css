@@ -165,3 +165,13 @@
 .kk-note .dot-s { flex: none; width: 8px; height: 8px; margin-top: 7px; border-radius: var(--r-full); background: var(--ink); }
 .kk-note .dot-s.is-hollow { background: transparent; border: 2px solid var(--ink); }
 .kk-note .text-link { min-height: 0; }
+
+/* Auf Tablet und PC: Start-Buttons deutlich größer, vor allem in der Höhe */
+@media (min-width: 768px) {
+  .kk-start { gap: var(--s-md); }
+  .kk-start .btn { min-height: 160px; font-size: 28px; border-radius: 40px; gap: var(--s-xs); }
+  .kk-start .btn small { font-size: 15px; }
+}
+@media (min-width: 1100px) {
+  .kk-start .btn { min-height: 200px; font-size: 32px; }
+}

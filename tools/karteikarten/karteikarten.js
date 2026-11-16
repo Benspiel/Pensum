@@ -506,7 +506,7 @@ app.addEventListener("click", async (e) => {
     case "override": view.feedback.ok = true; buzz(18); view.fresh = false; renderStudy(); break;
     case "next": grade(view.feedback.ok); break;
     case "quit":
-      if (view.queue.length === view.total || await confirmDialog({ title: "Runde beenden?", text: "Dein Fortschritt (auch die Level) bleibt gespeichert.", confirm: "Beenden", cancel: "Weiterlernen" })) {
+      if (await confirmDialog({ title: "Runde wirklich beenden?", text: "Dein Fortschritt (auch die Level) bleibt gespeichert, aber die Runde endet hier.", confirm: "Beenden", cancel: "Weiterlernen" })) {
         view = { name: "deck", id: view.id };
         render();
       }
