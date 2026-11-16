@@ -104,7 +104,43 @@ export function move(root, id, dir) {
 
 /* ---------- Layout: Thema in der Mitte, Äste links und rechts rundherum ---------- */
 
-export const STYLE = { maxW: 200, minW: 56, lineH: 18, padX: 14, padY: 9, gapX: 56, gapY: 12, margin: 24, rootPad: 12 };
+export const STYLE = { maxW: 200, minW: 56, lineH: 18, padX: 14, padY: 9, gapX: 56, gapY: 12, margin: 28, rootPadX: 20, rootPadY: 10 };
+/** Etwas größer und luftiger für die eigene Handschrift. */
+export const HAND_STYLE = { maxW: 230, minW: 64, lineH: 26, padX: 16, padY: 11, gapX: 60, gapY: 14 };
+
+/** Alle Vorfahren eines Knotens (ohne ihn selbst), vom Thema abwärts. */
+export function ancestors(root, id) {
+  const path = [];
+  const walk = (n) => {
+    if (n.id === id) return true;
+    for (const c of n.children) if (walk(c)) { path.unshift(n.id); return true; }
+    return false;
+  };
+  const found = walk(root);
+  if (!found) return [];
+  // path wurde von unten nach oben aufgebaut: Reihenfolge Thema → Elternknoten
+  return path;
+}
+
+/** Bei großen Mindmaps starten die Äste ab der dritten Ebene eingeklappt, damit man den Überblick behält. */
+export function autoCollapse(root, limit = 45) {
+  const set = new Set();
+  if (countNodes(root) <= limit) return set;
+  const walk = (n, depth) => {
+    if (depth === 2 && n.children.length) set.add(n.id);
+    else n.children.forEach((c) => walk(c, depth + 1));
+  };
+  walk(root, 0);
+  return set;
+}
+
+/** Alle Knoten mit Unterpunkten ab Ebene 1 (für „Alles einklappen“). */
+export function branchIds(root, fromDepth = 1) {
+  const out = [];
+  const walk = (n, depth) => { if (depth >= fromDepth && n.children.length) out.push(n.id); n.children.forEach((c) => walk(c, depth + 1)); };
+  walk(root, 0);
+  return out;
+}
 
 /** Bricht Text in Zeilen von höchstens maxWidth Pixeln (zu lange Wörter werden getrennt). */
 export function wrap(text, measure, maxWidth) {
@@ -135,17 +171,22 @@ export function wrap(text, measure, maxWidth) {
  * so verteilt, dass beide Seiten etwa gleich hoch werden. Unterpunkte wachsen immer weiter nach außen.
  * @returns {{ nodes: object[], edges: object[], width: number, height: number }}
  */
-export function layout(root, measure, style = STYLE) {
+export function layout(root, measure, style = STYLE, collapsed = new Set()) {
   const S = { ...STYLE, ...style };
 
   // 1. Größen und Teilbaum-Höhen (noch ohne Seite)
   const size = (n, depth) => {
     const lines = wrap(n.text || " ", measure, S.maxW - 2 * S.padX);
-    const w = Math.max(S.minW, Math.ceil(Math.max(...lines.map(measure))) + 2 * S.padX);
-    const h = lines.length * S.lineH + 2 * S.padY;
-    const kids = n.children.map((c) => size(c, depth + 1));
+    let w = Math.max(S.minW, Math.ceil(Math.max(...lines.map(measure))) + 2 * S.padX);
+    let h = lines.length * S.lineH + 2 * S.padY;
+    if (depth === 0) { w = Math.max(132, w + 2 * S.rootPadX); h += 2 * S.rootPadY; } // das Thema ist eine Ellipse
+    const folded = depth > 0 && collapsed.has(n.id) && n.children.length > 0;
+    const kids = folded ? [] : n.children.map((c) => size(c, depth + 1));
     const kidsH = kids.reduce((t, k) => t + k.block, 0) + S.gapY * Math.max(0, kids.length - 1);
-    return { id: n.id, text: n.text, lines, w, h, kids, kidsH, block: Math.max(h, kidsH), depth, x: 0, y: 0, side: 0, branch: -1 };
+    return {
+      id: n.id, text: n.text, lines, w, h, kids, kidsH, block: Math.max(h, kidsH), depth, x: 0, y: 0, side: 0, branch: -1,
+      hasKids: n.children.length > 0, folded, hidden: folded ? countNodes(n) - 1 : 0,
+    };
   };
   const top = size(root, 0);
 
@@ -171,7 +212,7 @@ export function layout(root, measure, style = STYLE) {
   const widen = (item) => { colW[item.side][item.depth] = Math.max(colW[item.side][item.depth] || 0, item.w); item.kids.forEach(widen); };
   top.kids.forEach(widen);
 
-  const rw = top.w + 2 * S.rootPad, rh = top.h + S.rootPad;
+  const rw = top.w;
   const off = { 1: [], "-1": [] };
   for (const side of [1, -1]) {
     let x = rw / 2 + S.gapX;

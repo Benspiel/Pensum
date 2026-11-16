@@ -106,7 +106,7 @@ async function loadSessions() {
   list.innerHTML = sessions.map((s) => {
     const what = [s.clientName, s.osName].filter(Boolean).join(" auf ") || s.provider || "Unbekanntes Gerät";
     const where = [s.countryName, s.ip].filter(Boolean).join(" · ");
-    return `<li class="acc-item">
+    return `<li class="plain-list-item">
       <span><strong>${esc(what)}</strong>${s.current ? " (dieses Gerät)" : ""}<small>Angemeldet ${esc(when(s.$createdAt))}${where ? " · " + esc(where) : ""}</small></span>
       ${s.current ? "" : `<button class="btn btn-outline btn-sm" type="button" data-end="${esc(s.$id)}">Beenden</button>`}
     </li>`;
@@ -147,9 +147,9 @@ async function loadCounts() {
   const msg = $("dataMsg");
   try {
     const [s, g, h, m] = await Promise.all([ownRows(tableIds.subjects), ownRows(tableIds.grades), ownRows(tableIds.handwriting), ownRows(tableIds.mindmaps)]);
-    const stat = (n, one, many) => `<span class="acc-stat"><strong>${n}</strong> ${n === 1 ? one : many}</span>`;
+    const stat = (n, one, many) => `<span class="chip-stat"><strong>${n}</strong> ${n === 1 ? one : many}</span>`;
     $("dataCount").innerHTML = stat(s.length, "Fach", "Fächer") + stat(g.length, "Note", "Noten") + stat(m.length, "Mindmap", "Mindmaps") +
-      `<span class="acc-stat">${h.length ? "Handschrift-Profil vorhanden" : "Kein Handschrift-Profil"}</span>`;
+      `<span class="chip-stat">${h.length ? "Handschrift-Profil vorhanden" : "Kein Handschrift-Profil"}</span>`;
     msg.hidden = true;
     return { subjects: s, grades: g, handwriting: h, mindmaps: m };
   } catch (e) {

@@ -35,16 +35,16 @@
     </section>
 
     <div id="accMain" hidden>
-      <section class="acc-hero" aria-label="Dein Profil">
+      <section class="hero-card" aria-label="Dein Profil">
         <span class="avatar avatar-lg" id="accAvatar" aria-hidden="true"></span>
-        <div class="acc-hero-text">
-          <p class="acc-hero-name" id="accName"></p>
+        <div class="hero-card-text">
+          <p class="hero-card-name" id="accName"></p>
           <p class="body-sm muted" id="accEmail"></p>
         </div>
         <span class="badge badge-soft" id="accVerified"></span>
       </section>
 
-      <div class="segmented acc-tabs" id="accTabs" role="group" aria-label="Bereich">
+      <div class="segmented tabs" id="accTabs" role="group" aria-label="Bereich">
         <button type="button" data-tab="profil" aria-pressed="true">Profil</button>
         <button type="button" data-tab="sicherheit" aria-pressed="false">Sicherheit</button>
         <button type="button" data-tab="daten" aria-pressed="false">Daten</button>
@@ -52,10 +52,10 @@
 
       <!-- Profil -->
       <div data-panel="profil">
-        <div class="acc-group">
-          <details class="acc-row">
-            <summary><span class="acc-row-label">Name</span><span class="acc-row-value" id="valName"></span><span class="acc-row-action">Ändern</span></summary>
-            <form class="acc-form" id="nameForm">
+        <div class="group">
+          <details class="group-row">
+            <summary><span class="group-row-label">Name</span><span class="group-row-value" id="valName"></span><span class="group-row-action">Ändern</span></summary>
+            <form class="form-stack" id="nameForm">
               <label class="field">
                 <span class="field-label">Name</span>
                 <input class="input" name="name" autocomplete="name" maxlength="80">
@@ -65,9 +65,9 @@
             </form>
           </details>
 
-          <details class="acc-row">
-            <summary><span class="acc-row-label">E-Mail-Adresse</span><span class="acc-row-value" id="valEmail"></span><span class="acc-row-action">Ändern</span></summary>
-            <form class="acc-form" id="emailForm">
+          <details class="group-row">
+            <summary><span class="group-row-label">E-Mail-Adresse</span><span class="group-row-value" id="valEmail"></span><span class="group-row-action">Ändern</span></summary>
+            <form class="form-stack" id="emailForm">
               <p class="body-sm muted">Die neue Adresse bestätigst du beim nächsten Anmelden mit einem Code.</p>
               <label class="field">
                 <span class="field-label">Neue E-Mail-Adresse</span>
@@ -86,10 +86,10 @@
 
       <!-- Sicherheit -->
       <div data-panel="sicherheit" hidden>
-        <div class="acc-group">
-          <details class="acc-row">
-            <summary><span class="acc-row-label">Passwort</span><span class="acc-row-value">••••••••</span><span class="acc-row-action">Ändern</span></summary>
-            <form class="acc-form" id="passForm">
+        <div class="group">
+          <details class="group-row">
+            <summary><span class="group-row-label">Passwort</span><span class="group-row-value">••••••••</span><span class="group-row-action">Ändern</span></summary>
+            <form class="form-stack" id="passForm">
               <label class="field">
                 <span class="field-label">Aktuelles Passwort</span>
                 <input class="input" name="old" type="password" autocomplete="current-password" required>
@@ -105,10 +105,10 @@
           </details>
         </div>
 
-        <section class="acc-block" aria-labelledby="hSessions">
+        <section class="panel" aria-labelledby="hSessions">
           <h2 class="h4" id="hSessions">Angemeldete Geräte.</h2>
           <p class="body-sm muted">Beende Sitzungen, die du nicht kennst.</p>
-          <ul class="acc-list" id="sessionList" aria-live="polite"></ul>
+          <ul class="plain-list" id="sessionList" aria-live="polite"></ul>
           <p class="form-message" id="sessionMsg" role="alert" hidden></p>
           <div class="row">
             <button class="btn btn-outline btn-sm" type="button" id="endOthers">Alle anderen beenden</button>
@@ -119,9 +119,9 @@
 
       <!-- Daten -->
       <div data-panel="daten" hidden>
-        <section class="acc-block" aria-labelledby="hData">
+        <section class="panel" aria-labelledby="hData">
           <h2 class="h4" id="hData">Gespeichert in deinem Konto.</h2>
-          <div class="acc-stats" id="dataCount" aria-live="polite"></div>
+          <div class="chips-row" id="dataCount" aria-live="polite"></div>
           <p class="form-message" id="dataMsg" role="alert" hidden></p>
           <div class="row">
             <button class="btn btn-outline btn-sm" type="button" id="exportBtn">Daten exportieren (JSON)</button>
@@ -130,10 +130,10 @@
           <p class="body-sm muted">„Inhalte löschen“ entfernt Fächer, Noten, Mindmaps und Handschrift-Profil. Das Konto bleibt.</p>
         </section>
 
-        <details class="acc-row acc-danger">
-          <summary><span class="acc-row-label">Konto löschen</span><span class="acc-row-value">Unwiderruflich</span><span class="acc-row-action">Öffnen</span></summary>
+        <details class="group-row is-danger">
+          <summary><span class="group-row-label">Konto löschen</span><span class="group-row-value">Unwiderruflich</span><span class="group-row-action">Öffnen</span></summary>
           <p class="body-sm">Dabei werden dein Konto, alle Fächer und Noten, deine Mindmaps, dein Handschrift-Profil und alle Sitzungen <strong>sofort und endgültig</strong> gelöscht. Exportiere vorher deine Daten, wenn du sie behalten willst.</p>
-          <form class="acc-form" id="deleteForm">
+          <form class="form-stack" id="deleteForm">
             <label class="field">
               <span class="field-label">Zur Bestätigung „LÖSCHEN“ eingeben</span>
               <input class="input" name="confirm" autocomplete="off" autocapitalize="characters" spellcheck="false">

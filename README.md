@@ -33,14 +33,17 @@ js/auth.js                 zentrale Anmeldung (eine Session für alle Tools)
 js/db.js                   Datenbank-Zugriff, Rechte pro Zeile
 js/shell.js                Nav-Pill, Footer, Login-Dialog, Toasts
 js/tools.js                Tool-Verzeichnis
+js/parallax.js             Parallax-Scrolling und Einblenden der Startseite (respektiert „Bewegung reduzieren“)
 tools/notenrechner/        core.js (Rechnen), store.js (Gast/Konto), notenrechner.js (Oberfläche)
-tools/mindmap/             tree.js (Baum, Layout), mindmap.js (Editor)
+tools/mindmap/             tree.js (Baum, Layout), hand.js (eigene Handschrift), mindmap.js (Editor)
 functions/mindmap/         Appwrite-Function: Gemini-Aufruf und Tageslimits (lib.js = Logik, index.js = Anbindung)
 tools/goodnotes/           ink-engine.js (Inkly-Logik), goodnotes.js (Oberfläche), templates.js
 konto/passwort/            Zielseite für „Passwort zurücksetzen“
 vendor/                    Appwrite-SDK, JSZip, jsPDF, Schriften (alles lokal)
 appwrite.config.json       Datenbank-Schema für `appwrite push`
 ```
+
+**Design:** Alle Seiten nutzen dieselben Bausteine aus `css/pensum.css` (Abschnitt „Gemeinsame Bausteine“): `hero-card`, `tabs`/`segmented`, `panel`, `group`/`group-row`, `chips-row`, `form-stack`. Die Bewegung (Einblenden, Hover, Fokus) ist dort ebenfalls einheitlich definiert.
 
 **Neues Tool:** Ordner `tools/<id>/` mit `index.html` und Modul anlegen, in `js/tools.js` eintragen. Login gibt es über `import { onAuthChange } from "/js/auth.js"`.
 

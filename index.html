@@ -16,25 +16,39 @@
   <script type="module" src="/js/shell.js"></script>
   <script type="module" src="/js/home.js"></script>
 </head>
-<body>
+<body class="home">
   <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+  <!-- Hintergrund-Ebenen: bewegen sich beim Scrollen unterschiedlich schnell (js/parallax.js) -->
+  <div class="px" aria-hidden="true">
+    <span class="px-blob px-blue" data-parallax="0.16"></span>
+    <span class="px-blob px-violet" data-parallax="-0.12"></span>
+    <span class="px-blob px-green" data-parallax="0.2"></span>
+    <span class="px-blob px-amber" data-parallax="-0.15"></span>
+    <span class="px-ring" data-parallax="0.28"></span>
+    <span class="px-ring px-ring-2" data-parallax="-0.22"></span>
+    <span class="px-dots" data-parallax="0.34"></span>
+    <span class="px-dots px-dots-2" data-parallax="-0.2"></span>
+  </div>
+
   <pensum-nav></pensum-nav>
 
   <main id="inhalt">
     <section class="hero container">
       <div class="hero-cloud" aria-hidden="true">
-        <span class="squircle">Ø</span>
-        <span class="squircle squircle-soft">2+</span>
-        <span class="squircle squircle-soft">15</span>
-        <span class="squircle">Aa</span>
-        <span class="squircle squircle-soft">×2</span>
-        <span class="squircle">1</span>
+        <span data-parallax="0.45" data-origin="top" class="squircle">Ø</span>
+        <span data-parallax="-0.3" data-origin="top" class="squircle squircle-soft">2+</span>
+        <span data-parallax="0.38" data-origin="top" class="squircle squircle-soft">15</span>
+        <span data-parallax="-0.5" data-origin="top" class="squircle">Aa</span>
+        <span data-parallax="0.6" data-origin="top" class="squircle squircle-soft">×2</span>
+        <span data-parallax="-0.4" data-origin="top" class="squircle">1</span>
       </div>
-      <h1 class="display">Alles fürs Pensum.</h1>
+      <div class="hero-copy" data-parallax="0.12" data-origin="top" data-fade>
+        <h1 class="display">Alles fürs Pensum.</h1>
       <p class="body-lg hero-sub">Schul-Tools an einem Ort. Einmal anmelden, überall angemeldet. Oder einfach ohne Konto loslegen.</p>
       <div class="row row-center hero-actions">
         <a class="btn btn-primary btn-lg" href="#tools">Tools ansehen</a>
         <button class="btn btn-outline btn-lg" type="button" data-auth-action="register" data-guest-only hidden>Konto erstellen</button>
+      </div>
       </div>
     </section>
 
@@ -44,18 +58,18 @@
     </section>
 
     <section class="section-lg container" aria-labelledby="kontoTitle">
-      <h2 class="center" id="kontoTitle">Ein Konto. Alle Tools.</h2>
-      <p class="body-lg center hero-sub">Du entscheidest, ob deine Daten auf dem Gerät bleiben oder mit dir wandern.</p>
+      <h2 class="center reveal" id="kontoTitle">Ein Konto. Alle Tools.</h2>
+      <p class="body-lg center hero-sub reveal">Du entscheidest, ob deine Daten auf dem Gerät bleiben oder mit dir wandern.</p>
       <div class="feature-grid">
-        <div class="feature">
+        <div class="feature reveal">
           <h3 class="title">Ohne Konto nutzbar.</h3>
           <p class="body-sm">Im Gast-Modus bleiben deine Daten im Browser dieses Geräts. Nichts wird hochgeladen.</p>
         </div>
-        <div class="feature">
+        <div class="feature reveal">
           <h3 class="title">Mit Konto synchron.</h3>
           <p class="body-sm">Angemeldet liegen deine Noten in deinem Konto und sind auf Handy, Tablet und Laptop gleich.</p>
         </div>
-        <div class="feature">
+        <div class="feature reveal">
           <h3 class="title">Nur für dich.</h3>
           <p class="body-sm">Jeder Datensatz gehört genau einem Konto. Andere Konten können ihn weder lesen noch ändern.</p>
         </div>
@@ -63,21 +77,21 @@
     </section>
 
     <section class="container container-narrow" aria-labelledby="faqTitle">
-      <h2 class="center" id="faqTitle">Häufige Fragen.</h2>
+      <h2 class="center reveal" id="faqTitle">Häufige Fragen.</h2>
       <div class="faq" style="margin-top: var(--s-xl)">
-        <details class="faq-row">
+        <details class="faq-row reveal">
           <summary><span class="body">Brauche ich ein Konto?</span></summary>
           <p class="body-sm">Nein. Alle Tools funktionieren ohne Anmeldung. Ein Konto brauchst du nur, wenn deine Daten auf mehreren Geräten verfügbar sein sollen.</p>
         </details>
-        <details class="faq-row">
+        <details class="faq-row reveal">
           <summary><span class="body">Was passiert mit meinen lokalen Daten, wenn ich mich anmelde?</span></summary>
           <p class="body-sm">Beim ersten Anmelden fragt das Tool, ob die Daten aus dem Gast-Modus in dein Konto übernommen werden sollen. Lehnst du ab, bleiben sie getrennt auf dem Gerät.</p>
         </details>
-        <details class="faq-row">
+        <details class="faq-row reveal">
           <summary><span class="body">Wird mein Text aus dem Goodnotes-Tool hochgeladen?</span></summary>
           <p class="body-sm">Nein. Handschrift, Vorschau und Export entstehen komplett in deinem Browser. Im Konto landet höchstens deine selbst gezeichnete Handschrift, nie dein Text.</p>
         </details>
-        <details class="faq-row">
+        <details class="faq-row reveal">
           <summary><span class="body">Muss ich mich in jedem Tool neu anmelden?</span></summary>
           <p class="body-sm">Nein. Es gibt eine gemeinsame Anmeldung. Wer sich einmal anmeldet, ist in allen Tools angemeldet, auch in anderen Tabs.</p>
         </details>

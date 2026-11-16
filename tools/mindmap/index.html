@@ -24,10 +24,10 @@
   <main id="inhalt" class="container">
     <header class="tool-head">
       <h1>Mindmap-Generator.</h1>
-      <p class="body-lg">Nenn ein Thema, die KI baut die Mindmap. Danach änderst du sie mit KI oder direkt im Editor.</p>
+      <p class="body-lg">Nenn ein Thema, die KI baut die Mindmap. Danach änderst du sie mit KI oder direkt im Editor, in Standardschrift oder in deiner eigenen Handschrift.</p>
     </header>
 
-    <section class="card-soft on-tint mm-gate" id="gate" hidden aria-live="polite">
+    <section class="panel on-tint mm-gate" id="gate" hidden aria-live="polite">
       <h2 class="h4">Melde dich an, um loszulegen.</h2>
       <p class="body-sm muted-tint">Die Mindmaps liegen in deinem Konto, und die Tageslimits gelten pro Konto. Jeden Tag gibt es eine neue Mindmap und 3 KI-Änderungen.</p>
       <div class="row">
@@ -37,23 +37,23 @@
     </section>
 
     <div id="app" hidden>
-      <div class="mm-usage on-tint" id="usage" aria-live="polite"></div>
+      <div class="chips-row" id="usage" aria-live="polite"></div>
 
-      <section class="card mm-create" id="createCard" aria-labelledby="createTitle" hidden>
-        <h2 class="h4" id="createTitle">Mindmap für heute erstellen.</h2>
-        <form id="createForm" class="stack" novalidate>
+      <section class="panel on-tint mm-create" id="createCard" aria-labelledby="createTitle" hidden>
+        <h2 class="h4 panel-title" id="createTitle">Mindmap für heute erstellen.</h2>
+        <form id="createForm" class="form-stack" novalidate>
           <label class="field">
             <span class="field-label">Thema</span>
-            <input class="input" id="topic" maxlength="120" autocomplete="off" placeholder="z. B. Die Französische Revolution">
+            <input class="input" id="topic" maxlength="120" autocomplete="off" placeholder="z. B. Die Beatles">
           </label>
           <label class="field">
             <span class="field-label">Hinweise (optional)</span>
-            <textarea class="textarea mm-notes" id="notes" maxlength="500" placeholder="z. B. für eine Klausur in Klasse 9, Schwerpunkt Ursachen"></textarea>
+            <textarea class="textarea mm-notes" id="notes" maxlength="500" placeholder="z. B. für eine Klausur in Klasse 9, Schwerpunkt Entstehung und Einfluss"></textarea>
           </label>
-          <button class="btn btn-primary" type="submit" id="createBtn">Mindmap erstellen</button>
           <p class="form-message" id="createError" role="alert" hidden></p>
+          <div><button class="btn btn-primary" type="submit" id="createBtn">Mindmap erstellen</button></div>
         </form>
-        <p class="body-sm muted">Du kannst pro Tag eine Mindmap erstellen. Sie lässt sich danach 3-mal von der KI verändern.</p>
+        <p class="body-sm muted-tint">Du kannst pro Tag eine Mindmap erstellen. Sie lässt sich danach 3-mal von der KI verändern.</p>
       </section>
 
       <section class="mm-editor" id="editor" aria-labelledby="editorTitle" hidden>
@@ -68,44 +68,64 @@
           </div>
         </div>
 
-        <div class="mm-toolbar" role="toolbar" aria-label="Mindmap bearbeiten">
-          <button class="btn btn-soft btn-sm" type="button" id="addChild">+ Unterpunkt</button>
-          <button class="btn btn-soft btn-sm" type="button" id="addSibling">+ Nebenpunkt</button>
-          <button class="btn btn-soft btn-sm" type="button" id="moveUp" aria-label="Nach oben schieben">↑</button>
-          <button class="btn btn-soft btn-sm" type="button" id="moveDown" aria-label="Nach unten schieben">↓</button>
-          <button class="btn btn-soft btn-sm" type="button" id="removeNode">Punkt löschen</button>
-          <span class="mm-sep" aria-hidden="true"></span>
-          <button class="btn btn-soft btn-sm" type="button" id="undoBtn" aria-label="Rückgängig">↶</button>
-          <button class="btn btn-soft btn-sm" type="button" id="redoBtn" aria-label="Wiederholen">↷</button>
-          <span class="mm-sep" aria-hidden="true"></span>
-          <button class="btn btn-soft btn-sm" type="button" id="zoomOut" aria-label="Verkleinern">−</button>
-          <button class="btn btn-soft btn-sm" type="button" id="zoomFit">Einpassen</button>
-          <button class="btn btn-soft btn-sm" type="button" id="zoomIn" aria-label="Vergrößern">+</button>
-          <span class="mm-save body-sm muted" id="saveState" role="status"></span>
+        <div class="mm-toolbar panel on-tint" role="toolbar" aria-label="Mindmap bearbeiten">
+          <div class="mm-tool-group" role="group" aria-label="Punkte">
+            <button class="btn btn-soft btn-sm" type="button" id="addChild">+ Unterpunkt</button>
+            <button class="btn btn-soft btn-sm" type="button" id="addSibling">+ Nebenpunkt</button>
+            <button class="btn btn-soft btn-sm" type="button" id="moveUp" aria-label="Nach oben schieben">↑</button>
+            <button class="btn btn-soft btn-sm" type="button" id="moveDown" aria-label="Nach unten schieben">↓</button>
+            <button class="btn btn-soft btn-sm" type="button" id="removeNode">Löschen</button>
+          </div>
+          <div class="mm-tool-group" role="group" aria-label="Ansicht">
+            <button class="btn btn-soft btn-sm" type="button" id="undoBtn" aria-label="Rückgängig">↶</button>
+            <button class="btn btn-soft btn-sm" type="button" id="redoBtn" aria-label="Wiederholen">↷</button>
+            <button class="btn btn-soft btn-sm" type="button" id="foldNode">Ast einklappen</button>
+            <button class="btn btn-soft btn-sm" type="button" id="foldAll">Alles einklappen</button>
+            <button class="btn btn-soft btn-sm" type="button" id="unfoldAll">Alles ausklappen</button>
+            <button class="btn btn-soft btn-sm" type="button" id="zoomOut" aria-label="Verkleinern">−</button>
+            <button class="btn btn-soft btn-sm" type="button" id="zoomFit">Einpassen</button>
+            <button class="btn btn-soft btn-sm" type="button" id="zoomIn" aria-label="Vergrößern">+</button>
+          </div>
         </div>
 
         <div class="mm-canvas" id="canvas" tabindex="-1">
           <svg id="svg" role="group" aria-label="Mindmap" xmlns="http://www.w3.org/2000/svg"></svg>
         </div>
+        <div class="mm-meta">
+          <div class="mm-font">
+            <span class="field-label" id="fontLabel">Schrift</span>
+            <div class="segmented" id="fontSwitch" role="group" aria-labelledby="fontLabel">
+              <button type="button" data-font="standard" aria-pressed="true">Standardschrift</button>
+              <button type="button" data-font="hand" aria-pressed="false">Eigene Handschrift</button>
+            </div>
+            <p class="field-hint" id="fontHint"></p>
+          </div>
+          <span class="mm-save body-sm muted" id="saveState" role="status"></span>
+        </div>
 
-        <label class="field mm-node-edit">
-          <span class="field-label">Text des ausgewählten Punkts</span>
-          <input class="input" id="nodeText" maxlength="80" autocomplete="off" placeholder="Punkt anklicken, dann hier ändern">
-          <span class="field-hint">Tipp: Pfeiltasten wechseln den Punkt, Entf löscht ihn, Enter springt in dieses Feld.</span>
-        </label>
-        <p class="form-message" id="editError" role="alert" hidden></p>
-      </section>
+        <div class="mm-side">
+          <section class="panel on-tint mm-node-edit" aria-labelledby="nodeTitle">
+            <h2 class="h4 panel-title" id="nodeTitle">Ausgewählter Punkt.</h2>
+            <label class="field">
+              <span class="field-label">Text</span>
+              <input class="input" id="nodeText" maxlength="80" autocomplete="off" placeholder="Punkt anklicken, dann hier ändern">
+              <span class="field-hint">Pfeiltasten wechseln den Punkt, Entf löscht ihn, Enter springt in dieses Feld.</span>
+            </label>
+            <p class="form-message" id="editError" role="alert" hidden></p>
+          </section>
 
-      <section class="card mm-ai" id="aiCard" aria-labelledby="aiTitle" hidden>
-        <h2 class="h4" id="aiTitle">Mit KI ändern.</h2>
-        <p class="body-sm muted" id="aiInfo"></p>
-        <label class="field">
-          <span class="field-label">Was soll sich ändern?</span>
-          <textarea class="textarea mm-notes" id="aiText" maxlength="500" placeholder="z. B. Füge unter „Ursachen“ mehr Details hinzu und kürze den Ast „Folgen“"></textarea>
-        </label>
-        <button class="btn btn-primary" type="button" id="aiBtn">Mit KI ändern</button>
-        <p class="form-message" id="aiError" role="alert" hidden></p>
-        <p class="body-sm muted">KI-Inhalte können Fehler enthalten. Prüf sie, bevor du sie lernst. Jede Änderung lässt sich mit „Rückgängig“ zurücknehmen, zählt aber trotzdem.</p>
+          <section class="panel on-tint mm-ai" id="aiCard" aria-labelledby="aiTitle" hidden>
+            <h2 class="h4 panel-title" id="aiTitle">Mit KI ändern.</h2>
+            <p class="body-sm muted-tint" id="aiInfo"></p>
+            <label class="field">
+              <span class="field-label">Was soll sich ändern?</span>
+              <textarea class="textarea mm-notes" id="aiText" maxlength="500" placeholder="z. B. Füge unter „Ursachen“ mehr Details hinzu und kürze den Ast „Folgen“"></textarea>
+            </label>
+            <p class="form-message" id="aiError" role="alert" hidden></p>
+            <div><button class="btn btn-primary" type="button" id="aiBtn">Mit KI ändern</button></div>
+            <p class="body-sm muted-tint">KI-Inhalte können Fehler enthalten. Prüf sie, bevor du sie lernst. Jede Änderung lässt sich mit „Rückgängig“ zurücknehmen, zählt aber trotzdem.</p>
+          </section>
+        </div>
       </section>
     </div>
   </main>

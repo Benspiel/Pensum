@@ -663,3 +663,129 @@ a.tool-card:hover p { color: var(--muted-on-tint); }
 a.nav-user { min-height: 44px; border-radius: var(--r-full); text-decoration: none; color: inherit; }
 a.nav-user:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 @media (min-width: 640px) { .footer-cols { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* ---------- Gemeinsame Bausteine (Konto, Notenrechner, Mindmap, Goodnotes) ---------- */
+.avatar-lg { width: 64px; height: 64px; font-size: 22px; }
+.hero-card { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-md); padding: var(--s-lg); border-radius: var(--r-md); background: var(--canvas-soft); }
+.hero-card-text { flex: 1 1 200px; min-width: 0; }
+.hero-card-name { font-size: 24px; font-weight: var(--w-head); line-height: 1.2; overflow-wrap: anywhere; }
+.hero-card-text .body-sm { overflow-wrap: anywhere; }
+.hero-card .badge { background: var(--canvas); }
+
+.tabs { margin-block: var(--s-lg); }
+[data-panel] > * + * { margin-top: var(--s-lg); }
+
+.group { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-xs); padding: var(--s-xs); border-radius: var(--r-md); background: var(--canvas-soft); }
+.group-row { min-width: 0; border-radius: var(--r-sm); background: var(--canvas); }
+.group-row summary { display: flex; align-items: center; gap: var(--s-md); min-height: 64px; padding: var(--s-sm) var(--s-md); cursor: pointer; list-style: none; border-radius: var(--r-sm); }
+.group-row summary::-webkit-details-marker { display: none; }
+.group-row summary:focus-visible { outline: 2px dashed var(--ink); outline-offset: -2px; }
+.group-row-label { flex: none; width: 9.5em; font-weight: 600; }
+.group-row-value { flex: 1 1 0; min-width: 0; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.group-row-action { flex: none; font-weight: 600; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; }
+.group-row[open] .group-row-action { visibility: hidden; }
+.group-row > .form-stack, .group-row > p { margin: 0 var(--s-md) var(--s-md); padding-top: var(--s-md); border-top: 1px solid var(--hairline-soft); }
+.group-row > p { margin-bottom: 0; }
+.group-row > p + .form-stack { padding-top: var(--s-sm); border-top: 0; margin-top: 0; }
+.form-stack { display: grid; gap: var(--s-md); max-width: 460px; }
+
+.panel { padding: var(--s-lg); border-radius: var(--r-md); background: var(--canvas-soft); }
+.panel > * + * { margin-top: var(--s-sm); }
+.panel .row { margin-top: var(--s-md); }
+.plain-list { padding: 0; list-style: none; display: grid; gap: var(--s-xs); margin-top: var(--s-md); }
+.plain-list-item { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-sm); background: var(--canvas); border-radius: var(--r-sm); padding: var(--s-sm) var(--s-md); }
+.plain-list-item small { display: block; color: var(--muted); font-size: 13px; }
+.chips-row { display: flex; flex-wrap: wrap; gap: var(--s-xs); }
+.chip-stat { padding: var(--s-xs) var(--s-md); border-radius: var(--r-full); background: var(--canvas); font-size: 14px; }
+
+.is-danger { border: 1px solid var(--ink); }
+.btn-danger { background: var(--ink); color: var(--on-primary); }
+.btn-danger:hover:not([disabled]) { background: var(--ink-soft); }
+.btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+@media (max-width: 520px) {
+  .group-row summary { flex-wrap: wrap; row-gap: 2px; }
+  .group-row-label { width: auto; flex: 1 1 60%; }
+  .group-row-action { margin-left: auto; }
+  .group-row-value { order: 3; flex: 1 1 100%; }
+}
+
+.panel .input, .panel .select, .panel .textarea { background: var(--canvas); }
+.panel-title { margin-bottom: var(--s-md); }
+
+/* ---------- Bewegung: überall dieselbe Sprache ---------- */
+
+:root { --ease: cubic-bezier(0.2, 0.7, 0.2, 1); }
+
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Seiteninhalt blendet beim Laden gestaffelt ein (ohne Endzustand, damit sticky/fixed-Kinder unberührt bleiben) */
+main > * { animation: rise 0.55s var(--ease) backwards; }
+main > *:nth-child(2) { animation-delay: 0.05s; }
+main > *:nth-child(3) { animation-delay: 0.1s; }
+main > *:nth-child(4) { animation-delay: 0.15s; }
+main > *:nth-child(n+5) { animation-delay: 0.2s; }
+.toast-region { animation: none; }
+
+.btn { transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.12s ease; }
+.btn:active:not([disabled]) { transform: scale(0.97); }
+.icon-btn:active { transform: scale(0.92); }
+.icon-btn { transition: background-color 0.15s ease, color 0.15s ease, transform 0.12s ease; }
+.group-row { transition: box-shadow 0.2s var(--ease); }
+.group-row[open] { box-shadow: 0 0 0 1px var(--hairline); }
+.stat-chip, .chip-stat { transition: background-color 0.15s ease; }
+a.tool-card { transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.25s var(--ease); }
+a.tool-card:hover { transform: translateY(-4px); }
+a.tool-card:active { transform: translateY(-1px); }
+.tool-card .tool-card-foot span { display: inline-block; transition: transform 0.2s var(--ease); }
+a.tool-card:hover .tool-card-foot span { transform: translate(3px, -3px); }
+.segmented button { transition: background-color 0.18s ease, color 0.18s ease; }
+.gn-option, .chip { transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.12s ease; }
+.gn-option:active, .chip:active { transform: scale(0.98); }
+.card, .card-soft, .panel { transition: background-color 0.2s ease, border-color 0.2s ease; }
+
+/* Einheitlicher Fokus für alles Bedienbare */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  main > * { animation: none; }
+  a.tool-card:hover { transform: none; }
+}
+
+/* ---------- Startseite: Parallax-Ebenen und Einblenden ---------- */
+
+body.home { position: relative; }
+.px { position: absolute; inset: 0; overflow: hidden; pointer-events: none; contain: paint; z-index: 0; }
+body.home main, body.home pensum-footer { position: relative; z-index: 1; }
+body.home pensum-nav { position: relative; z-index: 20; }
+
+.px > * { position: absolute; display: block; }
+.px-blob { width: min(56vw, 640px); aspect-ratio: 1; border-radius: 50%; will-change: translate; }
+.px-blue   { top: 1%;  left: -14vw;  background: radial-gradient(closest-side, rgba(0, 102, 255, 0.13), rgba(0, 102, 255, 0)); }
+.px-violet { top: 17%; right: -16vw; background: radial-gradient(closest-side, rgba(106, 67, 220, 0.11), rgba(106, 67, 220, 0)); }
+.px-green  { top: 42%; left: -18vw;  background: radial-gradient(closest-side, rgba(29, 138, 78, 0.10), rgba(29, 138, 78, 0)); }
+.px-amber  { top: 62%; right: -14vw; background: radial-gradient(closest-side, rgba(199, 125, 0, 0.11), rgba(199, 125, 0, 0)); }
+.px-ring { width: clamp(120px, 18vw, 240px); aspect-ratio: 1; top: 10%; right: 8%; border: 2px solid var(--hairline); border-radius: 50%; will-change: translate; }
+.px-ring-2 { top: 52%; left: 5%; right: auto; width: clamp(80px, 12vw, 160px); border-style: dashed; }
+.px-dots { width: clamp(120px, 16vw, 220px); aspect-ratio: 1; top: 30%; right: 4%; background: radial-gradient(circle, var(--faint) 1.5px, transparent 2px) 0 0 / 22px 22px; opacity: 0.45; will-change: translate; }
+.px-dots-2 { top: 76%; left: 3%; right: auto; opacity: 0.35; }
+@media (max-width: 767px) {
+  .px-ring-2, .px-dots-2 { display: none; }
+  .px-blob { width: 90vw; }
+  .px-ring, .px-dots { will-change: auto; }
+}
+
+.hero-copy { will-change: translate, opacity; }
+.hero-cloud .squircle { will-change: translate; }
+
+/* Einblenden beim Scrollen: nur wenn JavaScript läuft (sonst ist alles sofort sichtbar) */
+@keyframes reveal-in { from { opacity: 0; translate: 0 28px; } to { opacity: 1; translate: 0 0; } }
+.js-reveal .reveal:not(.is-in) { opacity: 0; }
+.js-reveal .reveal.is-in { animation: reveal-in 0.7s var(--ease) var(--d, 0ms) backwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .js-reveal .reveal:not(.is-in) { opacity: 1; }
+  .js-reveal .reveal.is-in { animation: none; }
+  .hero-copy, .hero-cloud .squircle, .px > * { will-change: auto; }
+}
