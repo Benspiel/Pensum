@@ -7,6 +7,8 @@ Schüler-Toolkit: mehrere Tools unter einem gemeinsamen Login. Statische Seite (
 
 - **Mindmap-Generator** (`/tools/mindmap/`): Gemini erstellt pro Tag eine Mindmap (nur mit Konto), die sich 3-mal mit KI und beliebig oft von Hand im Editor ändern lässt. Der Schlüssel liegt serverseitig (siehe „Mindmap-Generator einrichten“).
 
+- **Spiele** (`/tools/spiele/`): 2048, Snake, Tetris und Minesweeper. Die Regeln liegen ohne Oberfläche in `tools/spiele/{g2048,snake,tetris,minesweeper}.js` (getestet), die Oberfläche in `spiele.js`. Bestwerte stehen nur im `localStorage` (`pensum.spiele.best.v1`).
+
 Ohne Konto bleiben Daten im `localStorage`. Mit Konto liegen sie in Appwrite und sind auf allen Geräten gleich.
 
 ## Lokal starten
@@ -37,6 +39,7 @@ js/parallax.js             Parallax-Scrolling und Einblenden der Startseite (res
 tools/notenrechner/        core.js (Rechnen), store.js (Gast/Konto), notenrechner.js (Oberfläche)
 tools/mindmap/             tree.js (Baum, Layout), hand.js (eigene Handschrift), mindmap.js (Editor)
 functions/mindmap/         Appwrite-Function: Gemini-Aufruf und Tageslimits (lib.js = Logik, index.js = Anbindung)
+tools/spiele/              Minispiele: Regeln je Spiel (g2048.js, snake.js, tetris.js, minesweeper.js), spiele.js (Oberfläche)
 tools/goodnotes/           ink-engine.js (Inkly-Logik), goodnotes.js (Oberfläche), templates.js
 konto/passwort/            Zielseite für „Passwort zurücksetzen“
 vendor/                    Appwrite-SDK, JSZip, jsPDF, Schriften (alles lokal)

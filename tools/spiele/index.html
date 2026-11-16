@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spiele – Pensum</title>
+  <meta name="description" content="Vier Klassiker für die Pause: 2048, Snake, Tetris und Minesweeper. Läuft komplett im Browser, Bestwerte bleiben auf deinem Gerät.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="icon" href="/assets/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="/assets/favicon.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="preload" href="/vendor/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/vendor/fonts.css">
+  <link rel="stylesheet" href="/css/pensum.css">
+  <link rel="stylesheet" href="/tools/spiele/spiele.css">
+  <script type="module" src="/js/shell.js"></script>
+  <script type="module" src="/tools/spiele/spiele.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+  <pensum-nav></pensum-nav>
+
+  <main id="inhalt" class="container">
+    <header class="tool-head">
+      <h1>Spiele.</h1>
+      <p class="body-lg">Vier Klassiker für die Pause. Alles läuft in deinem Browser, deine Bestwerte bleiben auf diesem Gerät.</p>
+    </header>
+
+    <div class="segmented sp-tabs" id="gameTabs" role="group" aria-label="Spiel wählen">
+      <button type="button" data-game="2048" aria-pressed="true">2048</button>
+      <button type="button" data-game="snake" aria-pressed="false">Snake</button>
+      <button type="button" data-game="tetris" aria-pressed="false">Tetris</button>
+      <button type="button" data-game="minesweeper" aria-pressed="false">Minesweeper</button>
+    </div>
+
+    <section class="panel on-tint sp-panel" aria-labelledby="gameTitle">
+      <div class="sp-head">
+        <h2 class="h4" id="gameTitle">2048.</h2>
+        <div class="sp-actions">
+          <button class="btn btn-soft btn-sm" type="button" id="pauseBtn" hidden>Pause</button>
+          <button class="btn btn-primary btn-sm" type="button" id="restartBtn">Neu starten</button>
+        </div>
+      </div>
+      <div class="chips-row sp-chips" id="chips" aria-live="polite"></div>
+      <div class="sp-frame" id="frame">
+        <div class="sp-stage" id="stage"></div>
+        <div class="sp-overlay" id="overlay" hidden role="status">
+          <div class="sp-overlay-box">
+            <p class="h4" id="overlayTitle"></p>
+            <p class="body-sm muted" id="overlayText"></p>
+            <button class="btn btn-primary" type="button" id="overlayBtn">Nochmal</button>
+          </div>
+        </div>
+      </div>
+      <div class="sp-controls" id="controls"></div>
+      <p class="body-sm muted-tint sp-help" id="help"></p>
+    </section>
+  </main>
+
+  <pensum-footer></pensum-footer>
+</body>
+</html>
