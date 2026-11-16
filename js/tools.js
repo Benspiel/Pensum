@@ -27,6 +27,14 @@ export const tools = [
     badge: "Neu",
   },
   {
+    id: "planer",
+    name: "Planer",
+    href: "/tools/planer/",
+    description: "Hausaufgaben mit Fälligkeit und Klausurtermine mit Countdown. Verknüpfe eine Klausur mit deinen Karteikarten und lerne direkt dafür.",
+    icon: icon('<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16M8.5 15l2 2 4-4"/>'),
+    badge: "Neu",
+  },
+  {
     id: "goodnotes",
     name: "Goodnotes-Tool",
     href: "/tools/goodnotes/",

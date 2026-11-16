@@ -15,6 +15,7 @@ export const config = {
     mindmaps: "mindmaps",
     decks: "decks",
     cards: "cards",
+    planner: "planner",
   },
 
   // Appwrite-Funktion, die Konto und Daten serverseitig löscht (functions/delete-account)

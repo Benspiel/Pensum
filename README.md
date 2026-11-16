@@ -62,7 +62,7 @@ appwrite login --endpoint https://appwrite.buchholz.dev/v1
 appwrite push table --all --force
 ```
 
-`appwrite.config.json` (früher `appwrite.json`) beschreibt die Datenbank `pensum` mit den Tabellen `subjects`, `grades`, `handwriting`, `decks` und `cards` (Karteikarten). Jede Tabelle hat Row Security und als Tabellenrecht nur `create("users")`. Zeilen bekommen beim Anlegen Lese-, Änder- und Löschrechte nur für `user:<id>` (`js/db.js`).
+`appwrite.config.json` (früher `appwrite.json`) beschreibt die Datenbank `pensum` mit den Tabellen `subjects`, `grades`, `handwriting`, `decks` und `cards` (Karteikarten) sowie `planner` (Hausaufgaben und Klausuren). Jede Tabelle hat Row Security und als Tabellenrecht nur `create("users")`. Zeilen bekommen beim Anlegen Lese-, Änder- und Löschrechte nur für `user:<id>` (`js/db.js`).
 
 ### Konto löschen (Appwrite-Function)
 

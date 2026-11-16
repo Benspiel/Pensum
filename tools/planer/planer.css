@@ -1,0 +1,79 @@
+/* Planer – Hausaufgaben und Klausuren */
+.pl-main { padding-block: var(--s-sm) 0; }
+.pl-app { display: grid; gap: var(--s-md); align-content: start; min-height: calc(100dvh - 96px); padding-bottom: var(--s-lg); }
+
+.pl-hero { display: grid; gap: var(--s-lg); padding: var(--s-lg); border-radius: var(--r-md); background: var(--canvas-soft); }
+.pl-hero-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s-md); flex-wrap: wrap; }
+.pl-hero h1 { font-size: 32px; }
+@media (min-width: 640px) { .pl-hero h1 { font-size: 40px; } }
+.pl-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-sm); }
+.pl-stat { padding: var(--s-md) var(--s-xs); border-radius: var(--r-sm); background: var(--canvas); text-align: center; }
+.pl-stat b { display: block; font-size: 26px; line-height: 1.1; font-weight: var(--w-head); font-variant-numeric: tabular-nums; }
+.pl-stat span { font-size: 13px; color: var(--muted-on-tint); }
+.pl-stat.is-alert { background: var(--ink); color: var(--on-primary); }
+.pl-stat.is-alert span { color: inherit; opacity: .8; }
+
+.pl-note { display: flex; align-items: flex-start; gap: var(--s-xs); font-size: 14px; line-height: 1.43; color: var(--muted-on-tint); }
+.pl-note .dot-s { flex: none; width: 8px; height: 8px; margin-top: 7px; border-radius: var(--r-full); background: var(--ink); }
+.pl-note .dot-s.is-hollow { background: transparent; border: 2px solid var(--ink); }
+.pl-note .text-link { min-height: 0; }
+
+.pl-tabs { display: flex; width: 100%; }
+.pl-tabs button { flex: 1; }
+.pl-tabs button[aria-selected="true"] { background: var(--canvas); color: var(--ink); }
+
+.pl-panel { display: grid; gap: var(--s-md); animation: rise .3s var(--ease); }
+.pl-quick { display: grid; grid-template-columns: 1fr auto; gap: var(--s-xs); }
+.pl-quick .input { border-radius: var(--r-full); }
+
+.pl-group h2 { margin: var(--s-xs) 0; font-size: 14px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.pl-group.is-overdue h2 { color: var(--ink); }
+.pl-list { display: grid; gap: var(--s-xs); padding: 0; margin: 0; list-style: none; }
+
+.pl-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--s-sm); padding: var(--s-sm) var(--s-md) var(--s-sm) var(--s-sm); border: 1px solid var(--hairline-soft); border-radius: var(--r-md); background: var(--canvas); transition: opacity .3s ease, transform .3s var(--ease), background-color .15s ease; }
+.pl-row:hover { background: var(--canvas-soft); }
+.pl-row.leaving { opacity: 0; transform: translateX(24px); }
+.pl-check { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: var(--r-full); background: transparent; cursor: pointer; }
+.pl-check i { display: grid; place-items: center; width: 26px; height: 26px; border: 2.5px solid var(--ink); border-radius: var(--r-full); color: var(--on-primary); font-style: normal; font-size: 15px; line-height: 1; transition: background-color .15s ease, transform .2s var(--ease); }
+.pl-check:hover i { background: var(--field); }
+.pl-check:active i { transform: scale(0.85); }
+.pl-row.is-done .pl-check i { background: var(--ink); }
+.pl-row.is-done .pl-title { text-decoration: line-through; color: var(--muted); }
+.pl-body { min-width: 0; }
+.pl-title { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.pl-meta { display: flex; flex-wrap: wrap; gap: var(--s-xs); align-items: center; margin-top: 4px; font-size: 13px; color: var(--muted); }
+.pl-meta .badge { min-height: 22px; }
+.pl-due.is-late { color: var(--ink); font-weight: 600; }
+.pl-due.is-today { color: var(--ink); font-weight: 600; }
+.pl-text { margin-top: 4px; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; white-space: pre-wrap; }
+.pl-actions { display: flex; }
+
+.pl-details { border-radius: var(--r-md); background: var(--canvas-soft); }
+.pl-details > summary { display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: var(--s-sm) var(--s-md); font-weight: 600; cursor: pointer; list-style: none; border-radius: var(--r-md); }
+.pl-details > summary::-webkit-details-marker { display: none; }
+.pl-details > summary::after { content: "+"; font-size: 20px; }
+.pl-details[open] > summary::after { content: "–"; }
+.pl-details > .pl-list { padding: 0 var(--s-sm) var(--s-sm); }
+
+/* Klausuren */
+.pl-exams { display: grid; gap: var(--s-sm); padding: 0; margin: 0; list-style: none; }
+@media (min-width: 900px) { .pl-exams { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.pl-exam { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: var(--s-md); padding: var(--s-md); border: 1px solid var(--hairline-soft); border-radius: var(--r-md); background: var(--canvas); }
+.pl-count { display: grid; place-content: center; justify-items: center; gap: 2px; min-height: 88px; border-radius: var(--r-sm); background: var(--canvas-soft); text-align: center; }
+.pl-count b { font-size: 30px; line-height: 1; font-weight: var(--w-head); font-variant-numeric: tabular-nums; }
+.pl-count.is-big b { font-size: 20px; }
+.pl-count span { font-size: 12px; color: var(--muted-on-tint); }
+.pl-count.is-soon, .pl-count.is-today { background: var(--ink); color: var(--on-primary); }
+.pl-count.is-soon span, .pl-count.is-today span { color: inherit; opacity: .8; }
+.pl-count.is-past { opacity: .6; }
+.pl-exam-main { min-width: 0; display: grid; gap: var(--s-xs); align-content: start; }
+.pl-exam-actions { display: flex; flex-wrap: wrap; gap: var(--s-xs); align-items: center; margin-top: var(--s-xs); }
+.pl-exam-actions .icon-btn { margin-left: auto; }
+.pl-exam-actions .icon-btn + .icon-btn { margin-left: 0; }
+
+.pl-empty { display: grid; place-items: center; gap: var(--s-sm); padding: var(--s-xxl) var(--s-md); border-radius: var(--r-md); background: var(--canvas-soft); text-align: center; }
+.pl-empty p { max-width: 40ch; color: var(--muted-on-tint); }
+
+.pl-form { display: grid; gap: var(--s-sm); }
+.pl-form .row2 { display: grid; gap: var(--s-sm); }
+@media (min-width: 420px) { .pl-form .row2 { grid-template-columns: 1fr 1fr; } }

@@ -594,6 +594,8 @@ onAuthChange(async ({ status, user: u }) => {
   }
   if (token !== loadToken) return;
   view = { name: "list" };
+  const wanted = /^#deck=(.+)$/.exec(location.hash);
+  if (wanted && deckById(decodeURIComponent(wanted[1]))) view = { name: "deck", id: decodeURIComponent(wanted[1]), tab: "learn" }; // Link aus dem Planer
   render();
   if (u) offerImport(token);
 });
