@@ -108,3 +108,54 @@
 .kk-ai .input { background: var(--canvas); }
 .kk-ai .input[disabled], .kk-ai input[disabled] { cursor: not-allowed; }
 .kk-ai .badge { opacity: 1; }
+
+/* ---------- Bewegung ---------- */
+
+@keyframes kk-in { from { opacity: 0; transform: translateY(24px) scale(0.95); } to { opacity: 1; transform: none; } }
+@keyframes kk-out-ok { to { opacity: 0; transform: translateX(60px) rotate(5deg) scale(0.92); } }
+@keyframes kk-out-bad { to { opacity: 0; transform: translateX(-60px) rotate(-5deg) scale(0.92); } }
+@keyframes kk-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-12px); } 40% { transform: translateX(10px); } 60% { transform: translateX(-7px); } 80% { transform: translateX(4px); } }
+@keyframes kk-pop { 0% { transform: scale(1); } 40% { transform: scale(1.045); } 100% { transform: scale(1); } }
+@keyframes kk-swap { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes kk-float { 0%, 100% { transform: translateY(0) rotate(var(--r)); } 50% { transform: translateY(-18px) rotate(calc(var(--r) * -1)); } }
+@keyframes kk-dots { 0%, 20% { content: ""; } 40% { content: "."; } 60% { content: ".."; } 80%, 100% { content: "..."; } }
+
+.kk-stage.enter { animation: kk-in .45s var(--ease) backwards; }
+.kk-controls.enter { animation: kk-swap .4s var(--ease) .12s backwards; }
+.kk-controls.swap { animation: kk-swap .3s var(--ease); }
+.kk-stage.out-ok { animation: kk-out-ok .28s ease-in forwards; }
+.kk-stage.out-bad { animation: kk-out-bad .28s ease-in forwards; }
+.kk-face.fx-bad { animation: kk-shake .45s ease; }
+.kk-face.fx-ok { animation: kk-pop .4s var(--ease); }
+.kk-result-box { animation: kk-swap .3s var(--ease); }
+.kk-flip:active:not(.is-flipped) { transform: scale(0.985); }
+.kk-box { animation: kk-swap .45s var(--ease) backwards; }
+.kk-box:nth-child(2) { animation-delay: .06s; } .kk-box:nth-child(3) { animation-delay: .12s; } .kk-box:nth-child(4) { animation-delay: .18s; } .kk-box:nth-child(5) { animation-delay: .24s; }
+.kk-summary { animation: kk-in .5s var(--ease) backwards; }
+.kk-summary .big { animation: kk-pop .6s var(--ease) .25s backwards; }
+.kk-deck { transition: background-color .15s ease, transform .2s var(--ease); }
+.kk-deck:hover { transform: translateY(-2px); }
+.kk-go { transition: background-color .15s ease, color .15s ease, transform .15s var(--ease); }
+.kk-go:active:not([disabled]) { transform: scale(0.9); }
+
+/* Ladeschritt vor der Runde */
+.kk-loading { flex: 1; display: grid; place-items: center; align-content: center; gap: var(--s-md); padding: var(--s-xxl) var(--s-md); border-radius: var(--r-md); background: var(--canvas-soft); text-align: center; animation: kk-in .35s var(--ease) backwards; }
+.kk-loading h2::after { content: ""; display: inline-block; width: 1.2em; text-align: left; animation: kk-dots 1.2s steps(1) infinite; }
+.kk-shuffle { position: relative; width: 120px; height: 150px; margin-bottom: var(--s-md); }
+.kk-shuffle i { position: absolute; inset: 0; border-radius: 20px; background: var(--canvas); border: 2px solid var(--ink); animation: kk-float 1.1s ease-in-out infinite; }
+.kk-shuffle i:nth-child(1) { --r: -8deg; animation-delay: 0s; opacity: .5; }
+.kk-shuffle i:nth-child(2) { --r: 6deg; animation-delay: .18s; opacity: .75; }
+.kk-shuffle i:nth-child(3) { --r: -3deg; animation-delay: .36s; background: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  .kk-shuffle i { animation: none; }
+  .kk-shuffle i:nth-child(1) { transform: rotate(-8deg); } .kk-shuffle i:nth-child(2) { transform: rotate(6deg); }
+  .kk-loading h2::after { animation: none; content: "..."; }
+}
+
+/* Tabs im Stapel */
+.kk-tabs { display: flex; width: 100%; }
+.kk-tabs button { flex: 1; }
+.kk-tabs button[aria-selected="true"] { background: var(--canvas); color: var(--ink); }
+.kk-panel { display: grid; gap: var(--s-md); animation: kk-swap .3s var(--ease); }
+.kk-panel > * { min-width: 0; }

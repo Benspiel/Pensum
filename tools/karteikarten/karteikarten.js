@@ -16,6 +16,11 @@ const ICON = {
   trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
 };
 
+/** Haptisches Feedback (Vibration). Geht nur auf Geräten und Browsern, die das erlauben (z. B. Android). */
+const buzz = (pattern) => { try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (_) { /* egal */ } };
+const reduceMotion = () => !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+let locked = false; // während eine Karte wegfliegt, keine weiteren Eingaben
+
 const deckById = (id) => data.decks.find((d) => d.id === id);
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
@@ -95,29 +100,34 @@ function renderDeck() {
   if (!deck) { view = { name: "list" }; return render(); }
   const level = isLevelMode(deck);
   const due = dueCount(deck);
-  app.innerHTML = `
-    <div class="kk-bar">
-      <button class="icon-btn" type="button" data-act="back" aria-label="Zurück zu allen Stapeln">${ICON.back}</button>
-      <h1>${esc(deck.name)}</h1>
-      <button class="icon-btn" type="button" data-act="edit-deck" aria-label="Stapel bearbeiten">${ICON.edit}</button>
-      <button class="icon-btn" type="button" data-act="delete-deck" aria-label="Stapel löschen">${ICON.trash}</button>
-    </div>
+  const tab = view.tab || "learn";
+  const TABS = [["learn", "Lernen"], ["cards", `Karten (${deck.cards.length})`], ["add", "Hinzufügen"]];
 
-    <section class="kk-hero" aria-label="Überblick">
+  let panel;
+  if (tab === "learn") {
+    panel = `
+    <section class="kk-hero" aria-label="Statistik">
+      ${level ? boxes(deck) : `<div class="kk-stats">
+        <div class="kk-stat"><b>${deck.cards.length}</b><span>Karten</span></div>
+        <div class="kk-stat"><b>${MODES.all.label.split(" ")[0]}</b><span>Abfrage</span></div>
+        <div class="kk-stat"><b>${deck.cards.length}</b><span>zu lernen</span></div>
+      </div>`}
       <p class="body-sm muted-tint">${esc(deckMeta(deck))}${level ? ` · ${plural(due, "Karte", "Karten")} zu lernen` : ""}</p>
-      ${level ? boxes(deck) : ""}
       <div class="kk-start">
         <button class="btn btn-primary" type="button" data-act="start" data-type="practice" ${deck.cards.length ? "" : "disabled"}>Üben<small>Karte umdrehen, selbst bewerten</small></button>
         <button class="btn btn-outline" type="button" data-act="start" data-type="test" ${deck.cards.length ? "" : "disabled"}>Test<small>Antwort schriftlich eingeben</small></button>
       </div>
-    </section>
-
+      ${deck.cards.length ? "" : '<p class="body-sm muted-tint center">Noch keine Karten. Füge sie im Tab „Hinzufügen“ hinzu.</p>'}
+    </section>`;
+  } else if (tab === "add") {
+    panel = `
     <form class="kk-add" id="addCard" novalidate>
       <label class="field"><span class="field-label">Vorderseite</span><textarea class="textarea" name="front" maxlength="1000" placeholder="Frage oder Begriff" required></textarea></label>
       <label class="field"><span class="field-label">Rückseite</span><textarea class="textarea" name="back" maxlength="1000" placeholder="Antwort" required></textarea></label>
       <button class="btn btn-primary" type="submit">Karte hinzufügen</button>
-    </form>
-
+    </form>`;
+  } else {
+    panel = `
     <section aria-label="Karten im Stapel">
       ${deck.cards.length ? `<div class="kk-cards">${deck.cards.map((c) => `
         <div class="kk-row">
@@ -127,8 +137,21 @@ function renderDeck() {
             <button class="icon-btn" type="button" data-act="edit-card" data-id="${esc(c.id)}" aria-label="Karte bearbeiten">${ICON.edit}</button>
             <button class="icon-btn" type="button" data-act="delete-card" data-id="${esc(c.id)}" aria-label="Karte löschen">${ICON.trash}</button>
           </div>
-        </div>`).join("")}</div>` : '<p class="body-sm muted center">Noch keine Karten. Füge oben die erste hinzu.</p>'}
+        </div>`).join("")}</div>` : '<p class="body-sm muted center">Noch keine Karten. Füge sie im Tab „Hinzufügen“ hinzu.</p>'}
     </section>`;
+  }
+
+  app.innerHTML = `
+    <div class="kk-bar">
+      <button class="icon-btn" type="button" data-act="back" aria-label="Zurück zu allen Stapeln">${ICON.back}</button>
+      <h1>${esc(deck.name)}</h1>
+      <button class="icon-btn" type="button" data-act="edit-deck" aria-label="Stapel bearbeiten">${ICON.edit}</button>
+      <button class="icon-btn" type="button" data-act="delete-deck" aria-label="Stapel löschen">${ICON.trash}</button>
+    </div>
+    <div class="segmented kk-tabs" role="tablist" aria-label="Bereiche des Stapels">
+      ${TABS.map(([id, label]) => `<button type="button" role="tab" data-act="tab" data-tab="${id}" aria-selected="${id === tab}">${esc(label)}</button>`).join("")}
+    </div>
+    <div class="kk-panel" role="tabpanel">${panel}</div>`;
 }
 
 function boxes(deck) {
@@ -151,30 +174,33 @@ async function startStudy(deck, type, queueOverride) {
     }
     queue = buildQueue(deck);
   }
-  view = { name: "study", id: deck.id, type, queue, total: queue.length, right: 0, wrong: 0, wrongIds: [], flipped: false, feedback: null };
+  // Kurzer Ladeschritt: die Karten werden „gemischt“, bevor die Runde beginnt
+  const session = { name: "study", id: deck.id, type, queue, total: queue.length, right: 0, wrong: 0, wrongIds: [], flipped: false, feedback: null, fresh: true };
+  view = { name: "loading", id: deck.id, type, count: queue.length };
+  buzz(12);
   render();
+  const token = view;
+  setTimeout(() => {
+    if (view !== token) return;
+    view = session;
+    render();
+  }, reduceMotion() ? 200 : 900);
 }
 
-function renderStudy() {
+function renderLoading() {
   const deck = deckById(view.id);
-  if (!deck) { view = { name: "list" }; return render(); }
-  if (!view.queue.length) { view.name = "result"; return render(); }
-  const card = deck.cards.find((c) => c.id === view.queue[0]);
-  const pct = Math.round(((view.total - view.queue.length) / Math.max(1, view.total)) * 100);
-  const level = isLevelMode(deck);
+  app.innerHTML = `
+    <section class="kk-loading" role="status">
+      <div class="kk-shuffle" aria-hidden="true"><i></i><i></i><i></i></div>
+      <h2 class="h3">${view.type === "test" ? "Dein Test" : "Deine Runde"} wird vorbereitet …</h2>
+      <p class="body-sm muted-tint">${esc(deck ? deck.name : "")} · ${plural(view.count, "Karte wird", "Karten werden")} gemischt</p>
+    </section>`;
+}
+
+function studyControls(card) {
   const fb = view.feedback;
-  const test = view.type === "test";
-
-  const stage = test
-    ? `<div class="kk-stage"><div class="kk-flip"><div class="kk-face front"><span class="tag">Vorderseite</span><span class="txt">${esc(card.front)}</span></div></div></div>`
-    : `<div class="kk-stage"><button type="button" class="kk-flip ${view.flipped ? "is-flipped" : ""}" data-act="flip" aria-label="Karte umdrehen">
-        <span class="kk-face front"><span class="tag">Vorderseite</span><span class="txt">${esc(card.front)}</span><span class="hint">Tippen zum Umdrehen</span></span>
-        <span class="kk-face back"><span class="tag">Rückseite</span><span class="txt">${esc(card.back)}</span></span>
-      </button></div>`;
-
-  let controls;
-  if (test) {
-    controls = fb
+  if (view.type === "test") {
+    return fb
       ? `<div class="kk-result-box ${fb.ok ? "ok" : "bad"}">${fb.ok ? "" : `<span class="sol">Richtig wäre: ${esc(card.back)}</span>`}</div>
          <div class="kk-actions">
            ${fb.ok ? "" : '<button class="btn btn-outline" type="button" data-act="override">Trotzdem richtig</button>'}
@@ -185,11 +211,35 @@ function renderStudy() {
            <input class="input" id="answerInput" name="answer" placeholder="Antwort eintippen" autocomplete="off" autocapitalize="off" spellcheck="false">
            <button class="btn btn-primary btn-wide" type="submit">Prüfen</button>
          </form>`;
-  } else {
-    controls = view.flipped
-      ? `<div class="kk-actions"><button class="btn btn-outline" type="button" data-act="grade" data-ok="0" id="focusMe">Nicht gewusst</button><button class="btn btn-primary" type="button" data-act="grade" data-ok="1">Gewusst</button></div>`
-      : '<button class="btn btn-primary btn-wide" type="button" data-act="flip">Umdrehen</button>';
   }
+  return view.flipped
+    ? `<div class="kk-actions"><button class="btn btn-outline" type="button" data-act="grade" data-ok="0" id="focusMe">Nicht gewusst</button><button class="btn btn-primary" type="button" data-act="grade" data-ok="1">Gewusst</button></div>`
+    : '<button class="btn btn-primary btn-wide" type="button" data-act="flip">Umdrehen</button>';
+}
+
+function focusControls() {
+  const target = app.querySelector("#answerInput") || app.querySelector("#focusMe");
+  if (target) target.focus({ preventScroll: true });
+}
+
+function renderStudy() {
+  const deck = deckById(view.id);
+  if (!deck) { view = { name: "list" }; return render(); }
+  if (!view.queue.length) { view.name = "result"; return render(); }
+  const card = deck.cards.find((c) => c.id === view.queue[0]);
+  const pct = Math.round(((view.total - view.queue.length) / Math.max(1, view.total)) * 100);
+  const level = isLevelMode(deck);
+  const fb = view.feedback;
+  const fx = fb ? (fb.ok ? "fx-ok" : "fx-bad") : "";
+  const enter = view.fresh ? "enter" : "";
+  view.fresh = false;
+
+  const stage = view.type === "test"
+    ? `<div class="kk-stage ${enter}"><div class="kk-flip"><div class="kk-face front ${fx}"><span class="tag">Vorderseite</span><span class="txt">${esc(card.front)}</span></div></div></div>`
+    : `<div class="kk-stage ${enter}"><button type="button" class="kk-flip ${view.flipped ? "is-flipped" : ""}" data-act="flip" aria-label="Karte umdrehen">
+        <span class="kk-face front"><span class="tag">Vorderseite</span><span class="txt">${esc(card.front)}</span><span class="hint">Tippen zum Umdrehen</span></span>
+        <span class="kk-face back"><span class="tag">Rückseite</span><span class="txt">${esc(card.back)}</span></span>
+      </button></div>`;
 
   app.innerHTML = `
     <div class="kk-session">
@@ -199,24 +249,64 @@ function renderStudy() {
         <span class="badge badge-soft">${view.queue.length} übrig${level ? ` · Level ${card.level}` : ""}</span>
       </div>
       ${stage}
-      ${controls}
+      <div class="kk-controls ${enter}" id="controls">${studyControls(card)}</div>
     </div>`;
-
-  const target = app.querySelector("#answerInput") || app.querySelector("#focusMe");
-  if (target) target.focus({ preventScroll: true });
+  focusControls();
 }
 
-/** Wertet die aktuelle Karte aus und geht zur nächsten. */
+/** Karte umdrehen: die vorhandene Karte dreht sich (kein Neuaufbau, sonst gäbe es keine Animation). */
+function flipCard() {
+  if (view.flipped || locked) return;
+  view.flipped = true;
+  buzz(10);
+  const flip = app.querySelector(".kk-flip");
+  const deck = deckById(view.id);
+  const card = deck.cards.find((c) => c.id === view.queue[0]);
+  if (!flip || !card) return renderStudy();
+  flip.classList.add("is-flipped");
+  const controls = app.querySelector("#controls");
+  controls.classList.remove("enter");
+  controls.innerHTML = studyControls(card);
+  controls.classList.add("swap");
+  focusControls();
+}
+
+/** Prüft die Eingabe im Test und zeigt das Ergebnis mit Animation und Vibration. */
+function checkAnswer(given) {
+  const deck = deckById(view.id);
+  const card = deck.cards.find((c) => c.id === view.queue[0]);
+  const ok = isCorrect(given, card.back);
+  view.feedback = { ok, given };
+  buzz(ok ? 18 : [40, 50, 40]);
+  renderStudy();
+}
+
+/** Wertet die aktuelle Karte aus; die Karte fliegt weg, dann kommt die nächste. */
 function grade(ok) {
+  if (locked) return;
   const deck = deckById(view.id);
   const cardId = view.queue[0];
-  const { queue } = answerCard(deck, view.queue, ok);
-  if (ok) view.right++; else { view.wrong++; if (!view.wrongIds.includes(cardId)) view.wrongIds.push(cardId); }
-  view.queue = queue;
-  view.flipped = false;
-  view.feedback = null;
-  persist();
-  render();
+  const proceed = () => {
+    if (view.name !== "study") { locked = false; return; }
+    const { queue } = answerCard(deck, view.queue, ok);
+    if (ok) view.right++; else { view.wrong++; if (!view.wrongIds.includes(cardId)) view.wrongIds.push(cardId); }
+    view.queue = queue;
+    view.flipped = false;
+    view.feedback = null;
+    view.fresh = true;
+    persist();
+    locked = false;
+    if (!view.queue.length) buzz([25, 40, 25, 40, 70]);
+    render();
+  };
+  if (view.type === "practice") buzz(ok ? 18 : [40, 50, 40]); // im Test kam das Feedback schon beim Prüfen
+  const stage = app.querySelector(".kk-stage");
+  if (stage && !reduceMotion()) {
+    locked = true;
+    stage.classList.remove("enter");
+    stage.classList.add(ok ? "out-ok" : "out-bad");
+    setTimeout(proceed, 280);
+  } else proceed();
 }
 
 function renderResult() {
@@ -297,7 +387,7 @@ function deckDialog(deck) {
       if (data.decks.length >= MAX_DECKS) { fail("Du kannst höchstens 5 Stapel haben."); return false; }
       const nd = { id: newId(), name, mode: m, cards: [] };
       data.decks.push(nd);
-      view = { name: "deck", id: nd.id };
+      view = { name: "deck", id: nd.id, tab: "add" };
     } else {
       deck.name = name;
       deck.mode = m;
@@ -342,7 +432,7 @@ function startDialog(deck) {
 /* ---------- Ereignisse ---------- */
 
 function render() {
-  ({ list: renderList, deck: renderDeck, study: renderStudy, result: renderResult })[view.name]();
+  ({ list: renderList, deck: renderDeck, loading: renderLoading, study: renderStudy, result: renderResult })[view.name]();
 }
 
 app.addEventListener("click", async (e) => {
@@ -356,7 +446,7 @@ app.addEventListener("click", async (e) => {
     case "open-deck": view = { name: "deck", id: el.dataset.id }; render(); window.scrollTo(0, 0); break;
     case "quick-start": startDialog(deckById(el.dataset.id)); break;
     case "back": view = { name: "list" }; render(); break;
-    case "to-deck": view = { name: "deck", id: view.id }; render(); break;
+    case "to-deck": view = { name: "deck", id: view.id, tab: "learn" }; render(); break;
     case "edit-deck": deckDialog(deck); break;
     case "delete-deck":
       if (await confirmDialog({ title: "Stapel löschen?", text: `„${deck.name}“ mit ${plural(deck.cards.length, "Karte", "Karten")} wird endgültig gelöscht.`, confirm: "Löschen" })) {
@@ -367,6 +457,7 @@ app.addEventListener("click", async (e) => {
         toast("Stapel gelöscht.");
       }
       break;
+    case "tab": view.tab = el.dataset.tab; renderDeck(); if (view.tab === "add") app.querySelector('[name="front"]').focus({ preventScroll: true }); break;
     case "start": startStudy(deck, el.dataset.type); break;
     case "edit-card": cardDialog(deck, deck.cards.find((c) => c.id === el.dataset.id)); break;
     case "delete-card":
@@ -374,9 +465,9 @@ app.addEventListener("click", async (e) => {
       persist();
       render();
       break;
-    case "flip": view.flipped = true; renderStudy(); break;
+    case "flip": flipCard(); break;
     case "grade": grade(el.dataset.ok === "1"); break;
-    case "override": view.feedback.ok = true; renderStudy(); break;
+    case "override": view.feedback.ok = true; buzz(18); view.fresh = false; renderStudy(); break;
     case "next": grade(view.feedback.ok); break;
     case "quit":
       if (view.queue.length === view.total || await confirmDialog({ title: "Runde beenden?", text: "Dein Fortschritt (auch die Level) bleibt gespeichert.", confirm: "Beenden", cancel: "Weiterlernen" })) {
@@ -402,11 +493,7 @@ app.addEventListener("submit", (e) => {
     renderDeck();
     app.querySelector('[name="front"]').focus({ preventScroll: true });
   } else if (e.target.id === "answerForm") {
-    const deck = deckById(view.id);
-    const card = deck.cards.find((c) => c.id === view.queue[0]);
-    const given = new FormData(e.target).get("answer");
-    view.feedback = { ok: isCorrect(given, card.back), given };
-    renderStudy();
+    checkAnswer(new FormData(e.target).get("answer"));
   }
 });
 

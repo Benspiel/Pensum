@@ -439,10 +439,10 @@ function fitZoom() {
 
 /* ---------- Laden und Wechseln ---------- */
 
-async function openMap(id) {
+async function openMap(id, prefetched) {
   await flushSave();
   try {
-    const row = await tablesDB.getRow({ databaseId, tableId: tableIds.mindmaps, rowId: id });
+    const row = prefetched || await tablesDB.getRow({ databaseId, tableId: tableIds.mindmaps, rowId: id });
     const root = T.parse(row.data);
     if (!root) throw new Error("Die Mindmap ist beschädigt.");
     state.current = { id: row.$id, day: row.day, topic: row.topic, root };
@@ -473,20 +473,35 @@ async function start(user) {
     renderFont();
     if (state.current) { sceneReset(); renderMap({ animate: false }); markSelection(); }
   }).catch((e) => console.warn("Handschrift nicht geladen", e));
-  const [status, rows] = await Promise.allSettled([
-    callFunction({ action: "status" }),
-    listAllRows(tableIds.mindmaps, [Query.equal("userId", user.$id), Query.orderDesc("$createdAt"), Query.select(["$id", "day", "topic"])]),
-  ]);
-  if (status.status === "fulfilled") { state.day = status.value.day; state.usage = status.value.usage; }
-  else state.serviceError = status.reason.message;
+  // Alles gleichzeitig starten: Liste, neueste Mindmap (mit Inhalt) und Tagesstatus. Der Status (Appwrite-Function,
+  // kann kalt starten) darf das Anzeigen der Mindmap nicht aufhalten – er ergänzt Zähler und „Heute“ erst, wenn er da ist.
+  const mine = [Query.equal("userId", user.$id), Query.orderDesc("$createdAt")];
+  const statusP = callFunction({ action: "status" });
+  const newestP = tablesDB.listRows({ databaseId, tableId: tableIds.mindmaps, queries: [...mine, Query.limit(1)] });
+  const rowsP = listAllRows(tableIds.mindmaps, [...mine, Query.select(["$id", "day", "topic"])]);
+  [statusP, newestP, rowsP].forEach((p) => p.catch(() => {})); // Fehler werden unten ausgewertet
+
+  statusP.then((st) => {
+    if (state.user !== user) return;
+    state.day = st.day; state.usage = st.usage;
+    renderUsage(); renderPicker(); renderPanels();
+  }, (e) => {
+    if (state.user !== user) return;
+    state.serviceError = e.message;
+    renderUsage(); renderPanels();
+  });
+
+  const [rows, newest] = await Promise.allSettled([rowsP, newestP]);
+  if (state.user !== user) return;
   if (rows.status === "fulfilled") {
     state.list = rows.value.map((r) => ({ id: r.$id, day: r.day, topic: r.topic }));
   } else {
     toast("Deine Mindmaps konnten nicht geladen werden. " + authMessage(rows.reason), { error: true });
   }
   renderAll();
-  const first = state.list.find((m) => m.day === state.day) || state.list[0];
-  if (first) await openMap(first.id);
+  // Pro Tag gibt es eine Mindmap, die neueste ist also die von heute (falls vorhanden)
+  const first = state.list[0];
+  if (first) await openMap(first.id, newest.status === "fulfilled" && newest.value.rows[0] && newest.value.rows[0].$id === first.id ? newest.value.rows[0] : undefined);
 }
 
 /* ---------- Aktionen ---------- */
