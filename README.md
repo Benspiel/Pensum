@@ -118,3 +118,14 @@ npx esbuild node_modules/appwrite/dist/esm/sdk.js --bundle --format=esm --minify
 ```
 
 Schriften kommen von Fontsource (SIL Open Font License), Lizenztexte liegen in `vendor/fonts/`.
+
+## Erklärvideos (Lehrer Schmidt)
+
+Das Modul `tools/videos/` ist noch ausgeblendet (`soon: true` in `js/tools.js`). Die Suche läuft über die Appwrite-Function `lehrer-schmidt` (`functions/lehrer-schmidt/`), die den Kanal per YouTube Data API durchsucht. Zum Freischalten:
+
+1. API-Schlüssel (YouTube Data API v3) in Google Cloud anlegen und als geheime Variable setzen:
+   `appwrite functions create-variable --function-id lehrer-schmidt --key YOUTUBE_API_KEY --value <schlüssel> --secret true`
+2. Function deployen: `appwrite push function --function-id lehrer-schmidt`
+3. In `js/tools.js` die Zeile `soon: true` beim Eintrag `videos` entfernen.
+
+Optional: `CHANNEL_HANDLE` (Standard `LehrerSchmidt`) oder `CHANNEL_ID`. Eine Suche kostet 100 Kontingent-Einheiten (Standard 10 000 pro Tag), gleiche Suchen werden 6 Stunden zwischengespeichert. Der Player (youtube-nocookie.com) lädt erst nach dem Klick auf „Hier ansehen“; die CSP in `vercel.json` erlaubt dafür `frame-src`.

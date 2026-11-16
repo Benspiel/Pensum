@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Erklärvideos – Pensum</title>
+  <meta name="description" content="Erklärvideos: Thema eingeben, Pensum findet ein passendes Video von Lehrer Schmidt, das du direkt hier ansehen kannst.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="icon" href="/assets/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="/assets/favicon.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="preload" href="/vendor/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/vendor/fonts.css">
+  <script src="/js/theme.js"></script>
+  <link rel="stylesheet" href="/css/pensum.css">
+  <link rel="stylesheet" href="/tools/videos/videos.css">
+  <script type="module" src="/js/shell.js"></script>
+  <script type="module" src="/tools/videos/videos.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+  <pensum-nav></pensum-nav>
+
+  <main id="inhalt" class="container">
+    <header class="tool-head">
+      <h1>Erklärvideos.</h1>
+      <p class="body-lg">Gib dein Thema ein. Pensum findet ein passendes Video von Lehrer Schmidt, das du direkt hier ansehen kannst.</p>
+    </header>
+
+    <section class="panel on-tint vd-soon" id="soon" hidden aria-live="polite">
+      <h2 class="h4">Kommt bald.</h2>
+      <p class="body-sm muted-tint">Die Erklärvideos sind noch nicht freigeschaltet. Schau bald wieder vorbei.</p>
+      <a class="btn btn-primary" href="/">Zur Startseite</a>
+    </section>
+
+    <section class="panel on-tint vd-gate" id="gate" hidden aria-live="polite">
+      <h2 class="h4">Melde dich an, um Videos zu suchen.</h2>
+      <p class="body-sm muted-tint">Die Videosuche läuft über dein Konto, damit sie fair für alle bleibt.</p>
+      <div class="row">
+        <button class="btn btn-primary" type="button" data-auth-action="login">Anmelden</button>
+        <button class="btn btn-soft" type="button" data-auth-action="register">Konto erstellen</button>
+      </div>
+    </section>
+
+    <div id="app" class="vd-app" hidden>
+      <form class="vd-search" id="searchForm" role="search" novalidate>
+        <label class="field vd-search-field">
+          <span class="field-label">Thema</span>
+          <input class="input" id="topic" maxlength="100" autocomplete="off" placeholder="z. B. Satz des Pythagoras" required>
+        </label>
+        <button class="btn btn-primary" type="submit" id="searchBtn">Video finden</button>
+      </form>
+      <p class="form-message" id="searchError" role="alert" hidden></p>
+
+      <section class="vd-result" id="result" hidden aria-live="polite">
+        <div class="vd-player" id="player"></div>
+        <div class="vd-now">
+          <h2 class="h4" id="nowTitle"></h2>
+          <p class="body-sm muted" id="nowMeta"></p>
+          <div class="row">
+            <button class="btn btn-primary" type="button" id="playBtn">Hier ansehen</button>
+            <a class="btn btn-outline" id="ytLink" href="#" target="_blank" rel="noopener noreferrer">Auf YouTube öffnen</a>
+          </div>
+          <p class="field-hint" id="privacyHint">Erst beim Klick auf „Hier ansehen“ verbindet sich dein Browser mit YouTube (Google). Vorher wird nichts von dort geladen.</p>
+        </div>
+        <div class="vd-more" id="more" hidden>
+          <h3 class="h4">Weitere Videos zum Thema.</h3>
+          <ul class="plain-list" id="moreList"></ul>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <pensum-footer></pensum-footer>
+</body>
+</html>

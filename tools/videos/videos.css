@@ -1,0 +1,27 @@
+/* Erklärvideos */
+.vd-soon, .vd-gate { max-width: 560px; display: grid; gap: var(--s-md); justify-items: start; }
+.vd-soon > * + *, .vd-gate > * + * { margin-top: 0; }
+
+.vd-app { display: grid; gap: var(--s-lg); }
+.vd-search { display: grid; gap: var(--s-sm); padding: var(--s-lg); border-radius: var(--r-md); background: var(--canvas-soft); }
+@media (min-width: 640px) { .vd-search { grid-template-columns: 1fr auto; align-items: end; } }
+.vd-search .input { background: var(--canvas); }
+
+.vd-result { display: grid; gap: var(--s-lg); animation: rise 0.4s var(--ease) backwards; }
+.vd-player { position: relative; aspect-ratio: 16 / 9; width: 100%; border-radius: var(--r-md); overflow: hidden; background: var(--ink); display: grid; place-items: center; }
+.vd-player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.vd-placeholder { display: grid; gap: var(--s-sm); justify-items: center; padding: var(--s-lg); text-align: center; color: var(--on-primary); }
+.vd-placeholder .play { display: grid; place-items: center; width: 72px; height: 72px; border: 0; border-radius: var(--r-full); background: var(--on-primary); color: var(--ink); cursor: pointer; transition: transform 0.15s var(--ease); }
+.vd-placeholder .play:hover { transform: scale(1.06); }
+.vd-placeholder .play svg { width: 32px; height: 32px; margin-left: 4px; }
+.vd-placeholder p { font-size: 14px; opacity: 0.8; max-width: 36ch; }
+
+.vd-now { display: grid; gap: var(--s-sm); }
+.vd-now .row { margin-top: var(--s-xs); }
+.vd-more .plain-list { margin-top: var(--s-sm); }
+.vd-pick { display: flex; align-items: center; justify-content: space-between; gap: var(--s-md); width: 100%; padding: var(--s-sm) var(--s-md); border: 0; border-radius: var(--r-sm); background: var(--canvas); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.vd-pick:hover { background: var(--field); }
+.vd-pick[aria-current="true"] { outline: 2px solid var(--ink); outline-offset: -2px; }
+.vd-pick small { display: block; color: var(--muted); font-size: 13px; }
+.vd-pick span:first-child { min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.vd-empty { padding: var(--s-lg); border-radius: var(--r-md); background: var(--canvas-soft); }

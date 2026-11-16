@@ -18,7 +18,7 @@ export const config = {
   },
 
   // Appwrite-Funktion, die Konto und Daten serverseitig löscht (functions/delete-account)
-  functions: { deleteAccount: "delete-account", mindmap: "6afad2e10029c7718dc2" },
+  functions: { deleteAccount: "delete-account", mindmap: "6afad2e10029c7718dc2", lehrerSchmidt: "lehrer-schmidt" },
 
   // Betreiberangaben für Impressum und Datenschutz. Hier einmal ausfüllen, dann erscheinen sie auf allen Rechtsseiten.
   // Leere Felder werden auf den Seiten als „[bitte ergänzen]“ markiert.

@@ -529,6 +529,23 @@
                 "rows.write"
             ],
             "path": "functions/mindmap"
+        },
+        {
+            "$id": "lehrer-schmidt",
+            "name": "lehrer-schmidt",
+            "runtime": "node-16.0",
+            "execute": [
+                "users"
+            ],
+            "events": [],
+            "schedule": "",
+            "timeout": 20,
+            "enabled": true,
+            "logging": true,
+            "entrypoint": "index.js",
+            "commands": "",
+            "scopes": [],
+            "path": "functions/lehrer-schmidt"
         }
     ]
 }

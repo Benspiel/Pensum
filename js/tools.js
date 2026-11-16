@@ -50,6 +50,15 @@ export const tools = [
     badge: "Kommt bald",
     soon: true, // ausgegraut und nicht klickbar; zum Freischalten die Zeile entfernen
   },
+  {
+    id: "videos",
+    name: "Erklärvideos",
+    href: "/tools/videos/",
+    description: "Gib dein Thema ein und Pensum findet ein passendes Video von Lehrer Schmidt, das du direkt hier ansehen kannst.",
+    icon: icon('<rect x="3" y="5" width="18" height="14" rx="4"/><path d="m10.5 9.5 4 2.5-4 2.5v-5Z"/>'),
+    badge: "Kommt bald",
+    soon: true, // ausgegraut und nicht klickbar; zum Freischalten die Zeile entfernen
+  },
 ];
 
 export const toolById = (id) => tools.find((t) => t.id === id);

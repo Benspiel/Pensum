@@ -834,3 +834,9 @@ body.home pensum-nav { position: relative; z-index: 20; }
 :root[data-theme="dark"] .theme-toggle .i-sun { display: block; }
 :root[data-theme="dark"] .theme-toggle .i-moon { display: none; }
 .nav-pill .theme-toggle { margin-left: var(--s-xs); }
+
+/* Home-Knopf in der Nav (nur außerhalb der Startseite) */
+.nav-home { display: inline-flex; align-items: center; gap: var(--s-xs); min-height: 44px; padding: 0 var(--s-sm); border-radius: var(--r-full); color: var(--ink); font-size: 14px; font-weight: 600; text-decoration: none; transition: background-color 0.15s ease; }
+.nav-home:hover { background: var(--canvas); }
+.nav-home svg { width: 20px; height: 20px; flex: none; }
+@media (max-width: 479px) { .nav-home { width: 44px; justify-content: center; padding: 0; } .nav-home span { display: none; } }

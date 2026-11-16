@@ -224,6 +224,10 @@ class PensumNav extends HTMLElement {
             <img class="nav-logo-full" src="/assets/logo.png" width="110" height="28" alt="Pensum">
             <img class="nav-logo-mark" src="/assets/icon.png" width="32" height="32" alt="Pensum">
           </a>
+          ${location.pathname === "/" ? "" : `<a class="nav-home" href="/" aria-label="Zur Startseite">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h4.5V14h4v5.5h4.5V10"/></svg>
+            <span>Home</span>
+          </a>`}
           <button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="Dunklen Modus einschalten" title="Hell / Dunkel">
             <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/></svg>
             <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
@@ -296,7 +300,7 @@ class PensumFooter extends HTMLElement {
               </div>
             </div>
           </div>
-          <p class="footer-note">© ${new Date().getFullYear()} Pensum · Das Goodnotes-Tool ist inoffiziell und steht in keiner Verbindung zu Goodnotes Ltd.</p>
+          <p class="footer-note">© ${new Date().getFullYear()} Pensum · Das Goodnotes-Tool ist inoffiziell und steht in keiner Verbindung zu Goodnotes Ltd. Lehrer Schmidt ist ein YouTube-Kanal und steht in keiner Verbindung zu Pensum.</p>
         </div>
       </footer>`;
     this._off = auth.onAuthChange(({ status, user }) => {
