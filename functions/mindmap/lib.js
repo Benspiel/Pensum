@@ -6,7 +6,7 @@
 "use strict";
 const crypto = require("crypto");
 
-const LIMITS = { created: 1, edits: 10 };
+const LIMITS = { created: 1, edits: 3 };
 const MAP = { nodes: 80, depth: 5, children: 10, text: 80 };
 const INPUT = { topic: 120, notes: 500, instruction: 500 };
 

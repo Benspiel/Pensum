@@ -115,7 +115,7 @@ function renderPanels() {
   els.aiBtn.textContent = state.busy ? "KI arbeitet …" : today ? `Mit KI ändern (${Math.max(left, 0)} übrig)` : "Mit KI ändern";
   els.aiInfo.textContent = !hasMap ? ""
     : !today ? "KI-Änderungen gibt es nur für die Mindmap von heute. Diese hier kannst du von Hand bearbeiten."
-    : left <= 0 ? "Du hast heute alle KI-Änderungen verbraucht. Morgen sind es wieder 10. Von Hand kannst du weiter ändern."
+    : left <= 0 ? "Du hast heute alle KI-Änderungen verbraucht. Morgen sind es wieder 3. Von Hand kannst du weiter ändern."
     : `Beschreib in eigenen Worten, was geändert werden soll. Heute sind noch ${left} von ${state.usage.maxEdits} Änderungen frei.`;
 
   els.createBtn.disabled = state.busy;

@@ -1,6 +1,6 @@
 /* Mindmap-Generator – Appwrite-Function.
  *
- * Ruft Gemini auf und erzwingt die Tageslimits (1 Mindmap, 10 KI-Änderungen pro Nutzer).
+ * Ruft Gemini auf und erzwingt die Tageslimits (1 Mindmap, 3 KI-Änderungen pro Nutzer).
  * Der Gemini-Schlüssel steht nur hier als Umgebungsvariable GEMINI_API_KEY (nie im Repo, nie im Browser):
  *   appwrite functions create-variable --function-id mindmap --key GEMINI_API_KEY --value <schlüssel> --secret true
  * Optional: GEMINI_MODEL (Standard gemini-3.5-flash-lite).

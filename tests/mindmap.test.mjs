@@ -149,7 +149,7 @@ test("Limit: eine Mindmap pro Tag, danach 429 ohne weiteren KI-Aufruf", async ()
   const first = await run(env, { action: "create", topic: "Französische Revolution", notes: "Klasse 9" });
   assert.equal(first.status, 200);
   assert.equal(first.json.map.text, "Französische Revolution");        // Thema des Nutzers ist die Wurzel
-  assert.deepEqual(first.json.usage, { created: 1, maxCreated: 1, edits: 0, maxEdits: 10 });
+  assert.deepEqual(first.json.usage, { created: 1, maxCreated: 1, edits: 0, maxEdits: 3 });
   assert.equal(env.maps.size, 1);
   assert.equal([...env.maps.values()][0].userId, "user1");
   assert.equal([...env.maps.values()][0].data.day, "2026-03-10");
@@ -161,19 +161,19 @@ test("Limit: eine Mindmap pro Tag, danach 429 ohne weiteren KI-Aufruf", async ()
   assert.equal(env.calls.length, 1);
 });
 
-test("Limit: genau 10 KI-Änderungen, die elfte wird abgelehnt", async () => {
+test("Limit: genau 3 KI-Änderungen, die vierte wird abgelehnt", async () => {
   const env = fakeEnv({ answer: GOOD });
   await run(env, { action: "create", topic: "T" });
   const map = { text: "T", children: [{ text: "x" }] };
-  for (let i = 1; i <= 10; i++) {
+  for (let i = 1; i <= 3; i++) {
     const r = await run(env, { action: "refine", instruction: "mehr Details " + i, map });
     assert.equal(r.status, 200, "Änderung " + i);
     assert.equal(r.json.usage.edits, i);
   }
-  const eleventh = await run(env, { action: "refine", instruction: "noch eins", map });
-  assert.equal(eleventh.status, 429);
-  assert.equal(env.calls.length, 11);                                   // 1 Erstellen + 10 Änderungen, nichts darüber
-  assert.equal((await run(env, { action: "status" })).json.usage.edits, 10);
+  const fourth = await run(env, { action: "refine", instruction: "noch eins", map });
+  assert.equal(fourth.status, 429);
+  assert.equal(env.calls.length, 4);                                    // 1 Erstellen + 3 Änderungen, nichts darüber
+  assert.equal((await run(env, { action: "status" })).json.usage.edits, 3);
 });
 
 test("Limits gelten pro Nutzer und pro Tag", async () => {
