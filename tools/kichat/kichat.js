@@ -9,6 +9,7 @@ import { config } from "/js/config.js";
 import { tableIds, Query, listAllRows } from "/js/db.js";
 import { fitSize, MAX_BASE64, QUALITIES } from "/tools/abschreiben/core.js";
 import { loaderHtml } from "/js/loader.js";
+import { haptic } from "/js/haptics.js";
 import { formatMessage, sortMessages, MAX_TEXT, MAX_TITLE, cleanTitle, LOADING_TEXTS, DEFAULT_GRADE, cleanGrade, waveHtml, formatBytes, checkAttachment, stepsHtml, cleanSteps } from "./core.js";
 
 const $ = (id) => document.getElementById(id);
@@ -19,6 +20,7 @@ const els = {
   form: $("form"), input: $("input"), sendBtn: $("sendBtn"),
   attach: $("attach"), attachImg: $("attachImg"), attachName: $("attachName"), attachState: $("attachState"), attachRemove: $("attachRemove"),
   fileInput: $("fileInput"), grade: $("grade"),
+  scrim: $("scrim"), sideClose: $("sideClose"), listState: $("listState"),
 };
 
 const state = {
@@ -33,6 +35,8 @@ const state = {
   renamingId: null, // Chat, dessen Name gerade bearbeitet wird
   grade: DEFAULT_GRADE, // Klasse 8 bis 12: bestimmt, wie die KI antwortet (wird im Browser gemerkt)
   waitTimer: 0,
+  listLoading: false, // Chatliste wird gerade geladen
+  listFailed: false,  // Laden der Chatliste ist fehlgeschlagen
 };
 
 const showError = (text) => { els.error.textContent = text || ""; els.error.hidden = !text; };
@@ -63,13 +67,19 @@ async function callFunction(payload) {
 
 const toChat = (r) => ({ id: r.$id, title: r.title, updatedAt: r.$updatedAt });
 
+/** Liest mit Sortierung; klappt die nicht (Index fehlt o. Ä.), ohne Sortierung lesen und im Browser sortieren. */
+async function listSorted(tableId, filter, order) {
+  try { return await listAllRows(tableId, [filter, order]); }
+  catch (e) { console.warn("KI-Chat: Lesen mit Sortierung fehlgeschlagen, versuche ohne.", e); return listAllRows(tableId, [filter]); }
+}
+
 async function loadChats() {
-  const rows = await listAllRows(tableIds.chats, [Query.equal("userId", state.userId), Query.orderDesc("$updatedAt")]);
-  state.chats = rows.map(toChat);
+  const rows = await listSorted(tableIds.chats, Query.equal("userId", state.userId), Query.orderDesc("$updatedAt"));
+  state.chats = rows.map(toChat).sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
 }
 
 async function loadMessages(chatId) {
-  const rows = await listAllRows(tableIds.chatMessages, [Query.equal("chatId", chatId), Query.orderAsc("$createdAt")]);
+  const rows = await listSorted(tableIds.chatMessages, Query.equal("chatId", chatId), Query.orderAsc("$createdAt"));
   return sortMessages(rows).map((r) => ({ id: r.$id, role: r.role, text: r.text }));
 }
 
@@ -79,7 +89,7 @@ const DOTS = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><c
 
 function renderList() {
   closeMenu();
-  els.listEmpty.hidden = state.chats.length > 0;
+  els.listEmpty.hidden = state.chats.length > 0 || state.listLoading || state.listFailed;
   els.list.innerHTML = state.chats.map((c) => (c.id === state.renamingId
     ? `<li class="kc-item is-renaming"><input class="kc-rename" value="${esc(c.title)}" maxlength="${MAX_TITLE}" autocomplete="off" aria-label="Neuer Name für den Chat"></li>`
     : `<li class="kc-item"><button class="kc-chat" type="button" data-id="${esc(c.id)}" title="${esc(c.title)}"${c.id === state.chatId ? ' aria-current="true"' : ""}>${esc(c.title)}</button>`
@@ -103,6 +113,7 @@ function openMenu(btn, viaKeyboard) {
   const id = btn.dataset.more;
   if (menuEl && menuEl.dataset.for === id) { closeMenu(); return; } // zweiter Klick schließt
   closeMenu();
+  haptic("tap");
   const menu = document.createElement("div");
   menu.className = "kc-menu";
   menu.setAttribute("role", "menu");
@@ -155,6 +166,7 @@ async function finishRename(save) {
   const title = cleanTitle(input ? input.value : "");
   if (!save || !chat || !title || title === chat.title) { renderList(); return; }
   const old = chat.title;
+  haptic("success");
   chat.title = title; // sofort zeigen, bei einem Fehler zurücksetzen
   renderList();
   if (id === state.chatId) renderLog();
@@ -303,6 +315,7 @@ function growInput() {
 
 function newChat() {
   if (state.busy) return;
+  haptic("tap");
   state.loadToken++;
   state.chatId = null;
   state.messages = [];
@@ -327,8 +340,11 @@ async function openChat(id) {
     renderLog();
   } catch (e) {
     if (token !== state.loadToken) return;
-    els.log.innerHTML = "";
-    showError("Der Chat konnte nicht geladen werden. Versuch es noch einmal.");
+    console.error("KI-Chat: Chat laden", e);
+    state.chatId = null;
+    renderList();
+    els.log.innerHTML = `<div class="kc-hint"><p>Der Chat konnte nicht geladen werden.</p><button class="btn btn-outline btn-sm" type="button" data-retry-chat="${esc(id)}">Noch einmal versuchen</button></div>`;
+    haptic("error");
   }
 }
 
@@ -337,6 +353,7 @@ async function send() {
   if ((!text && !state.attachment) || state.busy || state.preparing) return;
   if (text.length > MAX_TEXT) { showError(`Die Nachricht ist zu lang (höchstens ${MAX_TEXT} Zeichen).`); return; }
   showError("");
+  haptic("send");
   setBusy(true);
   const token = state.loadToken;
   const attachment = state.attachment;
@@ -356,7 +373,9 @@ async function send() {
     state.chats = [r.chat, ...state.chats.filter((c) => c.id !== r.chat.id)];
     renderList();
     renderLog();
+    haptic("success");
   } catch (e) {
+    haptic("error");
     if (token === state.loadToken) {
       state.messages.pop();   // die Frage wurde nicht gespeichert: zurück ins Eingabefeld
       els.input.value = text;
@@ -377,6 +396,7 @@ async function removeChat(id = state.chatId) {
   if (!chat || state.busy) return;
   const ok = await confirmDialog({ title: "Chat löschen?", text: `„${chat.title}“ wird mit allen Nachrichten gelöscht. Das lässt sich nicht rückgängig machen.`, confirm: "Löschen" });
   if (!ok) return;
+  haptic("warn");
   setBusy(true);
   try {
     await callFunction({ action: "delete", chatId: chat.id });
@@ -389,7 +409,9 @@ async function removeChat(id = state.chatId) {
     }
     renderList();
     toast("Chat gelöscht.");
+    haptic("success");
   } catch (e) {
+    haptic("error");
     showError(e.message);
   } finally {
     setBusy(false);
@@ -398,19 +420,41 @@ async function removeChat(id = state.chatId) {
 
 /* ---------- Start ---------- */
 
-els.newBtn.addEventListener("click", () => { toggleSide(false); newChat(); });
-els.deleteBtn.addEventListener("click", () => removeChat());
+els.newBtn.addEventListener("click", () => { toggleSide(false, { quiet: true }); newChat(); });
+els.deleteBtn.addEventListener("click", () => { haptic("tap"); removeChat(); });
 /** Chatliste im schmalen Fenster ein- und ausklappen (im breiten ist sie immer da). */
-function toggleSide(open) {
+function toggleSide(open, { quiet = false } = {}) {
+  const was = els.side.classList.contains("is-open");
+  if (was === open) return;
   els.side.classList.toggle("is-open", open);
+  els.scrim.classList.toggle("is-open", open);
   els.sideToggle.setAttribute("aria-expanded", String(open));
+  if (!quiet) haptic(open ? "open" : "close");
+  if (open) els.sideClose.focus({ preventScroll: true });
+  else if (els.side.contains(document.activeElement)) els.sideToggle.focus({ preventScroll: true });
 }
 els.sideToggle.addEventListener("click", () => toggleSide(!els.side.classList.contains("is-open")));
+els.sideClose.addEventListener("click", () => toggleSide(false));
+els.scrim.addEventListener("click", () => toggleSide(false));
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !menuEl && els.side.classList.contains("is-open")) toggleSide(false); });
+/* Wischen nach links schließt die Liste */
+{
+  let x0 = null, y0 = 0;
+  els.side.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+  els.side.addEventListener("touchend", (e) => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    x0 = null;
+    if (dx < -60 && Math.abs(dx) > Math.abs(dy) * 1.5) toggleSide(false);
+  }, { passive: true });
+}
+/* Im breiten Fenster ist die Liste immer da: offenen Zustand zurücksetzen */
+matchMedia("(min-width: 900px)").addEventListener("change", (m) => { if (m.matches) toggleSide(false, { quiet: true }); });
 els.list.addEventListener("click", (e) => {
   const more = e.target.closest("[data-more]");
   if (more) { openMenu(more, e.detail === 0); return; }
   const b = e.target.closest("[data-id]");
-  if (b) { toggleSide(false); openChat(b.dataset.id); }
+  if (b) { haptic("tap"); toggleSide(false, { quiet: true }); openChat(b.dataset.id); }
 });
 els.list.addEventListener("keydown", (e) => {
   if (!e.target.matches(".kc-rename")) return;
@@ -420,23 +464,27 @@ els.list.addEventListener("keydown", (e) => {
 els.list.addEventListener("focusout", (e) => { if (e.target.matches(".kc-rename")) finishRename(true); });
 /* Schrittliste unter einer Antwort auf- und zuklappen; der Zustand bleibt, wenn der Chat neu gezeichnet wird */
 els.log.addEventListener("click", (e) => {
+  const retry = e.target.closest("[data-retry-chat]");
+  if (retry) { haptic("tap"); const id = retry.dataset.retryChat; state.chatId = null; openChat(id); return; }
   const head = e.target.closest(".kc-tools-head");
   if (!head) return;
   const box = head.closest(".kc-tools");
   const open = !box.classList.contains("is-open");
+  haptic("select");
   box.classList.toggle("is-open", open);
   head.setAttribute("aria-expanded", String(open));
   box.querySelector(".kc-tools-list").hidden = !open;
   const msg = state.messages.find((m) => String(m.id) === head.closest("[data-mid]").dataset.mid);
   if (msg) msg.stepsOpen = open;
 });
-els.fileInput.addEventListener("change", () => setAttachment(els.fileInput.files[0]));
-els.attachRemove.addEventListener("click", () => { if (!state.busy) { clearAttachment(); showError(""); } });
+els.fileInput.addEventListener("change", () => { haptic("tap"); setAttachment(els.fileInput.files[0]); });
+els.attachRemove.addEventListener("click", () => { if (!state.busy) { haptic("tap"); clearAttachment(); showError(""); } });
 /* Klassenwahl: gemerkt im Browser (localStorage, nur diese Einstellung) */
 const GRADE_KEY = "pensum.kichat.grade";
 try { state.grade = cleanGrade(localStorage.getItem(GRADE_KEY)) || DEFAULT_GRADE; } catch (_) { /* privater Modus: Standard */ }
 els.grade.value = String(state.grade);
 els.grade.addEventListener("change", () => {
+  haptic("select");
   state.grade = cleanGrade(els.grade.value) || DEFAULT_GRADE;
   try { localStorage.setItem(GRADE_KEY, String(state.grade)); } catch (_) { /* nicht schlimm */ }
 });
@@ -461,15 +509,34 @@ async function start(user) {
   if (!member) return;
   state.userId = user.$id;
   renderLog();
+  await reloadChats(user.$id);
+  if (startedFor !== user.$id) return;
+  if (matchMedia("(min-width: 900px)").matches) els.input.focus(); // am Handy sonst springt die Tastatur sofort auf
+}
+
+/** Chatliste laden: mit Ladeanzeige und bei Fehler mit „Noch einmal“-Knopf. */
+async function reloadChats(uid) {
+  state.listLoading = true; state.listFailed = false;
+  els.listState.hidden = false;
+  els.listState.innerHTML = loaderHtml({ title: "Chats werden geladen …", size: "sm" });
+  renderList();
   try {
     await loadChats();
-  } catch (_) {
-    showError("Deine Chats konnten nicht geladen werden. Lade die Seite neu.");
+  } catch (e) {
+    console.error("KI-Chat: Chats laden", e);
+    state.listFailed = true;
   }
-  if (startedFor !== user.$id) return;
+  if (startedFor !== uid) return;
+  state.listLoading = false;
+  if (state.listFailed) {
+    els.listState.innerHTML = 'Chats konnten nicht geladen werden.<br><button class="btn btn-outline btn-sm kc-list-retry" type="button" id="listRetry">Noch einmal versuchen</button>';
+  } else {
+    els.listState.hidden = true;
+    els.listState.textContent = "";
+  }
   renderList();
-  els.input.focus();
 }
+els.listState.addEventListener("click", (e) => { if (e.target.closest("#listRetry")) { haptic("tap"); reloadChats(startedFor); } });
 
 onAuthChange(({ status, user }) => {
   if (status !== "ready") return;

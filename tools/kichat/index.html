@@ -46,13 +46,21 @@
     </section>
 
     <div id="app" class="kc" hidden>
+      <div class="kc-scrim" id="scrim" aria-hidden="true"></div>
       <aside class="kc-side" id="side" aria-label="Chats">
+        <div class="kc-side-head">
+          <span class="kc-side-title">Chats</span>
+          <button class="kc-icon-btn kc-close" type="button" id="sideClose" aria-label="Chats schließen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
         <button class="kc-row" type="button" id="newBtn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>
           <span>Neuer Chat</span>
         </button>
         <ul class="kc-chats" id="chatList"></ul>
         <p class="kc-empty-list" id="listEmpty" hidden>Noch keine Chats.</p>
+        <p class="kc-empty-list" id="listState" hidden></p>
       </aside>
 
       <section class="kc-main" aria-label="Unterhaltung">

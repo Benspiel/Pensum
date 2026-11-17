@@ -73,17 +73,20 @@ body.kc-page pensum-nav { flex: none; }
 :root[data-theme="dark"] .kc-menu .is-danger { color: #f97066; }
 @media (prefers-reduced-motion: reduce) { .kc-menu { animation: none; } .kc-more { transition: none; } }
 
+.kc-side-head { display: none; }
+.kc-scrim { display: none; }
+.kc-list-retry { margin: var(--s-xs) var(--s-sm); }
 .kc-empty-list { padding: var(--s-xs) var(--s-sm); font-size: 0.875rem; color: var(--muted); }
 
 /* Unterhaltung füllt den Rest; Text und Eingabe stehen mittig in lesbarer Breite */
-.kc-main { --pad: max(var(--s-sm), calc((100% - 820px) / 2)); display: flex; flex-direction: column; min-height: 0; min-width: 0; padding-bottom: var(--s-sm); }
+.kc-main { --pad: max(var(--s-sm), calc((100% - 820px) / 2)); display: flex; flex-direction: column; min-height: 0; min-width: 0; padding-bottom: max(var(--s-xs), env(safe-area-inset-bottom)); }
 .kc-top { display: flex; align-items: center; gap: var(--s-xs); min-height: 40px; padding-inline: var(--pad); }
 @media (min-width: 900px) { .kc-top.is-empty { display: none; } }
 .kc-chat-title { flex: 1; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9375rem; font-weight: 600; }
 .kc-toggle { display: none; }
 .kc-log {
   flex: 1; display: flex; flex-direction: column; gap: var(--s-md); min-height: 0; overflow-y: auto;
-  padding: var(--s-sm) var(--pad);
+  padding: var(--s-xs) var(--pad) var(--s-sm);
 }
 .kc-log:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
 .kc-hint { margin: auto; text-align: center; color: var(--muted); }
@@ -146,36 +149,37 @@ body.kc-page pensum-nav { flex: none; }
 
 /* Eingabe (Nachbau von „AI Input Search“): ein Kasten mit Anhang, Textfeld und Werkzeugleiste */
 .kc-box {
-  display: grid; gap: var(--s-xs); padding: var(--s-sm);
+  display: grid; gap: 2px; padding: 6px 8px 8px;
   background: var(--canvas-soft); border: 1px solid transparent; border-radius: var(--r-md);
   transition: border-color 0.15s ease;
 }
 .kc-box:focus-within { border-color: var(--ink); }
 .kc-input {
-  width: 100%; min-height: 44px; max-height: 200px; resize: none; padding: var(--s-xs); border: 0; outline: 0; background: transparent;
+  width: 100%; min-height: 36px; max-height: 160px; resize: none; padding: 8px 6px 4px; font-size: 1rem; border: 0; outline: 0; background: transparent;
   color: inherit; font: inherit; line-height: 1.5;
 }
-.kc-bar { display: flex; align-items: center; gap: var(--s-xs); }
+.kc-bar { display: flex; align-items: center; gap: 6px; }
 .kc-icon-btn, .kc-send {
-  display: inline-grid; place-items: center; flex: none; width: 36px; height: 36px; cursor: pointer;
+  display: inline-grid; place-items: center; flex: none; width: 34px; height: 34px; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
   border: 1px solid var(--hairline); border-radius: 999px; background: var(--canvas); color: var(--ink);
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 .kc-icon-btn:hover { border-color: var(--ink); }
 .kc-icon-btn:focus-within, .kc-icon-btn:focus-visible, .kc-send:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-.kc-icon-btn svg, .kc-send svg, .kc-grade > svg { width: 18px; height: 18px; }
+.kc-icon-btn svg, .kc-send svg, .kc-grade > svg { width: 17px; height: 17px; }
+.kc-icon-btn:active, .kc-send:active, .kc-row:active, .kc-chat:active { transform: scale(0.96); }
 .kc-send { margin-left: auto; background: var(--ink); color: var(--on-primary, #fff); border-color: var(--ink); }
 .kc-send:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* Klassenwahl: ein Auswahlfeld im Stil der Knöpfe. Die Klasse bestimmt, wie die KI antwortet. */
-.kc-grade { position: relative; display: inline-flex; align-items: center; height: 36px; border: 1px solid var(--hairline); border-radius: 999px; background: var(--canvas); color: var(--ink); transition: border-color 0.15s ease; }
+.kc-grade { position: relative; display: inline-flex; align-items: center; height: 34px; border: 1px solid var(--hairline); border-radius: 999px; background: var(--canvas); color: var(--ink); transition: border-color 0.15s ease; }
 .kc-grade:hover { border-color: var(--ink); }
 .kc-grade:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
-.kc-grade > svg { position: absolute; left: 11px; pointer-events: none; }
+.kc-grade > svg { position: absolute; left: 10px; pointer-events: none; }
 .kc-grade::after { content: ""; position: absolute; right: 14px; top: 50%; width: 6px; height: 6px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; opacity: 0.6; transform: translateY(-70%) rotate(45deg); pointer-events: none; }
 .kc-grade select {
-  height: 100%; padding: 0 32px 0 36px; border: 0; border-radius: inherit; outline: 0; background: transparent; color: inherit;
-  font: inherit; font-size: 0.875rem; font-weight: 500; cursor: pointer; -webkit-appearance: none; appearance: none;
+  height: 100%; padding: 0 30px 0 34px; border: 0; border-radius: inherit; outline: 0; background: transparent; color: inherit;
+  font: inherit; font-size: 0.8125rem; font-weight: 500; cursor: pointer; -webkit-appearance: none; appearance: none;
 }
 .kc-grade select option { background: var(--canvas); color: var(--ink); }
 
@@ -195,15 +199,24 @@ body.kc-page pensum-nav { flex: none; }
 @media (prefers-reduced-motion: reduce) {
   .kc-wave-ch, .kc-wait-word, .kc-attach.is-reading .kc-doc-scan { animation: none; }
 }
-/* Schmale Fenster: Die Chatliste klappt über die Unterhaltung */
+/* Schmale Fenster: Die Chatliste klappt über die Unterhaltung. Zu geht sie per Kreuz, Tippen daneben, Wischen nach links oder Escape. */
 @media (max-width: 899px) {
   .kc { grid-template-columns: minmax(0, 1fr); }
   .kc-toggle { display: inline-grid; }
+  .kc-side-head { display: flex; align-items: center; justify-content: space-between; min-height: 40px; padding: 0 2px 0 var(--s-sm); }
+  .kc-side-title { font-size: 0.9375rem; font-weight: 650; }
   .kc-side {
-    position: absolute; inset: 0 auto 0 0; z-index: 5; width: min(300px, 86%); padding: var(--s-xs); border-right: 0;
+    position: fixed; inset: 0 auto 0 0; z-index: 60; width: min(320px, 86vw); padding: max(var(--s-xs), env(safe-area-inset-top)) var(--s-xs) max(var(--s-xs), env(safe-area-inset-bottom)); border-right: 0;
     border-radius: 0 var(--r-md) var(--r-md) 0; background: var(--canvas-soft); box-shadow: 0 0 0 1px var(--hairline), 8px 0 32px rgb(0 0 0 / 0.18);
-    transform: translateX(calc(-100% - 16px)); visibility: hidden; transition: transform 0.25s cubic-bezier(0.23, 1, 0.32, 1), visibility 0s linear 0.25s;
+    transform: translateX(calc(-100% - 24px)); visibility: hidden; transition: transform 0.25s cubic-bezier(0.23, 1, 0.32, 1), visibility 0s linear 0.25s;
   }
   .kc-side.is-open { transform: none; visibility: visible; transition: transform 0.25s cubic-bezier(0.23, 1, 0.32, 1); }
+  .kc-scrim {
+    display: block; position: fixed; inset: 0; z-index: 55; background: rgb(0 0 0 / 0.4); opacity: 0; pointer-events: none;
+    transition: opacity 0.2s ease; -webkit-tap-highlight-color: transparent;
+  }
+  .kc-scrim.is-open { opacity: 1; pointer-events: auto; }
   .kc-main { --pad: var(--s-xs); }
+  .kc-top { padding-top: 2px; }
 }
+@media (prefers-reduced-motion: reduce) { .kc-side, .kc-side.is-open, .kc-scrim { transition: none; } }
