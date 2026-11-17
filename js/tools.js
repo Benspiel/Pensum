@@ -35,6 +35,14 @@ export const tools = [
     badge: "Neu",
   },
   {
+    id: "abschreiben",
+    name: "Abschreiben",
+    href: "/tools/abschreiben/",
+    description: "Tafelbild fotografieren, die KI schreibt den Text ab. Du kopierst ihn oder machst daraus deine Handschrift für Goodnotes.",
+    icon: icon('<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.6l1.2-1.8A1 1 0 0 1 10.1 4h3.8a1 1 0 0 1 .8.4L15.9 6h1.6A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-8Z"/><path d="M9 12.5h6M9 15h3.5"/>'),
+    badge: "Neu",
+  },
+  {
     id: "goodnotes",
     name: "Goodnotes-Tool",
     href: "/tools/goodnotes/",

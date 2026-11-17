@@ -1,0 +1,43 @@
+/* Abschreiben – Layout. Farben, Radien, Panels und Bewegung kommen aus /css/pensum.css. */
+
+.ab-gate { display: grid; gap: var(--s-md); max-width: 560px; }
+.ab-gate > * + * { margin-top: 0; }
+
+#usage { margin-bottom: var(--s-md); }
+#usage:empty { display: none; }
+
+.ab-grid { display: grid; gap: var(--s-lg); align-items: start; margin-bottom: var(--s-xl); }
+@media (min-width: 900px) { .ab-grid { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); } }
+
+.ab-photo > * + *, .ab-result > * + * { margin-top: var(--s-md); }
+.ab-photo > .panel-title, .ab-result > .panel-title { margin-bottom: 0; }
+
+/* Fotofläche: leer ein Hinweis, mit Foto die Vorschau */
+.ab-drop {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  padding: var(--s-md);
+  background: var(--canvas);
+  border: 1.5px dashed var(--hairline);
+  border-radius: var(--r-md);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.ab-drop.is-drag { border-color: var(--ink); background: var(--canvas-soft); }
+.ab-drop.has-image { border-style: solid; padding: var(--s-xs); }
+.ab-empty { display: grid; justify-items: center; gap: var(--s-sm); text-align: center; max-width: 30ch; }
+.ab-empty > * { margin: 0; }
+.ab-preview { display: block; width: 100%; max-height: 420px; object-fit: contain; border-radius: calc(var(--r-md) - 4px); }
+
+/* Auswahlknöpfe sind <label>s um ein verstecktes <input type="file"> */
+.ab-pick { cursor: pointer; position: relative; }
+.ab-pick:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
+.ab-pick.is-disabled { opacity: 0.5; pointer-events: none; }
+
+.ab-text { min-height: 280px; font-size: 15px; line-height: 1.55; }
+.ab-result .row { margin-top: var(--s-md); }
+
+/* Beim Lesen: sanftes Pulsieren statt Spinner */
+#scanBtn.is-busy { animation: ab-pulse 1.2s ease-in-out infinite; }
+@keyframes ab-pulse { 50% { opacity: 0.6; } }
+@media (prefers-reduced-motion: reduce) { #scanBtn.is-busy { animation: none; } }
