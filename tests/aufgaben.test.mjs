@@ -200,6 +200,7 @@ test("solve: Fehler, leere und kaputte Antwort werden zurückgegeben (nicht gez�
     ["nur kaputte Felder", { answer: '{"fields":[{"box_2d":[1,2],"text":"x"}]}' }, 422, "no-fields"],
     ["kein JSON", { answer: "Ich sehe ein Blatt." }, 502, "bad-answer"],
     ["fields kein Array", { answer: '{"fields":"x"}' }, 502, "bad-answer"],
+    ["nackte Liste ohne brauchbare Felder", { answer: '[{"box_2d":[1,2],"text":"x"}]' }, 422, "no-fields"],
     ["KI-Fehler", { fail: new Error("Gemini 500: boom") }, 500, "server"],
     ["ausgelastet", { fail: new lib.UserError("busy", 503, "busy") }, 503, "busy"],
   ]) {
@@ -218,4 +219,18 @@ test("status und unbekannte Aktion", async () => {
   assert.deepEqual(s.json.usage, { runs: 0, maxRuns: 2 });
   assert.equal(s.json.day, "2026-11-17");
   assert.equal((await lib.handle({ body: { action: "x" }, userId: "u1" }, f.deps)).status, 400);
+});
+
+test("solve: nackte Liste statt {fields: …} wird akzeptiert", async () => {
+  const f = fakeDeps({ answer: '[{"box_2d":[100,100,150,500],"text":"Berlin"}]' });
+  const r = await lib.handle({ body: { action: "solve", image: JPEG }, userId: "u1" }, f.deps);
+  assert.equal(r.status, 200);
+  assert.equal(r.json.fields[0].text, "Berlin");
+  assert.deepEqual(r.json.skipped, []);
+});
+
+test("solve: unbrauchbare Antwort wird mit Anfang der Antwort protokolliert", async () => {
+  const f = fakeDeps({ answer: "Ich sehe ein Blatt." });
+  await lib.handle({ body: { action: "solve", image: JPEG }, userId: "u1" }, f.deps);
+  assert.match(f.calls.errors.join(" "), /Ich sehe ein Blatt/);
 });

@@ -165,10 +165,15 @@ async function handle({ body, userId }, deps) {
       try {
         const raw = await deps.gemini(SYSTEM_PROMPT, USER_PROMPT, { mime, data: image });
         const parsed = parseModelJson(raw);
-        if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.fields)) throw new UserError(BAD_ANSWER, 502, "bad-answer");
-        const fields = cleanFields(parsed.fields);
+        const list = Array.isArray(parsed) ? parsed : parsed && typeof parsed === "object" ? (parsed.fields || parsed.answers || parsed.antworten) : null; // Liste direkt oder unter fields
+        if (!Array.isArray(list)) {
+          deps.error("Unbrauchbare KI-Antwort: " + String(raw).replace(/\s+/g, " ").slice(0, 400));
+          throw new UserError(BAD_ANSWER, 502, "bad-answer");
+        }
+        const fields = cleanFields(list);
+        if (!fields.length) deps.error("Keine Felder aus KI-Antwort: " + String(raw).replace(/\s+/g, " ").slice(0, 400));
         if (!fields.length) throw new UserError(NO_FIELDS, 422, "no-fields");
-        return ok({ day, fields, skipped: cleanSkipped(parsed.skipped), usage: view(used) });
+        return ok({ day, fields, skipped: cleanSkipped(parsed && parsed.skipped), usage: view(used) });
       } catch (e) {
         await refund();
         throw e;
