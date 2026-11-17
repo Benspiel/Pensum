@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Aufgaben – Pensum</title>
+  <meta name="description" content="Arbeitsblatt hochladen, die KI bearbeitet die Aufgaben und schreibt die Antworten in Schrift oder in deiner Handschrift auf das Blatt. 2 Durchläufe pro Tag.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="icon" href="/assets/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="/assets/favicon.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="preload" href="/vendor/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/vendor/fonts.css">
+  <script src="/js/theme.js"></script>
+  <link rel="stylesheet" href="/css/pensum.css">
+  <link rel="stylesheet" href="/tools/aufgaben/aufgaben.css">
+  <link rel="modulepreload" href="/vendor/appwrite.js">
+  <link rel="modulepreload" href="/js/auth.js">
+  <script src="/vendor/jspdf.umd.min.js" defer></script>
+  <script type="module" src="/js/shell.js"></script>
+  <script type="module" src="/tools/aufgaben/aufgaben.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+  <pensum-nav></pensum-nav>
+
+  <main id="inhalt" class="container">
+    <header class="tool-head">
+      <h1>Aufgaben.</h1>
+      <p class="body-lg">Lad dein Arbeitsblatt hoch. Die KI bearbeitet die Aufgaben und schreibt die Antworten an die richtige Stelle, in normaler Schrift oder in Handschrift. Du bekommst das fertige Blatt als PDF oder Bild.</p>
+    </header>
+
+    <section class="panel on-tint au-gate" id="gate" hidden aria-live="polite">
+      <h2 class="h4">Melde dich an, um loszulegen.</h2>
+      <p class="body-sm muted-tint">Das Bearbeiten läuft über die KI auf dem Server, deshalb braucht es ein Konto. Pro Tag sind 2 Durchläufe frei.</p>
+      <div class="row">
+        <button class="btn btn-primary" type="button" data-auth-action="login">Anmelden</button>
+        <button class="btn btn-soft" type="button" data-auth-action="register">Konto erstellen</button>
+      </div>
+    </section>
+
+    <div id="app" hidden>
+      <div class="chips-row" id="usage" aria-live="polite"></div>
+
+      <div class="au-grid">
+        <!-- 1. Arbeitsblatt -->
+        <section class="panel on-tint au-upload" aria-labelledby="sheetTitle">
+          <h2 class="h4 panel-title" id="sheetTitle">1. Arbeitsblatt.</h2>
+
+          <div class="au-drop" id="drop">
+            <img class="au-preview" id="preview" alt="Vorschau deines Arbeitsblatts" hidden>
+            <div class="au-empty" id="empty">
+              <span class="squircle" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v4h4M9 12h6M9 15.5h6M9 18.5h3.5"/></svg>
+              </span>
+              <p class="body-sm muted-tint">Foto oder Screenshot des Blatts aufnehmen oder auswählen. Du kannst es auch hierher ziehen.</p>
+            </div>
+          </div>
+
+          <div class="row">
+            <label class="btn btn-primary au-pick" id="camLabel">
+              <input type="file" id="camInput" class="sr-only" accept="image/*" capture="environment">
+              Foto aufnehmen
+            </label>
+            <label class="btn btn-soft au-pick" id="fileLabel">
+              <input type="file" id="fileInput" class="sr-only" accept="image/*">
+              Bild auswählen
+            </label>
+          </div>
+
+          <p class="form-message" id="sheetError" role="alert" hidden></p>
+
+          <button class="btn btn-primary btn-wide btn-lg" type="button" id="solveBtn" disabled>Aufgaben ausfüllen</button>
+          <p class="body-sm muted-tint">Tipp: Das ganze Blatt gerade und von oben fotografieren, mit gutem Licht. Ein Durchlauf zählt erst, wenn die KI Antworten geliefert hat. PDFs vorher als Bild speichern oder einen Screenshot machen.</p>
+        </section>
+
+        <!-- 2. Ergebnis -->
+        <section class="panel on-tint au-result" aria-labelledby="resultTitle">
+          <h2 class="h4 panel-title" id="resultTitle">2. Ausgefülltes Blatt.</h2>
+          <p class="body-sm muted-tint" id="resultEmpty">Hier erscheint dein Blatt mit den Antworten. Danach kannst du Schrift, Farbe und jede Antwort noch ändern.</p>
+
+          <div id="resultBody" hidden>
+            <div class="au-options">
+              <label class="field">
+                <span class="field-label">Schrift</span>
+                <select class="select" id="fontSel"></select>
+              </label>
+              <label class="field">
+                <span class="field-label">Farbe</span>
+                <select class="select" id="inkSel"></select>
+              </label>
+              <label class="field au-size">
+                <span class="field-label">Größe <output id="sizeVal">100 %</output></span>
+                <input type="range" id="sizeInput" min="70" max="130" step="5" value="100">
+              </label>
+            </div>
+            <p class="body-sm muted-tint" id="handHint" hidden>„Meine Handschrift“ gibt es, sobald du sie im Goodnotes-Tool gezeichnet hast.</p>
+
+            <div class="au-stage" id="stage">
+              <canvas id="sheet" aria-label="Ausgefülltes Arbeitsblatt"></canvas>
+            </div>
+            <p class="field-hint" id="dragHint">Tipp: Am Computer kannst du eine Antwort mit der Maus auf dem Blatt verschieben.</p>
+
+            <div class="row">
+              <button class="btn btn-primary" type="button" id="pdfBtn">Als PDF speichern</button>
+              <button class="btn btn-outline" type="button" id="pngBtn">Als Bild speichern</button>
+            </div>
+
+            <h3 class="h4 au-sub">Antworten prüfen.</h3>
+            <p class="body-sm muted-tint">Die KI kann sich irren. Lies jede Antwort und ändere sie, bevor du abgibst.</p>
+            <ol class="au-list" id="list"></ol>
+
+            <div class="au-skipped" id="skipped" hidden>
+              <h3 class="h4 au-sub">Das hat die KI ausgelassen.</h3>
+              <ul class="au-skipped-list" id="skippedList"></ul>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <pensum-footer></pensum-footer>
+</body>
+</html>

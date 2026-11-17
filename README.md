@@ -9,6 +9,8 @@ Schüler-Toolkit: mehrere Tools unter einem gemeinsamen Login. Statische Seite (
 
 - **Abschreiben** (`/tools/abschreiben/`): Tafelbild fotografieren (nur mit Konto), Gemini liest den Text heraus (5 Scans pro Tag). Der Text lässt sich kopieren oder mit „In Handschrift umwandeln“ ans Goodnotes-Tool übergeben (Schrift, eigene Handschrift, Export dort). Das Foto wird im Browser auf höchstens 1800 px verkleinert und nirgends gespeichert. Siehe „Abschreiben einrichten“.
 
+- **Aufgaben** (`/tools/aufgaben/`): Arbeitsblatt als Foto oder Screenshot hochladen (nur mit Konto), Gemini bearbeitet die Aufgaben und liefert zu jeder Antwort das Schreibfeld auf dem Blatt (2 Durchläufe pro Tag). Der Browser schreibt die Antworten selbst auf das Blatt: in normaler Schrift, in einer Handschrift-Schriftart oder in der eigenen Handschrift aus dem Goodnotes-Tool. Antworten lassen sich ändern, entfernen und mit der Maus verschieben, Export als PDF oder PNG. Das Bild wird nirgends gespeichert. Siehe „Aufgaben einrichten“.
+
 - **Spiele** (`/tools/spiele/`): 17 Spiele in vier Gruppen. Klassiker: 2048, Snake, Tetris, Minesweeper. Denken und Rätseln: Sudoku, Memory, Vier gewinnt (KI), Tic-Tac-Toe (KI), Schiebepuzzle, Lights Out, Mastermind. Wörter und Zahlen: Galgenmännchen, Kopfrechnen-Blitz. Geschick: Breakout, Pong (KI), Hüpfer, Simon. Alles ist selbst nach bekannten, freien Spielregeln geschrieben (kein fremder Code, keine fremden Bilder oder Töne). Die Regeln liegen ohne Oberfläche je Spiel in `tools/spiele/*.js` (getestet), die Oberflächen in `ui-klassiker.js`, `ui-denken.js`, `ui-geschick.js`, die Auswahl in `spiele.js`. Bestwerte stehen nur im `localStorage` (`pensum.spiele.best.v1`).
 
 Ohne Konto bleiben Daten im `localStorage`. Mit Konto liegen sie in Appwrite und sind auf allen Geräten gleich.
@@ -43,6 +45,8 @@ tools/mindmap/             tree.js (Baum, Layout), hand.js (eigene Handschrift),
 functions/mindmap/         Appwrite-Function: Gemini-Aufruf und Tageslimits (lib.js = Logik, index.js = Anbindung)
 tools/abschreiben/         core.js (Bildgröße, Übergabe), abschreiben.js (Oberfläche)
 functions/abschreiben/     Appwrite-Function: Gemini mit Bild und Tageslimit (lib.js = Logik, index.js = Anbindung)
+tools/aufgaben/            core.js (Felder in Pixel, Textumbruch, Schriftgröße), aufgaben.js (Oberfläche, Zeichnen, PDF/PNG)
+functions/aufgaben/        Appwrite-Function: Gemini löst das Blatt und nennt die Schreibfelder, Tageslimit (lib.js = Logik, index.js = Anbindung)
 tools/spiele/              17 Spiele: Regeln je Spiel (g2048.js, sudoku.js, connect4.js, …), ui-*.js (Oberflächen), spiele.js (Auswahl)
 tools/goodnotes/           ink-engine.js (Inkly-Logik), goodnotes.js (Oberfläche), templates.js
 konto/passwort/            Zielseite für „Passwort zurücksetzen“
@@ -105,6 +109,20 @@ appwrite functions create-variable --function-id abschreiben --key GEMINI_MODEL 
 ```
 
 Danach `appwrite push function` erneut ausführen, falls die Variable erst nach dem ersten Deploy gesetzt wurde. Vergibt Appwrite eine andere Function-ID als `abschreiben`, diese in `js/config.js` unter `functions.abschreiben` eintragen. Fehlt die Function, zeigt das Tool „Der Abschreiben-Dienst ist noch nicht eingerichtet“.
+
+### Aufgaben einrichten
+
+Die Function `aufgaben` (`functions/aufgaben/`) schickt das Foto des Arbeitsblatts an Gemini und gibt Antworten mit Schreibfeldern zurück (`box_2d` in Promille der Bildgröße, damit die Auflösung egal ist). Sie zählt das Tageslimit (2 Durchläufe pro Konto und Tag, Tageswechsel um Mitternacht deutscher Zeit; ein fehlgeschlagener oder leerer Durchlauf wird zurückgegeben). Neue Tabelle: `aufgaben_usage` (nur Zähler, ohne Nutzerrechte). Es wird weder Bild noch Text gespeichert. Das Limit steht in `functions/aufgaben/lib.js` (`LIMITS.runs`); die Obergrenze der Spalte `runs` in `appwrite.config.json` muss mindestens so hoch sein.
+
+```bash
+appwrite push table --all --force
+appwrite push function --function-id aufgaben --force
+appwrite functions create-variable --function-id aufgaben --key GEMINI_API_KEY --value "<dein Schlüssel aus Google AI Studio>" --secret true
+# optional anderes Modell (Standard: gemini-3.5-flash-lite)
+appwrite functions create-variable --function-id aufgaben --key GEMINI_MODEL --value "<modellname>"
+```
+
+Danach `appwrite push function` erneut ausführen, falls die Variable erst nach dem ersten Deploy gesetzt wurde. Vergibt Appwrite eine andere Function-ID als `aufgaben`, diese in `js/config.js` unter `functions.aufgaben` eintragen. Fehlt die Function, zeigt das Tool „Der Aufgaben-Dienst ist noch nicht eingerichtet“. Wie gut die Felder sitzen, hängt vom Modell ab: Ein stärkeres Modell über `GEMINI_MODEL` trifft die Schreibfelder genauer, kostet aber mehr pro Durchlauf.
 
 ### Rechtsseiten
 

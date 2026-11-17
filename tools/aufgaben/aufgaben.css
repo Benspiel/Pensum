@@ -1,0 +1,92 @@
+/* Aufgaben – Layout. Farben, Radien, Panels und Bewegung kommen aus /css/pensum.css. */
+
+.au-gate { display: grid; gap: var(--s-md); max-width: 560px; }
+.au-gate > * + * { margin-top: 0; }
+
+#usage { margin-bottom: var(--s-md); }
+#usage:empty { display: none; }
+
+.au-grid { display: grid; gap: var(--s-lg); align-items: start; margin-bottom: var(--s-xl); }
+@media (min-width: 1000px) { .au-grid { grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); } }
+
+.au-upload > * + *, .au-result > * + * { margin-top: var(--s-md); }
+.au-upload > .panel-title, .au-result > .panel-title { margin-bottom: 0; }
+#resultBody > * + * { margin-top: var(--s-md); }
+
+/* Blattfläche: leer ein Hinweis, mit Blatt die Vorschau */
+.au-drop {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  padding: var(--s-md);
+  background: var(--canvas);
+  border: 1.5px dashed var(--hairline);
+  border-radius: var(--r-md);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.au-drop.is-drag { border-color: var(--ink); background: var(--canvas-soft); }
+.au-drop.has-image { border-style: solid; padding: var(--s-xs); }
+.au-empty { display: grid; justify-items: center; gap: var(--s-sm); text-align: center; max-width: 30ch; }
+.au-empty > * { margin: 0; }
+.au-preview { display: block; width: 100%; max-height: 420px; object-fit: contain; border-radius: calc(var(--r-md) - 4px); }
+
+/* Auswahlknöpfe sind <label>s um ein verstecktes <input type="file"> */
+.au-pick { cursor: pointer; position: relative; }
+.au-pick:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
+.au-pick.is-disabled { opacity: 0.5; pointer-events: none; }
+
+/* Einstellungen über dem Blatt */
+.au-options { display: grid; gap: var(--s-md); }
+@media (min-width: 640px) { .au-options { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; } }
+.au-size output { float: right; font-weight: 600; color: var(--ink); }
+
+/* Das Blatt selbst */
+.au-stage {
+  padding: var(--s-xs);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+#sheet { display: block; width: 100%; height: auto; border-radius: calc(var(--r-md) - 6px); }
+#sheet.can-drag { cursor: grab; }
+#sheet.is-dragging { cursor: grabbing; }
+
+.au-sub { margin-top: var(--s-lg); }
+.au-sub + .body-sm { margin-top: var(--s-xxs); }
+
+/* Antworten */
+.au-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-sm); }
+.au-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--s-sm);
+  align-items: start;
+  padding: var(--s-sm);
+  background: var(--canvas);
+  border: 1.5px solid transparent;
+  border-radius: var(--r-md);
+}
+.au-item.is-active { border-color: var(--ink); }
+.au-num {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-top: 6px;
+  border-radius: var(--r-full);
+  background: var(--canvas-soft);
+  font-size: 13px;
+  font-weight: 700;
+}
+.au-item .textarea { min-height: 44px; padding: var(--s-xs) var(--s-sm); font-size: 15px; background: var(--canvas-soft); resize: vertical; }
+.au-warn { grid-column: 2 / 4; margin: 0; font-size: 13px; color: var(--muted-on-tint); }
+.au-warn::before { content: "! "; font-weight: 700; color: var(--ink); }
+.au-item .icon-btn { margin-top: 2px; }
+
+.au-skipped-list { margin: var(--s-xs) 0 0; padding-left: var(--s-lg); display: grid; gap: var(--s-xxs); font-size: 14px; color: var(--muted-on-tint); }
+
+/* Beim Bearbeiten: sanftes Pulsieren statt Spinner */
+#solveBtn.is-busy { animation: au-pulse 1.2s ease-in-out infinite; }
+@keyframes au-pulse { 50% { opacity: 0.6; } }
+@media (prefers-reduced-motion: reduce) { #solveBtn.is-busy { animation: none; } }

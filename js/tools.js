@@ -18,6 +18,15 @@ export const tools = [
     icon: icon('<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/>'),
   },
   {
+    id: "aufgaben",
+    name: "Aufgaben",
+    href: "/tools/aufgaben/",
+    description: "Arbeitsblatt hochladen, die KI füllt die Aufgaben aus, in normaler Schrift oder in Handschrift. 2 Durchläufe pro Tag, Ergebnis als PDF oder Bild.",
+    icon: icon('<path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v4h4"/><path d="m9 15 2 2 4-4.5"/>'),
+    badge: "Kommt bald",
+    soon: true, // ausgegraut und nicht klickbar; zum Freischalten die Zeile entfernen
+  },
+  {
     id: "notenrechner",
     name: "Notenrechner",
     href: "/tools/notenrechner/",
