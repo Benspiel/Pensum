@@ -102,7 +102,13 @@ appwrite project create-web-platform --platform-id "unique()" --name "Pensum Ver
 
 ### Anmeldung
 
-E-Mail und Passwort sind aktiv. Für „Passwort zurücksetzen“ muss auf dem Server SMTP eingerichtet sein. Google ist optional: Provider in der Konsole einrichten, dann `googleOAuth: true` in `js/config.js`.
+E-Mail und Passwort sind aktiv. Für „Passwort zurücksetzen“ muss auf dem Server SMTP eingerichtet sein. Google ist optional und im Code fertig („Mit Google fortfahren“ im Anmelde-Dialog, `loginWithGoogle()` in `js/auth.js`). So wird es eingeschaltet:
+
+1. In der [Google Cloud Console](https://console.cloud.google.com/apis/credentials) eine OAuth-Client-ID (Typ „Webanwendung“) anlegen. Als „Autorisierte Weiterleitungs-URI“ die URI eintragen, die Appwrite unter Auth → Settings → Google anzeigt (Form: `https://appwrite.buchholz.dev/v1/account/sessions/oauth2/callback/google/6af569a7000d660f3559`).
+2. In der Appwrite-Konsole unter Auth → Settings → OAuth2 Providers → Google aktivieren und Client-ID und Client-Secret eintragen.
+3. In `js/config.js` `googleOAuth: true` setzen.
+
+Wer sich erstmals mit Google anmeldet, bekommt automatisch ein Konto. Was bei einer E-Mail-Adresse passiert, die schon ein Passwort-Konto hat, sollte vor dem Einschalten einmal getestet werden.
 
 ## Vercel
 
