@@ -197,3 +197,7 @@ canvas.sp-canvas { display: block; width: 100%; height: auto; border-radius: var
 
 .sp-soon { max-width: 560px; display: grid; gap: var(--s-md); justify-items: start; }
 .sp-soon > * + * { margin-top: 0; }
+
+/* Eingebettete Open-Source-Spiele */
+.sp-embed { position: relative; width: 100%; overflow: hidden; border-radius: var(--r-md); background: #fff; touch-action: auto; }
+.sp-embed iframe { display: block; border: 0; background: #fff; }

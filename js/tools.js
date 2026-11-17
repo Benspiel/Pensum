@@ -66,7 +66,7 @@ export const tools = [
     id: "spiele",
     name: "Spiele",
     href: "/tools/spiele/",
-    description: "17 Spiele für die Pause: 2048, Snake, Tetris, Sudoku, Memory, Vier gewinnt, Breakout und mehr. Läuft im Browser, Bestwerte bleiben auf deinem Gerät.",
+    description: "Vier gewinnt gegen den Computer und Open-Source-Klassiker wie Asteroids und Dino-Runner. Läuft im Browser.",
     icon: icon('<rect x="2.5" y="7" width="19" height="11" rx="5.5"/><path d="M8 10.5v4M6 12.5h4"/><circle cx="15.5" cy="11.5" r="1"/><circle cx="18" cy="14" r="1"/>'),
     badge: "Kommt bald",
     soon: true, // ausgegraut und nicht klickbar; zum Freischalten die Zeile entfernen
