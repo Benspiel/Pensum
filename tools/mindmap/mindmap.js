@@ -9,7 +9,6 @@ import { tablesDB, databaseId, tableIds, listAllRows, Query } from "/js/db.js";
 import { config } from "/js/config.js";
 import * as T from "./tree.js";
 import * as H from "./hand.js";
-import { onTesterChange } from "/js/access.js";
 import { createInkEngine } from "/tools/goodnotes/ink-engine.js";
 
 const $ = (id) => document.getElementById(id);
@@ -20,7 +19,7 @@ const els = {
   canvas: $("canvas"), svg: $("svg"), nodeText: $("nodeText"), editError: $("editError"), saveState: $("saveState"),
   addChild: $("addChild"), addSibling: $("addSibling"), moveUp: $("moveUp"), moveDown: $("moveDown"), removeNode: $("removeNode"),
   undo: $("undoBtn"), redo: $("redoBtn"), zoomIn: $("zoomIn"), zoomOut: $("zoomOut"), zoomFit: $("zoomFit"),
-  exportPng: $("exportPng"), exportPdf: $("exportPdf"), exportGn: $("exportGn"), inkSwitch: $("inkSwitch"),
+  exportPdf: $("exportPdf"), exportGn: $("exportGn"), inkSwitch: $("inkSwitch"),
   foldNode: $("foldNode"), foldAll: $("foldAll"), unfoldAll: $("unfoldAll"), fontSwitch: $("fontSwitch"), fontHint: $("fontHint"),
   aiCard: $("aiCard"), aiInfo: $("aiInfo"), aiText: $("aiText"), aiBtn: $("aiBtn"), aiError: $("aiError"),
 };
@@ -130,7 +129,7 @@ function renderPanels() {
     : left <= 0 ? "Du hast heute alle KI-Änderungen verbraucht. Morgen sind es wieder 3. Von Hand kannst du weiter ändern."
     : `Beschreib in eigenen Worten, was geändert werden soll. Heute sind noch ${left} von ${state.usage.maxEdits} Änderungen frei.`;
 
-  els.exportPng.disabled = els.exportPdf.disabled = els.exportGn.disabled = !hasMap;
+  els.exportPdf.disabled = els.exportGn.disabled = !hasMap;
   els.createBtn.disabled = state.busy;
   els.createBtn.textContent = state.busy ? "KI arbeitet …" : "Mindmap erstellen";
   els.topic.disabled = els.notes.disabled = state.busy;
@@ -731,7 +730,7 @@ els.inkSwitch.addEventListener("click", (e) => {
   renderMap({ animate: false });
 });
 
-/* ---------- Exportieren: PNG und PDF, gezeichnet wie auf dem Bildschirm (aktuelle Schrift, Farbe und eingeklappte Äste) ---------- */
+/* ---------- Exportieren: PDF, gezeichnet wie auf dem Bildschirm (aktuelle Schrift, Farbe und eingeklappte Äste) ---------- */
 
 /** Zeichnet die Mindmap auf eine Leinwand (scale = Pixel je Einheit). */
 function drawToCanvas(scale = 2) {
@@ -744,7 +743,7 @@ function drawToCanvas(scale = 2) {
   const c = canvas.getContext("2d");
   c.scale(limit, limit);
   c.fillStyle = "#ffffff";
-  c.fillRect(0, 0, lay.width, lay.height);
+  c.fillRect(0, 0, canvas.width / limit, canvas.height / limit); // ganze Leinwand weiß (sonst bleibt am Rand ein schwarzer JPEG-Streifen)
   const ink = state.ink;
 
   c.lineCap = "round"; c.lineJoin = "round"; c.strokeStyle = ink;
@@ -775,6 +774,29 @@ function drawToCanvas(scale = 2) {
   return { canvas, width: lay.width, height: lay.height };
 }
 
+/** Schneidet den weißen Rand ab und lässt rundherum gleich viel (pad Einheiten) stehen, damit nichts schief auf der Seite sitzt. */
+function trimCanvas(r, pad) {
+  const { canvas, width } = r, scale = canvas.width / width;
+  if (canvas.width * canvas.height > 40e6) return r;
+  const { data } = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
+  let x0 = canvas.width, y0 = canvas.height, x1 = -1, y1 = -1;
+  for (let y = 0; y < canvas.height; y++) {
+    for (let x = 0, i = y * canvas.width * 4; x < canvas.width; x++, i += 4) {
+      if (data[i + 3] > 8 && (data[i] < 245 || data[i + 1] < 245 || data[i + 2] < 245)) {
+        if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      }
+    }
+  }
+  if (x1 < 0) return r;
+  const p = Math.round(pad * scale), w = x1 - x0 + 1 + 2 * p, h = y1 - y0 + 1 + 2 * p;
+  const out = document.createElement("canvas");
+  out.width = w; out.height = h;
+  const o = out.getContext("2d");
+  o.fillStyle = "#ffffff"; o.fillRect(0, 0, w, h);
+  o.drawImage(canvas, x0, y0, x1 - x0 + 1, y1 - y0 + 1, p, p, x1 - x0 + 1, y1 - y0 + 1);
+  return { canvas: out, width: w / scale, height: h / scale };
+}
+
 const fileBase = () => (((state.current && state.current.root.text) || "Mindmap").trim().replace(/[\\/:*?"<>|]+/g, "-").slice(0, 80) || "Mindmap");
 const stamp = () => (state.current && state.current.day) || new Date().toISOString().slice(0, 10);
 
@@ -796,23 +818,12 @@ function loadJsPdf() {
   });
 }
 
-els.exportPng.addEventListener("click", () => {
-  if (!state.current) return;
-  try {
-    drawToCanvas(2).canvas.toBlob((blob) => {
-      if (!blob) { toast("Das Bild konnte nicht erstellt werden.", { error: true }); return; }
-      saveBlob(blob, `${fileBase()} ${stamp()}.png`);
-      toast("Bild gespeichert.");
-    }, "image/png");
-  } catch (e) { console.error(e); toast("Das Bild konnte nicht erstellt werden.", { error: true }); }
-});
-
 els.exportPdf.addEventListener("click", async () => {
   if (!state.current) return;
   els.exportPdf.disabled = true;
   try {
     const { jsPDF } = await loadJsPdf();
-    const { canvas, width, height } = drawToCanvas(2);
+    const { canvas, width, height } = trimCanvas(drawToCanvas(2), 24);
     const pdf = new jsPDF({ orientation: width >= height ? "landscape" : "portrait", unit: "pt", format: "a4" });
     const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight(), m = 28;
     const k = Math.min((pw - 2 * m) / width, (ph - 2 * m) / height);
@@ -827,11 +838,9 @@ els.exportPdf.addEventListener("click", async () => {
   }
 });
 
-/* ---------- Goodnotes-Export (nur für Tester) ----------
+/* ---------- Goodnotes-Export ----------
  * Eigene Handschrift: echte Stiftstriche (in Goodnotes radierbar und umfärbbar). Standardschrift: Bild der Seite.
  * Die Mindmap wird auf eine A4-Seite (Hochformat) der Blanko-Vorlage des Goodnotes-Tools eingepasst. */
-onTesterChange((tester) => { els.exportGn.hidden = !tester; });
-
 const loadScript = (src, test) => test() ? Promise.resolve() : new Promise((resolve, reject) => {
   const el = Object.assign(document.createElement("script"), { src });
   el.onload = () => (test() ? resolve() : reject(new Error("Bibliothek fehlt.")));
