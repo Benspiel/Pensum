@@ -8,6 +8,7 @@ import "/js/whatsnew.js";
 export const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 const ICON = {
+  google: '<svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>',
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>',
 };
 export const closeIcon = ICON.close;
@@ -101,7 +102,8 @@ function buildAuthDialog() {
       </label>
       <p class="form-message" role="alert" hidden></p>
       <button class="btn btn-primary btn-wide" type="submit"></button>
-      <button class="btn btn-outline btn-wide" type="button" data-google hidden>Mit Google fortfahren</button>
+      <div class="auth-or" data-google-or hidden><span>oder</span></div>
+      <button class="btn btn-outline btn-wide btn-google" type="button" data-google hidden>${ICON.google}<span>Mit Google fortfahren</span></button>
       <p class="body-sm center muted" data-only="code"><button type="button" class="text-link" data-resend>Code erneut senden</button> · <button type="button" class="text-link" data-switch="login">Zurück</button></p>
       <p class="body-sm center" data-only="login"><button type="button" class="text-link" data-switch="forgot">Passwort vergessen?</button></p>
       <p class="body-sm center muted" data-only="login">Noch kein Konto? <button type="button" class="text-link" data-switch="register">Registrieren</button></p>
@@ -186,7 +188,9 @@ function setAuthMode(mode, reason) {
     el.querySelectorAll("input").forEach((i) => { i.disabled = !show; });
   });
   d.querySelector('[name="password"]').autocomplete = authMode === "register" ? "new-password" : "current-password";
-  d.querySelector("[data-google]").hidden = !(auth.googleEnabled && (authMode === "login" || authMode === "register"));
+  const showGoogle = auth.googleEnabled && (authMode === "login" || authMode === "register");
+  d.querySelector("[data-google]").hidden = !showGoogle;
+  d.querySelector("[data-google-or]").hidden = !showGoogle;
   d._showMessage("");
 }
 
@@ -320,6 +324,7 @@ customElements.define("pensum-footer", PensumFooter);
 
 // Rückmeldung, falls die Anmeldung über Google abgebrochen wurde
 const params = new URLSearchParams(location.search);
+auth.ready.then(() => { if (auth.takeOAuthError()) toast("Die Anmeldung über Google hat nicht geklappt.", { error: true }); });
 if (params.get("anmeldung") === "fehlgeschlagen") {
   history.replaceState(null, "", location.pathname);
   toast("Die Anmeldung über Google hat nicht geklappt.", { error: true });

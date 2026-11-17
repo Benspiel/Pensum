@@ -106,6 +106,8 @@
 .gn-ink:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
 .gn-slider { display: block; }
+.gn-num { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.gn-num input { width: 76px; }
 .gn-toggle {
   display: flex;
   align-items: center;

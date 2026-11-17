@@ -34,5 +34,5 @@ export const config = {
   },
 
   // Auf true setzen, sobald der Google-Provider in der Appwrite-Konsole eingerichtet ist (Auth → Settings → OAuth2).
-  googleOAuth: false,
+  googleOAuth: true,
 };
