@@ -104,10 +104,12 @@ async function loadGoogle() {
     return;
   }
   $("googleMsg").hidden = true;
+  // Verbinden ist aus: Ohne Cookie auf der Appwrite-Domain legt Appwrite ein neues Konto an, statt das bestehende zu verknüpfen.
+  $("googlePanel").hidden = !googleIdentity;
   $("googleText").textContent = googleIdentity
     ? `Verbunden mit ${googleIdentity.providerEmail || "deinem Google-Konto"}. Du kannst dich damit ohne Passwort anmelden.`
     : "Verbinde dein Google-Konto, um dich künftig mit einem Tipp anzumelden.";
-  $("googleLink").hidden = !!googleIdentity;
+  $("googleLink").hidden = true;
   $("googleUnlink").hidden = !googleIdentity;
 }
 
