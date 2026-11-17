@@ -126,15 +126,7 @@ E-Mail und Passwort sind aktiv. Für „Passwort zurücksetzen“ muss auf dem S
 2. In der Appwrite-Konsole unter Auth → Settings → OAuth2 Providers → Google aktivieren und Client-ID und Client-Secret eintragen.
 3. In `js/config.js` `googleOAuth: true` setzen.
 
-Wer sich erstmals mit Google anmeldet, bekommt automatisch ein Konto. 
-
-**Google im Konto verbinden:** Weil Pensum und Appwrite auf verschiedenen Domains liegen, kennt Appwrite beim Google-Login das angemeldete Konto nicht (Safari blockiert die Cookies) und legt ein eigenes Google-Konto an. Die Function `functions/google-link/` merkt sich in der Tabelle `google_links`, welches Pensum-Konto dazugehört, und tauscht beim Google-Login die Session. Einmalig einrichten:
-
-```bash
-appwrite push table --all --force
-appwrite push function --function-id google-link --force
-appwrite push function --function-id delete-account --force
-```
+Wer sich erstmals mit Google anmeldet, bekommt automatisch ein Konto. Was bei einer E-Mail-Adresse passiert, die schon ein Passwort-Konto hat, sollte vor dem Einschalten einmal getestet werden.
 
 ## Vercel
 

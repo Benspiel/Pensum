@@ -1,6 +1,6 @@
 /* Konto verwalten: Profil, Zugangsdaten, Sitzungen, Datenexport, Löschen. */
 import { Functions, ExecutionMethod } from "/vendor/appwrite.js";
-import { client, account, onAuthChange, refresh, logout, authMessage, initials, googleEnabled, loginWithGoogle, googleLinkCall, takeLinkResult, ready } from "/js/auth.js";
+import { client, account, onAuthChange, refresh, logout, authMessage, initials, googleEnabled, loginWithGoogle } from "/js/auth.js";
 import { tablesDB, databaseId, tableIds, listAllRows, Query } from "/js/db.js";
 import { config } from "/js/config.js";
 import { toast, confirmDialog, esc } from "/js/shell.js";
@@ -90,49 +90,39 @@ $("passForm").addEventListener("submit", async (e) => {
 
 /* ---------- Google verbinden ---------- */
 
-ready.then(() => {
-  const r = takeLinkResult();
-  if (r === "ok") toast("Google ist jetzt mit deinem Konto verbunden.");
-  else if (r === "error") toast("Das Verbinden hat nicht geklappt. Melde dich bitte neu an und versuch es noch einmal.", { error: true });
-});
-
-let googleLinked = false;
+let googleIdentity = null;
 
 async function loadGoogle() {
   if (!googleEnabled) return;
   $("googlePanel").hidden = false;
   try {
-    const r = await googleLinkCall({ action: "status" });
-    googleLinked = !!r.linked;
-    $("googleText").textContent = googleLinked
-      ? `Verbunden${r.email ? " mit " + r.email : ""}. Du kannst dich damit ohne Passwort anmelden.`
-      : "Verbinde dein Google-Konto, um dich künftig mit einem Tipp anzumelden. Du landest danach immer in diesem Konto.";
-    $("googleMsg").hidden = true;
+    const { identities } = await account.listIdentities();
+    googleIdentity = identities.find((i) => i.provider === "google") || null;
   } catch (e) {
-    googleLinked = false;
-    $("googleText").textContent = "Verbinde dein Google-Konto, um dich künftig mit einem Tipp anzumelden.";
-    $("googleMsg").textContent = "Der Verbindungsdienst ist gerade nicht erreichbar.";
+    $("googleMsg").textContent = authMessage(e);
     $("googleMsg").hidden = false;
+    return;
   }
-  $("googleLink").hidden = googleLinked;
-  $("googleUnlink").hidden = !googleLinked;
+  $("googleMsg").hidden = true;
+  // Verbinden ist aus: Ohne Cookie auf der Appwrite-Domain legt Appwrite ein neues Konto an, statt das bestehende zu verknüpfen.
+  $("googlePanel").hidden = !googleIdentity;
+  $("googleText").textContent = googleIdentity
+    ? `Verbunden mit ${googleIdentity.providerEmail || "deinem Google-Konto"}. Du kannst dich damit ohne Passwort anmelden.`
+    : "Verbinde dein Google-Konto, um dich künftig mit einem Tipp anzumelden.";
+  $("googleLink").hidden = true;
+  $("googleUnlink").hidden = !googleIdentity;
 }
 
-$("googleLink").addEventListener("click", async (e) => {
-  e.currentTarget.disabled = true;
-  try { await loginWithGoogle({ link: true }); } catch (err) {
-    toast((err && err.message) || authMessage(err), { error: true });
-    e.currentTarget.disabled = false;
-  }
-});
+$("googleLink").addEventListener("click", () => loginWithGoogle());
 $("googleUnlink").addEventListener("click", async () => {
+  if (!googleIdentity) return;
   const ok = await confirmDialog({
     title: "Verbindung zu Google lösen?",
-    text: "Danach meldest du dich nur noch mit E-Mail und Passwort an. Ein Google-Login führt dann nicht mehr in dieses Konto.",
+    text: "Danach kannst du dich nur noch mit E-Mail und Passwort anmelden. Hast du kein Passwort festgelegt, ändere es vorher unter „Passwort“.",
     confirm: "Verbindung lösen",
   });
   if (!ok) return;
-  try { await googleLinkCall({ action: "unlink" }); toast("Verbindung zu Google gelöst."); } catch (err) { toast(err.message, { error: true }); }
+  try { await account.deleteIdentity({ identityId: googleIdentity.$id }); toast("Verbindung zu Google gelöst."); } catch (e) { toast(authMessage(e), { error: true }); }
   loadGoogle();
 });
 

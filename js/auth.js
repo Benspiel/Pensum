@@ -5,7 +5,7 @@
  * onAuthChange() – auch aus anderen Tabs (BroadcastChannel). So ist man nach einmaligem
  * Anmelden in jedem Tool angemeldet.
  */
-import { Client, Account, Functions, ExecutionMethod, ID, OAuthProvider } from "/vendor/appwrite.js";
+import { Client, Account, ID, OAuthProvider } from "/vendor/appwrite.js";
 import { config } from "/js/config.js";
 
 export const client = new Client().setEndpoint(config.endpoint).setProject(config.projectId);
@@ -51,27 +51,8 @@ export async function refresh() {
 }
 
 /* Rückkehr von Google: Appwrite hängt userId und secret an die Adresse (Token-Flow). Daraus wird hier die
- * Session angelegt. Das geht ohne Drittanbieter-Cookies und klappt deshalb auch in Safari.
- * Appwrite legt dabei ein eigenes Google-Konto an; die Function google-link ordnet es einem
- * bestehenden Pensum-Konto zu (Verknüpfen im Konto) und tauscht die Session dann gegen dessen. */
-const LINK_KEY = "pensum.googleLink.jwt";
+ * Session angelegt. Das geht ohne Drittanbieter-Cookies und klappt deshalb auch in Safari. */
 let oauthFailed = false;
-let linkResult = null; // "ok" | "error" | null
-
-/** Ruft die Function google-link auf. Wirft bei Fehlern. */
-export async function googleLinkCall(payload) {
-  const ex = await new Functions(client).createExecution({
-    functionId: config.functions.googleLink,
-    body: JSON.stringify(payload),
-    async: false,
-    method: ExecutionMethod.POST,
-  });
-  let data = {};
-  try { data = JSON.parse(ex.responseBody); } catch (_) { /* kein JSON */ }
-  if (ex.responseStatusCode !== 200 || !data.ok) throw new Error(data.error || "Die Verbindung zu Google hat nicht geklappt.");
-  return data;
-}
-
 async function finishOAuth() {
   const params = new URLSearchParams(location.search);
   const userId = params.get("userId"), secret = params.get("secret");
@@ -79,44 +60,19 @@ async function finishOAuth() {
   params.delete("userId"); params.delete("secret");
   const rest = params.toString();
   history.replaceState(null, "", location.pathname + (rest ? "?" + rest : "") + location.hash);
-  let jwt = "";
-  try { jwt = sessionStorage.getItem(LINK_KEY) || ""; sessionStorage.removeItem(LINK_KEY); } catch (_) { /* egal */ }
   try {
     await account.createSession({ userId, secret });
+    if (channel) channel.postMessage({ type: "changed" });
   } catch (e) {
     console.warn("Google-Anmeldung fehlgeschlagen", e);
     oauthFailed = true;
-    return;
   }
-  try {
-    const r = await googleLinkCall(jwt ? { action: "link", jwt } : { action: "resolve" });
-    if (r.linked && r.userId && r.secret) {
-      await account.deleteSession({ sessionId: "current" });
-      await account.createSession({ userId: r.userId, secret: r.secret });
-    }
-    if (jwt) linkResult = "ok";
-  } catch (e) {
-    console.warn("Google-Konto konnte nicht zugeordnet werden", e);
-    if (jwt) {
-      linkResult = "error";
-      // Die neue, leere Google-Session wieder verwerfen; die frühere Anmeldung kommt über refresh() zurück oder nicht
-      try { await account.deleteSession({ sessionId: "current" }); } catch (_) { /* egal */ }
-    }
-  }
-  if (channel) channel.postMessage({ type: "changed" });
 }
 
 /** true, wenn die Rückkehr von Google nicht zu einer Session geführt hat (einmal abrufbar). */
 export function takeOAuthError() {
   const v = oauthFailed;
   oauthFailed = false;
-  return v;
-}
-
-/** Ergebnis von „Mit Google verbinden“: "ok", "error" oder null (einmal abrufbar). */
-export function takeLinkResult() {
-  const v = linkResult;
-  linkResult = null;
   return v;
 }
 
@@ -210,13 +166,8 @@ export async function confirmPasswordReset({ userId, secret, password }) {
 
 export const googleEnabled = !!config.googleOAuth;
 
-/** Leitet zu Google weiter; danach landet man wieder auf der aktuellen Seite und ist überall angemeldet.
- *  Mit link: true wird das Google-Konto stattdessen mit dem aktuell angemeldeten Pensum-Konto verbunden. */
-export async function loginWithGoogle({ link = false } = {}) {
-  if (link) {
-    const { jwt } = await account.createJWT();
-    try { sessionStorage.setItem(LINK_KEY, jwt); } catch (_) { throw new Error("Der Browser erlaubt das gerade nicht (privater Modus?)."); }
-  }
+/** Leitet zu Google weiter; danach landet man wieder auf der aktuellen Seite und ist überall angemeldet. */
+export function loginWithGoogle() {
   const back = new URL(location.href);
   const failure = new URL("/", location.origin);
   failure.searchParams.set("anmeldung", "fehlgeschlagen");
