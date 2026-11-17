@@ -9,7 +9,7 @@ const http = require("http");
 const https = require("https");
 
 const DATABASE_ID = "pensum";
-const TABLES = ["grades", "subjects", "handwriting", "mindmaps", "mindmap_usage", "abschreiben_usage", "cards", "decks", "planner"];
+const TABLES = ["grades", "subjects", "handwriting", "mindmaps", "mindmap_usage", "abschreiben_usage", "cards", "decks", "planner", "google_links"];
 
 function call(method, path, key) {
   const base = new URL(process.env.APPWRITE_FUNCTION_API_ENDPOINT);
@@ -66,6 +66,10 @@ module.exports = async ({ req, res, log, error }) => {
 
   try {
     let rows = 0;
+    // Verknüpfte Google-Konten (leere Hüllen für den Google-Login, siehe functions/google-link) mit entfernen
+    const q = `queries[]=${encodeURIComponent(JSON.stringify({ method: "equal", attribute: "userId", values: [userId] }))}`;
+    const links = await call("GET", `/tablesdb/${DATABASE_ID}/tables/google_links/rows?${q}`, key);
+    for (const row of (links && links.rows) || []) await call("DELETE", `/users/${encodeURIComponent(row.$id)}`, key);
     for (const table of TABLES) rows += await deleteOwnRows(table, userId, key);
     await call("DELETE", `/users/${encodeURIComponent(userId)}`, key);
     log(`Konto gelöscht, ${rows} Zeilen entfernt.`);

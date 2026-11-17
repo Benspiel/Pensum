@@ -631,6 +631,38 @@
                     ]
                 }
             ]
+        },
+        {
+            "$id": "google_links",
+            "$permissions": [],
+            "databaseId": "pensum",
+            "name": "google_links",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 36,
+                    "default": null,
+                    "encrypt": false
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "by_user",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId"
+                    ],
+                    "orders": [
+                        "ASC"
+                    ]
+                }
+            ]
         }
     ],
     "functions": [
@@ -711,6 +743,28 @@
             "commands": "",
             "scopes": [],
             "path": "functions/lehrer-schmidt"
+        },
+        {
+            "$id": "google-link",
+            "name": "google-link",
+            "runtime": "node-16.0",
+            "execute": [
+                "users"
+            ],
+            "events": [],
+            "schedule": "",
+            "timeout": 30,
+            "enabled": true,
+            "logging": true,
+            "entrypoint": "index.js",
+            "commands": "",
+            "scopes": [
+                "users.read",
+                "users.write",
+                "rows.read",
+                "rows.write"
+            ],
+            "path": "functions/google-link"
         }
     ]
 }
