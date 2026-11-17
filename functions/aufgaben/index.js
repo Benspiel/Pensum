@@ -9,7 +9,7 @@
 "use strict";
 const http = require("http");
 const https = require("https");
-const { handle, UserError } = require("./lib.js");
+const { handle, UserError, buildGeminiBody } = require("./lib.js");
 
 const DATABASE_ID = "pensum";
 const T_USAGE = "aufgaben_usage";
@@ -83,32 +83,26 @@ function database(key) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const RETRY_WAIT = [2500, 6000]; // bei Überlastung (503) und Ratenlimit (429) bis zu zweimal nach Wartezeit neu versuchen
 
-async function gemini(system, userText, image) {
+/** budgetMs: so lange darf diese Anfrage samt Wartezeiten bei Überlastung höchstens dauern (siehe BUDGET_MS in lib.js). */
+async function gemini(system, userText, image, { budgetMs = 25000 } = {}) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw Object.assign(new Error("GEMINI_API_KEY fehlt"), { setup: true });
   const model = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
   const url = new URL(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`);
-  const body = {
-    systemInstruction: { parts: [{ text: system }] },
-    contents: [{ role: "user", parts: [{ inlineData: { mimeType: image.mime, data: image.data } }, { text: userText }] }],
-    generationConfig: {
-      responseMimeType: "application/json", temperature: 0.2, maxOutputTokens: 8192,
-      // Festes Format erzwingen: ohne Schema lieferte das Modell manchmal kaputtes JSON mit "label" statt "text"
-      responseSchema: {
-        type: "OBJECT",
-        properties: {
-          fields: { type: "ARRAY", items: { type: "OBJECT", properties: { box_2d: { type: "ARRAY", items: { type: "INTEGER" } }, text: { type: "STRING" } }, required: ["box_2d", "text"] } },
-          skipped: { type: "ARRAY", items: { type: "STRING" } },
-        },
-        required: ["fields", "skipped"],
-      },
-    },
-  };
+  const body = buildGeminiBody(system, userText, image);
 
+  const started = Date.now();
+  const left = () => budgetMs - (Date.now() - started);
   let r;
   for (let attempt = 0; ; attempt++) {
-    r = await request(https, url, { method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": apiKey } }, body, 35000);
-    if ((r.status !== 503 && r.status !== 429) || attempt >= RETRY_WAIT.length) break;
+    try {
+      r = await request(https, url, { method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": apiKey } }, body, Math.max(3000, left()));
+    } catch (e) {
+      if (/Zeitüberschreitung/.test(String(e && e.message))) throw new UserError("Die KI braucht gerade zu lange. Versuch es gleich noch einmal. Dieser Versuch wurde nicht gezählt.", 503, "busy");
+      throw e;
+    }
+    // Bei Überlastung (503) und Ratenlimit (429) nach einer Pause neu versuchen, aber nur, wenn danach noch Zeit für eine Antwort bleibt
+    if ((r.status !== 503 && r.status !== 429) || attempt >= RETRY_WAIT.length || left() < RETRY_WAIT[attempt] + 5000) break;
     await sleep(RETRY_WAIT[attempt]);
   }
 

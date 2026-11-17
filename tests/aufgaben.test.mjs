@@ -177,7 +177,7 @@ test("solve: liefert Felder und Hinweise, zählt, schickt das Bild mit erkanntem
   const f = fakeDeps();
   const r = await lib.handle({ body: { action: "solve", image: PNG }, userId: "u1" }, f.deps);
   assert.equal(r.status, 200);
-  assert.deepEqual(r.json.fields, [{ id: 1, box: [100, 100, 150, 500], text: "Berlin" }, { id: 2, box: [200, 100, 260, 500], text: "42" }]);
+  assert.deepEqual(r.json.fields, [{ id: 1, box: [100, 100, 150, 500], text: "Berlin", label: "" }, { id: 2, box: [200, 100, 260, 500], text: "42", label: "" }]);
   assert.deepEqual(r.json.skipped, ["Aufgabe 3: Skizze"]);
   assert.deepEqual(r.json.usage, { runs: 1, maxRuns: 2 });
   assert.equal(f.calls.gemini[0].image.mime, "image/png");
@@ -233,4 +233,137 @@ test("solve: unbrauchbare Antwort wird mit Anfang der Antwort protokolliert", as
   const f = fakeDeps({ answer: "Ich sehe ein Blatt." });
   await lib.handle({ body: { action: "solve", image: JPEG }, userId: "u1" }, f.deps);
   assert.match(f.calls.errors.join(" "), /Ich sehe ein Blatt/);
+});
+
+test("cleanBox: Objekt-Form und verschachtelte Listen des kleinen Modells werden gerettet, Unsinn nicht", () => {
+  assert.deepEqual(lib.cleanBox({ ymin: 100, xmin: 200, ymax: 150, xmax: 500 }), [100, 200, 150, 500]);
+  assert.deepEqual(lib.cleanBox([[100, 200, 150, 500], [1, 2, 3, 4], "3"]), [100, 200, 150, 500], "erste vollständige Box zählt");
+  assert.deepEqual(lib.cleanBox([[215, 421, 219, 434], [541, 461, 549, 477], "3"]), null, "zu klein, so wie im echten Fehlerfall");
+  assert.equal(lib.cleanBox([[1, 2], "x"]), null);
+  assert.equal(lib.cleanBox("kaputt"), null);
+  assert.equal(lib.cleanBox(null), null);
+  assert.equal(lib.cleanBox([100, 200, 150]), null, "drei Zahlen sind keine Box");
+});
+
+test("solve: lauter unbrauchbare Felder im ersten Versuch führen zu einer zweiten Anfrage, die gezählt wird wie ein Durchlauf", async () => {
+  const junk = JSON.stringify({ fields: [{ box_2d: [[215, 421, 219, 434], [541, 461, 549, 477], "3"], text: "3" }], skipped: [] });
+  const good = JSON.stringify({ fields: [{ box_2d: [100, 100, 150, 500], text: "Berlin" }], skipped: [] });
+  const f = fakeDeps();
+  const answers = [junk, good];
+  f.deps.gemini = async () => { f.calls.gemini.push({}); return answers.shift(); };
+  const r = await lib.handle({ body: { action: "solve", image: JPEG }, userId: "u1" }, f.deps);
+  assert.equal(r.status, 200);
+  assert.equal(r.json.fields[0].text, "Berlin");
+  assert.equal(f.calls.gemini.length, 2, "zweimal gefragt");
+  assert.deepEqual(r.json.usage, { runs: 1, maxRuns: 2 }, "trotzdem nur ein Durchlauf");
+  assert.match(f.calls.errors.join(" "), /Keine Felder aus KI-Antwort/, "der Fehlversuch wird protokolliert");
+});
+
+test("solve: auch der zweite Versuch ohne Felder gibt 422 zurück und den Durchlauf zurück", async () => {
+  const junk = JSON.stringify({ fields: [{ box_2d: [1, 2], text: "x" }], skipped: [] });
+  const f = fakeDeps({ answer: junk });
+  const r = await lib.handle({ body: { action: "solve", image: JPEG }, userId: "u1" }, f.deps);
+  assert.equal(r.status, 422);
+  assert.equal(r.json.code, "no-fields");
+  assert.equal(f.calls.gemini.length, 2, "genau eine Wiederholung, keine Endlosschleife");
+  assert.equal([...f.rows.values()][0].runs, 0, "Durchlauf zurückgegeben");
+});
+
+test("cleanFields: dünne Linienfelder wachsen von der Linie nach oben, Kästchen, Zellen und große Felder bleiben", () => {
+  const f = (box) => lib.cleanFields([{ box_2d: box, text: "x" }])[0].box;
+  assert.deepEqual(f([330, 100, 342, 400]), [318, 100, 342, 400], "dünner Streifen (12 hoch, 300 breit) wächst auf 24 nach oben");
+  assert.deepEqual(f([330, 100, 360, 400]), [330, 100, 360, 400], "schon hoch genug");
+  assert.deepEqual(f([300, 100, 320, 130]), [300, 100, 320, 130], "Kästchen (ungefähr quadratisch) bleibt");
+  assert.deepEqual(f([200, 100, 270, 800]), [200, 100, 270, 800], "Tabellenzelle bleibt");
+  assert.deepEqual(f([5, 100, 15, 500]), [0, 100, 15, 500], "oben am Rand: nicht über das Blatt hinaus");
+});
+
+test("cleanFields: das Label der Zeile bleibt erhalten, gekürzt und ohne Zeilenumbruch", () => {
+  const [a, b] = lib.cleanFields([
+    { label: "Apfel", box_2d: [100, 100, 160, 500], text: "apple" },
+    { label: "a) 245 + 378 =\n" + "x".repeat(200), box_2d: [200, 100, 260, 500], text: "623" },
+  ]);
+  assert.equal(a.label, "Apfel");
+  assert.ok(!b.label.includes("\n"));
+  assert.ok(b.label.length <= 80, "Label gekürzt");
+});
+
+test("Prompt und Schema: Personenangaben nicht ausfüllen, Unterkante auf der Linie, Label vor dem Feld", () => {
+  assert.match(lib.SYSTEM_PROMPT, /Name, Vorname, Klasse, Datum.*NICHT aus/);
+  assert.match(lib.SYSTEM_PROMPT, /UNTERKANTE/);
+  const item = lib.RESPONSE_SCHEMA.properties.fields.items;
+  assert.deepEqual(item.propertyOrdering, ["label", "box_2d", "text"]);
+  assert.deepEqual(item.required, ["label", "box_2d", "text"]);
+  assert.deepEqual(lib.buildGeminiBody("s", "u", { mime: "image/png", data: "AAAA" }).generationConfig.responseSchema, lib.RESPONSE_SCHEMA);
+});
+
+test("solve: zählt die KI mehr Felder, als sie liefert, wird einmal nachgefragt und die vollständigere Antwort gilt", async () => {
+  const f1 = { box_2d: [100, 100, 150, 500], text: "a", label: "A" }, f2 = { box_2d: [200, 100, 250, 500], text: "b", label: "B" }, f3 = { box_2d: [300, 100, 350, 500], text: "c", label: "C" };
+  const answers = [JSON.stringify({ count: 3, fields: [f1], skipped: [] }), JSON.stringify({ count: 3, fields: [f1, f2, f3], skipped: [] })];
+  const f = fakeDeps();
+  f.deps.gemini = async () => { f.calls.gemini.push({}); return answers.shift(); };
+  const r = await lib.handle({ body: { action: "solve", image: JPEG }, userId: "u1" }, f.deps);
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.json.fields.map((x) => x.text), ["a", "b", "c"]);
+  assert.equal(f.calls.gemini.length, 2);
+  assert.match(f.calls.errors.join(" "), /Unvollständige KI-Antwort: 1 von 3/);
+  assert.deepEqual(r.json.usage, { runs: 1, maxRuns: 2 }, "trotzdem nur ein Durchlauf");
+});
+
+test("solve: bleibt auch die Wiederholung unvollständig, gilt die längere Antwort (nichts wird verworfen)", async () => {
+  const f1 = { box_2d: [100, 100, 150, 500], text: "a", label: "" }, f2 = { box_2d: [200, 100, 250, 500], text: "b", label: "" };
+  const answers = [JSON.stringify({ count: 5, fields: [f1, f2], skipped: [] }), JSON.stringify({ count: 5, fields: [f1], skipped: [] })];
+  const f = fakeDeps();
+  f.deps.gemini = async () => { f.calls.gemini.push({}); return answers.shift(); };
+  const r = await lib.handle({ body: { action: "solve", image: JPEG }, userId: "u1" }, f.deps);
+  assert.equal(r.status, 200);
+  assert.equal(r.json.fields.length, 2, "die längere der beiden Antworten");
+  assert.equal(f.calls.gemini.length, 2, "genau eine Wiederholung");
+});
+
+test("solve: stimmt die gezählte Zahl, bleibt es bei einer Anfrage; ohne count (alte Antworten) auch", async () => {
+  const one = { box_2d: [100, 100, 150, 500], text: "a", label: "" };
+  for (const answer of [JSON.stringify({ count: 1, fields: [one], skipped: [] }), JSON.stringify({ fields: [one], skipped: [] })]) {
+    const f = fakeDeps({ answer });
+    const r = await lib.handle({ body: { action: "solve", image: JPEG }, userId: "u1" }, f.deps);
+    assert.equal(r.status, 200);
+    assert.equal(f.calls.gemini.length, 1);
+  }
+});
+
+test("Schema: count steht zuerst und ist Pflicht, der Prompt erklärt es", () => {
+  assert.deepEqual(lib.RESPONSE_SCHEMA.propertyOrdering, ["count", "fields", "skipped"]);
+  assert.deepEqual(lib.RESPONSE_SCHEMA.required, ["count", "fields", "skipped"]);
+  assert.equal(lib.RESPONSE_SCHEMA.properties.count.type, "INTEGER");
+  assert.match(lib.SYSTEM_PROMPT, /count ist die Zahl aller Schreibfelder/);
+  assert.match(lib.SYSTEM_PROMPT, /label schreibst du nur mit ASCII-Zeichen/);
+});
+
+test("Zeitbudget: Eine zweite Anfrage gibt es nur, wenn dafür noch Zeit ist; die KI bekommt ihr Restbudget mit", async () => {
+  const f1 = { box_2d: [100, 100, 150, 500], text: "a", label: "" };
+  const incomplete = JSON.stringify({ count: 3, fields: [f1], skipped: [] });
+  const complete = JSON.stringify({ count: 3, fields: [f1, { box_2d: [200, 100, 250, 500], text: "b", label: "" }, { box_2d: [300, 100, 350, 500], text: "c", label: "" }], skipped: [] });
+
+  // Schnelle erste Antwort (2 s): Es bleibt Zeit, die zweite Anfrage bekommt den Rest des Budgets
+  let now = 0;
+  const fast = fakeDeps();
+  const answers = [incomplete, complete];
+  const budgets = [];
+  fast.deps.clock = () => now;
+  fast.deps.gemini = async (s, u, img, opts) => { budgets.push(opts.budgetMs); now += 2000; return answers.shift(); };
+  const r1 = await lib.handle({ body: { action: "solve", image: JPEG }, userId: "u1" }, fast.deps);
+  assert.equal(r1.json.fields.length, 3);
+  assert.deepEqual(budgets, [lib.BUDGET_MS, lib.BUDGET_MS - 2000]);
+
+  // Langsame erste Antwort (20 s): Für eine zweite bleibt zu wenig, es gilt die erste (unvollständige) Antwort
+  now = 0;
+  const slow = fakeDeps();
+  let calls = 0;
+  slow.deps.clock = () => now;
+  slow.deps.gemini = async () => { calls++; now += 20000; return incomplete; };
+  const r2 = await lib.handle({ body: { action: "solve", image: JPEG }, userId: "u1" }, slow.deps);
+  assert.equal(r2.status, 200);
+  assert.equal(r2.json.fields.length, 1);
+  assert.equal(calls, 1, "keine zweite Anfrage, die über die 30 Sekunden hinausliefe");
+  assert.ok(lib.BUDGET_MS + 3000 < 30000, "das Budget lässt Platz für Start, Datenbank und Antwort");
 });

@@ -53,7 +53,9 @@ const left = () => (state.usage ? state.usage.maxRuns - state.usage.runs : 0);
 
 /* ---------- Function ---------- */
 
-/** Aufruf der Function. Wirft Error mit einer Meldung, die man anzeigen darf. */
+/** Aufruf der Function. Wirft Error mit einer Meldung, die man anzeigen darf.
+ *  Der Aufruf ist synchron: Bei asynchronen Aufrufen speichert Appwrite die Antwort nicht. Dafür bricht Appwrite nach 30 Sekunden ab,
+ *  deshalb hält sich die Function an ein Zeitbudget von rund 27 Sekunden (BUDGET_MS in functions/aufgaben/lib.js). */
 async function callFunction(payload) {
   let ex;
   try {
@@ -365,7 +367,8 @@ function renderList() {
     <li class="au-item${f.id === state.active ? " is-active" : ""}" data-id="${f.id}">
       <span class="au-num" aria-hidden="true">${f.id}</span>
       <label class="field">
-        <span class="sr-only">Antwort ${f.id}</span>
+        <span class="sr-only">Antwort ${f.id}${f.label ? " zu: " + esc(f.label) : ""}</span>
+        ${f.label ? `<span class="au-label" aria-hidden="true" title="${esc(f.label)}">${esc(f.label)}</span>` : ""}
         <textarea class="textarea" rows="${Math.min(4, Math.max(1, f.text.split("\n").length))}" maxlength="800" data-id="${f.id}">${esc(f.text)}</textarea>
       </label>
       <button type="button" class="icon-btn" data-remove="${f.id}" aria-label="Antwort ${f.id} entfernen">${closeIcon}</button>
@@ -423,7 +426,7 @@ async function solve() {
     const r = await callFunction({ action: "solve", image: state.sendBase64 });
     loader.finish();
     state.usage = r.usage;
-    state.fields = r.fields.map((f) => ({ id: f.id, box: f.box, text: f.text }));
+    state.fields = r.fields.map((f) => ({ id: f.id, box: f.box, text: f.text, label: f.label || "" }));
     state.skipped = r.skipped || [];
     state.active = 0;
     showResult();

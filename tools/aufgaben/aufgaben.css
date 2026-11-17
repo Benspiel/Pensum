@@ -79,6 +79,8 @@
   font-size: 13px;
   font-weight: 700;
 }
+/* Zeile des Blatts, zu der die Antwort gehört (von der KI abgeschrieben): zeigt auf einen Blick, ob die Antwort in der richtigen Zeile gelandet ist */
+.au-label { display: block; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; color: var(--muted-on-tint); }
 .au-item .textarea { min-height: 44px; padding: var(--s-xs) var(--s-sm); font-size: 15px; background: var(--canvas-soft); resize: vertical; }
 .au-warn { grid-column: 2 / 4; margin: 0; font-size: 13px; color: var(--muted-on-tint); }
 .au-warn::before { content: "! "; font-weight: 700; color: var(--ink); }
