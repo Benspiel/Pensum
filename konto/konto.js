@@ -1,6 +1,6 @@
 /* Konto verwalten: Profil, Zugangsdaten, Sitzungen, Datenexport, Löschen. */
 import { Functions, ExecutionMethod } from "/vendor/appwrite.js";
-import { client, account, onAuthChange, refresh, logout, authMessage, initials } from "/js/auth.js";
+import { client, account, onAuthChange, refresh, logout, authMessage, initials, googleEnabled, loginWithGoogle } from "/js/auth.js";
 import { tablesDB, databaseId, tableIds, listAllRows, Query } from "/js/db.js";
 import { config } from "/js/config.js";
 import { toast, confirmDialog, esc } from "/js/shell.js";
@@ -87,6 +87,42 @@ $("passForm").addEventListener("submit", async (e) => {
 });
 
 /* ---------- Sitzungen ---------- */
+
+/* ---------- Google verbinden ---------- */
+
+let googleIdentity = null;
+
+async function loadGoogle() {
+  if (!googleEnabled) return;
+  $("googlePanel").hidden = false;
+  try {
+    const { identities } = await account.listIdentities();
+    googleIdentity = identities.find((i) => i.provider === "google") || null;
+  } catch (e) {
+    $("googleMsg").textContent = authMessage(e);
+    $("googleMsg").hidden = false;
+    return;
+  }
+  $("googleMsg").hidden = true;
+  $("googleText").textContent = googleIdentity
+    ? `Verbunden mit ${googleIdentity.providerEmail || "deinem Google-Konto"}. Du kannst dich damit ohne Passwort anmelden.`
+    : "Verbinde dein Google-Konto, um dich künftig mit einem Tipp anzumelden.";
+  $("googleLink").hidden = !!googleIdentity;
+  $("googleUnlink").hidden = !googleIdentity;
+}
+
+$("googleLink").addEventListener("click", () => loginWithGoogle());
+$("googleUnlink").addEventListener("click", async () => {
+  if (!googleIdentity) return;
+  const ok = await confirmDialog({
+    title: "Verbindung zu Google lösen?",
+    text: "Danach kannst du dich nur noch mit E-Mail und Passwort anmelden. Hast du kein Passwort festgelegt, ändere es vorher unter „Passwort“.",
+    confirm: "Verbindung lösen",
+  });
+  if (!ok) return;
+  try { await account.deleteIdentity({ identityId: googleIdentity.$id }); toast("Verbindung zu Google gelöst."); } catch (e) { toast(authMessage(e), { error: true }); }
+  loadGoogle();
+});
 
 const when = (iso) => new Date(iso).toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" });
 let sessions = [];
@@ -245,5 +281,5 @@ onAuthChange(({ status, user: u }) => {
   $("accMain").hidden = !u;
   if (!u) return;
   renderProfile();
-  if (first) { loadSessions(); loadCounts(); }
+  if (first) { loadSessions(); loadGoogle(); loadCounts(); }
 });
