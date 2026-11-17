@@ -3,6 +3,7 @@
  * deshalb zeigt die Nav-Pill in jedem Tool denselben Stand und reagiert sofort auf Änderungen. */
 import { tools } from "/js/tools.js";
 import * as auth from "/js/auth.js";
+import { onTesterChange, isLocked } from "/js/access.js";
 import "/js/whatsnew.js";
 
 export const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -276,6 +277,9 @@ class PensumNav extends HTMLElement {
 
 /* ---------- Footer ---------- */
 
+/** Tool-Links im Footer; gesperrte Tools stehen ausgegraut da, für Tester (Team „tester“) sind sie freigeschaltet. */
+const footerTools = (tester) => tools.map((t) => (isLocked(t, tester) ? `<span class="footer-soon" aria-disabled="true">${esc(t.name)} · kommt bald</span>` : `<a href="${t.href}">${esc(t.name)}</a>`)).join("");
+
 class PensumFooter extends HTMLElement {
   connectedCallback() {
     this.innerHTML = `
@@ -289,7 +293,7 @@ class PensumFooter extends HTMLElement {
             <div class="footer-cols">
               <div class="footer-col">
                 <h2>Tools</h2>
-                ${tools.map((t) => (t.soon ? `<span class="footer-soon" aria-disabled="true">${esc(t.name)} · kommt bald</span>` : `<a href="${t.href}">${esc(t.name)}</a>`)).join("")}
+                <div class="footer-tools" data-footer-tools>${footerTools(false)}</div>
               </div>
               <div class="footer-col">
                 <h2>Konto</h2>
@@ -315,8 +319,9 @@ class PensumFooter extends HTMLElement {
         ? '<a href="/konto/">Konto verwalten</a><button type="button" data-auth-action="logout">Abmelden</button>'
         : '<button type="button" data-auth-action="login">Anmelden</button><button type="button" data-auth-action="register">Konto erstellen</button><button type="button" data-auth-action="forgot">Passwort vergessen</button>';
     });
+    this._offTester = onTesterChange((tester) => { const el = this.querySelector("[data-footer-tools]"); if (el) el.innerHTML = footerTools(tester); });
   }
-  disconnectedCallback() { if (this._off) this._off(); }
+  disconnectedCallback() { if (this._off) this._off(); if (this._offTester) this._offTester(); }
 }
 
 customElements.define("pensum-nav", PensumNav);

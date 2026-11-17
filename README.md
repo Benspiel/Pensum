@@ -124,6 +124,17 @@ appwrite functions create-variable --function-id aufgaben --key GEMINI_MODEL --v
 
 Danach `appwrite push function` erneut ausführen, falls die Variable erst nach dem ersten Deploy gesetzt wurde. Vergibt Appwrite eine andere Function-ID als `aufgaben`, diese in `js/config.js` unter `functions.aufgaben` eintragen. Fehlt die Function, zeigt das Tool „Der Aufgaben-Dienst ist noch nicht eingerichtet“. Wie gut die Felder sitzen, hängt vom Modell ab: Ein stärkeres Modell über `GEMINI_MODEL` trifft die Schreibfelder genauer, kostet aber mehr pro Durchlauf.
 
+### Tester-Zugang
+
+Mitglieder des Appwrite-Teams `tester` (`testerTeam` in `js/config.js`) können alle ausgegrauten Tools (`soon: true` in `js/tools.js`) öffnen; ihre Kacheln und Footer-Links sind freigeschaltet (`js/access.js`). Das ist nur eine Oberflächen-Sperre: Die Tool-Seiten selbst sind per Adresse erreichbar, und die Functions prüfen das Team nicht.
+
+```bash
+appwrite teams create --team-id tester --name Tester
+appwrite teams create-membership --team-id tester --user-id <Nutzer-ID> --roles tester
+```
+
+Die Nutzer-ID steht in der Appwrite-Konsole unter Auth → Users. Alternativ dort unter Auth → Teams → tester → Create membership.
+
 ### Rechtsseiten
 
 `/impressum/`, `/datenschutz/`, `/cookies/`, `/nutzungsbedingungen/`. Die Betreiberangaben stehen einmal in `js/config.js` unter `legal`; leere Felder erscheinen als „[bitte ergänzen]“ gelb markiert. Es gibt kein Cookie-Banner, weil nur technisch notwendiger Speicher genutzt wird (siehe `/cookies/`). Kommt Tracking dazu, braucht es eine Einwilligung.
