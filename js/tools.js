@@ -11,12 +11,18 @@ const icon = (paths) =>
 
 export const tools = [
   {
+    id: "goodnotes",
+    name: "Goodnotes-Tool",
+    href: "/tools/goodnotes/",
+    description: "Getippten Text in Handschrift verwandeln und als .goodnotes-Datei oder PDF exportieren. Läuft komplett im Browser.",
+    icon: icon('<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/>'),
+  },
+  {
     id: "notenrechner",
     name: "Notenrechner",
     href: "/tools/notenrechner/",
     description: "Trag pro Fach deine Zeugnisnote ein und sieh sofort deinen Zeugnisdurchschnitt, in Noten oder Punkten.",
     icon: icon('<path d="M5 19 19 5"/><circle cx="7.5" cy="7.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/>'),
-    badge: "Neu",
   },
   {
     id: "karteikarten",
@@ -24,7 +30,6 @@ export const tools = [
     href: "/tools/karteikarten/",
     description: "Bis zu 5 Stapel mit Vorder- und Rückseite. Lerne mit 5 Leveln oder der Reihe nach, zum Umdrehen oder als schriftlicher Test.",
     icon: icon('<rect x="3" y="6" width="14" height="12" rx="2.5"/><path d="M7 3h12a2 2 0 0 1 2 2v10"/>'),
-    badge: "Neu",
   },
   {
     id: "planer",
@@ -32,7 +37,6 @@ export const tools = [
     href: "/tools/planer/",
     description: "Hausaufgaben mit Fälligkeit und Klausurtermine mit Countdown. Verknüpfe eine Klausur mit deinen Karteikarten und lerne direkt dafür.",
     icon: icon('<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16M8.5 15l2 2 4-4"/>'),
-    badge: "Neu",
   },
   {
     id: "abschreiben",
@@ -43,19 +47,11 @@ export const tools = [
     badge: "Neu",
   },
   {
-    id: "goodnotes",
-    name: "Goodnotes-Tool",
-    href: "/tools/goodnotes/",
-    description: "Getippten Text in Handschrift verwandeln und als .goodnotes-Datei oder PDF exportieren. Läuft komplett im Browser.",
-    icon: icon('<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/>'),
-  },
-  {
     id: "mindmap",
     name: "Mindmap-Generator",
     href: "/tools/mindmap/",
     description: "Die KI baut jeden Tag eine Mindmap zu deinem Thema. Du änderst sie mit KI (3-mal pro Tag) oder direkt im Editor.",
     icon: icon('<circle cx="12" cy="12" r="2.5"/><circle cx="4.5" cy="6" r="1.8"/><circle cx="4.5" cy="18" r="1.8"/><circle cx="19.5" cy="6" r="1.8"/><circle cx="19.5" cy="18" r="1.8"/><path d="M6 7l4.2 3.6M6 17l4.2-3.6M18 7l-4.2 3.6M18 17l-4.2-3.6"/>'),
-    badge: "Neu",
   },
   {
     id: "spiele",
