@@ -4,6 +4,8 @@
  * Die Antworten schreibt dieses Modul selbst auf das Blatt (Schrift oder eigene Handschrift) und exportiert PDF oder PNG. */
 import { onAuthChange, client, authMessage } from "/js/auth.js";
 import { toast, esc, confirmDialog, closeIcon } from "/js/shell.js";
+import { createLoading } from "./loading.js";
+import { createFileUpload } from "./upload.js";
 import { openExportMenu } from "/js/export-menu.js";
 import { Functions, ExecutionMethod } from "/vendor/appwrite.js";
 import { config } from "/js/config.js";
@@ -16,8 +18,8 @@ import {
 const $ = (id) => document.getElementById(id);
 const els = {
   gate: $("gate"), app: $("app"), usage: $("usage"),
-  drop: $("drop"), preview: $("preview"), empty: $("empty"),
-  camInput: $("camInput"), fileInput: $("fileInput"), camLabel: $("camLabel"), fileLabel: $("fileLabel"),
+  drop: $("drop"), preview: $("preview"),
+  camInput: $("camInput"), camLabel: $("camLabel"), upload: $("fileUpload"),
   pageField: $("pageField"), pageSel: $("pageSel"),
   sheetError: $("sheetError"), solveBtn: $("solveBtn"),
   resultEmpty: $("resultEmpty"), resultBody: $("resultBody"),
@@ -25,6 +27,8 @@ const els = {
   canvas: $("sheet"), dragHint: $("dragHint"), exportBtn: $("exportBtn"),
   list: $("list"), skipped: $("skipped"), skippedList: $("skippedList"),
 };
+
+const loader = createLoading(document.getElementById("aiLoading"));
 
 const state = {
   sheet: null,      // Canvas mit dem Blatt in voller Ausgabegröße
@@ -200,22 +204,39 @@ function applySheet(p) {
   clearResult(); // altes Ergebnis passt nicht mehr zum neuen Blatt
 }
 
-async function setFile(file) {
-  if (!file || state.busy) return;
+/** Bereitet die gewählte Datei vor (Bild verkleinern oder PDF-Seite rendern). Wirft einen Error mit verständlicher Meldung. */
+async function prepareFile(file, { onProgress = () => {}, signal } = {}) {
+  if (state.busy) throw new Error("Bitte warte, bis die KI fertig ist.");
   showMessage(els.sheetError, "");
   const pdf = isPdf(file);
-  if (!pdf && !/^image\//.test(file.type || "image/")) { showMessage(els.sheetError, "Das ist weder Bild noch PDF. Mach ein Foto oder einen Screenshot vom Blatt oder wähle ein PDF."); return; }
   els.solveBtn.disabled = true;
   els.solveBtn.textContent = "Blatt wird vorbereitet …";
   try {
+    onProgress(10);
     if (!pdf && state.pdf) { state.pdf.doc.destroy(); state.pdf = null; }
-    applySheet(pdf ? await openPdf(file) : await sheetFromImage(file));
-  } catch (e) {
-    showMessage(els.sheetError, e.message);
+    const p = pdf ? await openPdf(file) : await sheetFromImage(file);
+    onProgress(80);
+    if (signal && signal.aborted) return; // in der Zwischenzeit entfernt oder ersetzt
+    applySheet(p);
+  } finally {
+    renderPageField();
+    renderSheetPanel();
   }
+}
+
+/** Blatt entfernt: Vorschau, Ergebnis und gewählte PDF-Seite zurücksetzen. */
+function removeSheet() {
+  if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+  state.previewUrl = ""; state.sheet = null; state.sendBase64 = "";
+  if (state.pdf) { state.pdf.doc.destroy(); state.pdf = null; }
+  els.preview.removeAttribute("src");
+  showMessage(els.sheetError, "");
+  clearResult();
   renderPageField();
   renderSheetPanel();
 }
+
+const uploader = createFileUpload(els.upload, { onFile: prepareFile, onRemove: removeSheet });
 
 /** Andere Seite des PDFs wählen. Jede Seite ist ein eigener Durchlauf. */
 async function changePage() {
@@ -320,14 +341,14 @@ function renderUsage() {
 function renderSheetPanel() {
   const has = !!state.sheet;
   els.preview.hidden = !has;
-  els.empty.hidden = has;
-  els.drop.classList.toggle("has-image", has);
+  els.drop.hidden = !has;
   const can = has && !state.busy && !!state.usage && left() > 0;
   els.solveBtn.disabled = !can;
   els.solveBtn.classList.toggle("is-busy", state.busy);
   els.solveBtn.textContent = state.busy ? "Die KI bearbeitet das Blatt …" : has ? "Aufgaben ausfüllen" : "Erst ein Blatt wählen";
-  for (const l of [els.camLabel, els.fileLabel]) l.classList.toggle("is-disabled", state.busy);
-  els.camInput.disabled = els.fileInput.disabled = els.pageSel.disabled = state.busy;
+  els.camLabel.classList.toggle("is-disabled", state.busy);
+  uploader.setDisabled(state.busy);
+  els.camInput.disabled = els.pageSel.disabled = state.busy;
   if (has && state.usage && left() <= 0 && !state.busy) showMessage(els.sheetError, `Du hast heute beide Durchläufe verbraucht. Morgen sind es wieder ${state.usage.maxRuns}.`);
 }
 
@@ -398,7 +419,9 @@ async function solve() {
   try {
     const font = fontById(state.fontId);
     await ensureFont(font);
+    loader.start();
     const r = await callFunction({ action: "solve", image: state.sendBase64 });
+    loader.finish();
     state.usage = r.usage;
     state.fields = r.fields.map((f) => ({ id: f.id, box: f.box, text: f.text }));
     state.skipped = r.skipped || [];
@@ -406,6 +429,7 @@ async function solve() {
     showResult();
     els.resultBody.scrollIntoView({ block: "start", behavior: "smooth" });
   } catch (e) {
+    loader.fail();
     showMessage(els.sheetError, errText(e));
     // Zähler neu holen: bei „Limit erreicht“ oder nach einem Fehler stimmt er sonst nicht mehr
     callFunction({ action: "status" }).then((s) => { state.usage = s.usage; renderUsage(); renderSheetPanel(); }).catch(() => {});
@@ -525,8 +549,7 @@ els.canvas.addEventListener("pointercancel", endDrag);
 
 /* ---------- Ereignisse ---------- */
 
-els.camInput.addEventListener("change", () => { setFile(els.camInput.files[0]); els.camInput.value = ""; });
-els.fileInput.addEventListener("change", () => { setFile(els.fileInput.files[0]); els.fileInput.value = ""; });
+els.camInput.addEventListener("change", () => { uploader.add(els.camInput.files[0]); els.camInput.value = ""; });
 els.solveBtn.addEventListener("click", solve);
 els.pageSel.addEventListener("change", changePage);
 els.fontSel.addEventListener("change", changeFont);
@@ -563,10 +586,6 @@ els.list.addEventListener("click", (e) => {
   renderList();
   redraw();
 });
-
-["dragenter", "dragover"].forEach((ev) => els.drop.addEventListener(ev, (e) => { e.preventDefault(); els.drop.classList.add("is-drag"); }));
-["dragleave", "drop"].forEach((ev) => els.drop.addEventListener(ev, (e) => { e.preventDefault(); els.drop.classList.remove("is-drag"); }));
-els.drop.addEventListener("drop", (e) => setFile(e.dataTransfer && e.dataTransfer.files[0]));
 
 /* ---------- Start ---------- */
 

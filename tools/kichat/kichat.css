@@ -3,12 +3,17 @@
 body.kc-page { position: relative; display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
 body.kc-page pensum-nav { flex: none; }
 
-/* Ecke oben links: Symbol und Name des Tools, auf der Höhe der Nav-Pill (60 px hoch, 12 px Abstand oben) */
-.kc-corner { position: absolute; z-index: 40; top: 12px; left: var(--s-md); display: none; align-items: center; gap: var(--s-sm); height: 60px; pointer-events: none; }
-.kc-corner-ico { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--canvas-soft); box-shadow: 0 0 0 1px var(--hairline); }
+/* Ecke oben links: Symbol und Name des Tools. Sie füllt die ganze Höhe der Nav-Leiste und hat dieselbe Fläche wie die Chatliste darunter,
+   so gibt es keine Kante dazwischen (Höhe der Leiste setzt kichat.js als --kc-nav). */
+.kc-corner {
+  position: absolute; z-index: 40; top: 0; left: 0; display: none; align-items: center; gap: var(--s-sm);
+  box-sizing: border-box; width: 272px; height: var(--kc-nav, 80px); padding: var(--s-sm) var(--s-xs) 0 calc(var(--s-xs) + var(--s-sm));
+  background: var(--canvas-soft); border-right: 1px solid var(--hairline); pointer-events: none;
+}
+.kc-corner-ico { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--canvas); box-shadow: 0 0 0 1px var(--hairline); }
 .kc-corner-ico svg { width: 20px; height: 20px; }
 .kc-corner-name { font-size: 1.0625rem; font-weight: 650; letter-spacing: -0.01em; }
-@media (min-width: 900px) { .kc-corner { display: flex; } }
+@media (min-width: 900px) { body:has(#app:not([hidden])) .kc-corner { display: flex; } body:has(#app:not([hidden])) .kc-wrap { padding-top: 0; } }
 .kc-wrap { flex: 1; display: flex; min-height: 0; width: 100%; max-width: none; padding: var(--s-xs) 0 0; }
 .kc-wrap > * { animation: none; }
 

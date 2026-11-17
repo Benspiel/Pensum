@@ -163,13 +163,15 @@ async function handle({ body, userId }, deps) {
       if (!mime) throw new UserError("Das Bild konnte nicht gelesen werden. Nimm ein Foto (JPEG, PNG oder WebP) auf oder wähle eins aus.", 400, "input");
       const used = await reserve();
       try {
-        const raw = await deps.gemini(SYSTEM_PROMPT, USER_PROMPT, { mime, data: image });
-        const parsed = parseModelJson(raw);
-        const list = Array.isArray(parsed) ? parsed : parsed && typeof parsed === "object" ? (parsed.fields || parsed.answers || parsed.antworten) : null; // Liste direkt oder unter fields
-        if (!Array.isArray(list)) {
-          deps.error("Unbrauchbare KI-Antwort: " + String(raw).replace(/\s+/g, " ").slice(0, 400));
-          throw new UserError(BAD_ANSWER, 502, "bad-answer");
+        // Ein kaputtes JSON (das kleine Modell verheddert sich manchmal) wird einmal automatisch neu angefragt
+        let raw, parsed, list = null;
+        for (let attempt = 0; attempt < 2 && !Array.isArray(list); attempt++) {
+          raw = await deps.gemini(SYSTEM_PROMPT, USER_PROMPT, { mime, data: image });
+          parsed = parseModelJson(raw);
+          list = Array.isArray(parsed) ? parsed : parsed && typeof parsed === "object" ? (parsed.fields || parsed.answers || parsed.antworten) : null; // Liste direkt oder unter fields
+          if (!Array.isArray(list)) deps.error("Unbrauchbare KI-Antwort: " + String(raw).replace(/\s+/g, " ").slice(0, 400));
         }
+        if (!Array.isArray(list)) throw new UserError(BAD_ANSWER, 502, "bad-answer");
         const fields = cleanFields(list);
         if (!fields.length) deps.error("Keine Felder aus KI-Antwort: " + String(raw).replace(/\s+/g, " ").slice(0, 400));
         if (!fields.length) throw new UserError(NO_FIELDS, 422, "no-fields");

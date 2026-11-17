@@ -91,7 +91,18 @@ async function gemini(system, userText, image) {
   const body = {
     systemInstruction: { parts: [{ text: system }] },
     contents: [{ role: "user", parts: [{ inlineData: { mimeType: image.mime, data: image.data } }, { text: userText }] }],
-    generationConfig: { responseMimeType: "application/json", temperature: 0.2, maxOutputTokens: 8192 },
+    generationConfig: {
+      responseMimeType: "application/json", temperature: 0.2, maxOutputTokens: 8192,
+      // Festes Format erzwingen: ohne Schema lieferte das Modell manchmal kaputtes JSON mit "label" statt "text"
+      responseSchema: {
+        type: "OBJECT",
+        properties: {
+          fields: { type: "ARRAY", items: { type: "OBJECT", properties: { box_2d: { type: "ARRAY", items: { type: "INTEGER" } }, text: { type: "STRING" } }, required: ["box_2d", "text"] } },
+          skipped: { type: "ARRAY", items: { type: "STRING" } },
+        },
+        required: ["fields", "skipped"],
+      },
+    },
   };
 
   let r;

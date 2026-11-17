@@ -48,26 +48,16 @@
         <section class="panel on-tint au-upload" aria-labelledby="sheetTitle">
           <h2 class="h4 panel-title" id="sheetTitle">1. Arbeitsblatt.</h2>
 
-          <div class="au-drop" id="drop">
+          <div id="fileUpload"></div>
+
+          <div class="au-drop has-image" id="drop" hidden>
             <img class="au-preview" id="preview" alt="Vorschau deines Arbeitsblatts" hidden>
-            <div class="au-empty" id="empty">
-              <span class="squircle" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v4h4M9 12h6M9 15.5h6M9 18.5h3.5"/></svg>
-              </span>
-              <p class="body-sm muted-tint">Foto aufnehmen oder ein Bild oder PDF des Blatts auswählen. Du kannst die Datei auch hierher ziehen.</p>
-            </div>
           </div>
 
-          <div class="row">
-            <label class="btn btn-primary au-pick" id="camLabel">
-              <input type="file" id="camInput" class="sr-only" accept="image/*" capture="environment">
-              Foto aufnehmen
-            </label>
-            <label class="btn btn-soft au-pick" id="fileLabel">
-              <input type="file" id="fileInput" class="sr-only" accept="image/*,application/pdf,.pdf">
-              Bild oder PDF wählen
-            </label>
-          </div>
+          <label class="btn btn-soft btn-wide au-pick" id="camLabel">
+            <input type="file" id="camInput" class="sr-only" accept="image/*" capture="environment">
+            Foto aufnehmen
+          </label>
 
           <label class="field" id="pageField" hidden>
             <span class="field-label">Seite des PDFs</span>
@@ -78,6 +68,7 @@
           <p class="form-message" id="sheetError" role="alert" hidden></p>
 
           <button class="btn btn-primary btn-wide btn-lg" type="button" id="solveBtn" disabled>Aufgaben ausfüllen</button>
+          <div id="aiLoading" hidden></div>
           <p class="body-sm muted-tint">Tipp: Das ganze Blatt gerade und von oben fotografieren, mit gutem Licht. Ein Durchlauf zählt erst, wenn die KI Antworten geliefert hat. Bei einem PDF mit mehreren Seiten wählst du die Seite aus, jede Seite zählt als eigener Durchlauf.</p>
         </section>
 

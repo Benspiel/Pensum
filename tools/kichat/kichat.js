@@ -483,3 +483,11 @@ onAuthChange(({ status, user }) => {
   }
   if (startedFor !== user.$id) start(user);
 });
+
+/* Höhe der Navigationsleiste: Die Ecke oben links (Symbol + Name) füllt diese Höhe, damit sie nahtlos in die Chatliste übergeht */
+{
+  const nav = document.querySelector("pensum-nav");
+  const setNavHeight = () => nav && document.body.style.setProperty("--kc-nav", Math.round(nav.getBoundingClientRect().height) + "px");
+  if (nav && "ResizeObserver" in window) new ResizeObserver(setNavHeight).observe(nav);
+  setNavHeight();
+}

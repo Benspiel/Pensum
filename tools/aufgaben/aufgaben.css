@@ -90,3 +90,98 @@
 #solveBtn.is-busy { animation: au-pulse 1.2s ease-in-out infinite; }
 @keyframes au-pulse { 50% { opacity: 0.6; } }
 @media (prefers-reduced-motion: reduce) { #solveBtn.is-busy { animation: none; } }
+
+/* Ladeanzeige beim Bearbeiten (Nachbau von „AI Loading“, Kokonut UI): Schritte mit Symbol, Dauer und Protokoll */
+.ld { --ld-ok: #059669; margin-top: var(--s-sm); padding: var(--s-xs) var(--s-sm) var(--s-sm); border-radius: var(--r-md); background: var(--canvas-soft); }
+:root[data-theme="dark"] .ld { --ld-ok: #34d399; }
+.ld[hidden] { display: none; }
+.ld-head { display: flex; align-items: center; gap: var(--s-xs); width: 100%; padding: 6px 0; border: 0; border-radius: 8px; background: transparent; color: var(--ink); font: inherit; font-size: 0.9375rem; font-weight: 600; text-align: left; cursor: pointer; }
+.ld-head:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.ld-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ld-time { flex: none; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--muted); }
+.ld-chev { flex: none; width: 18px; height: 18px; margin-left: auto; color: var(--muted); transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1); }
+.ld.is-collapsed .ld-chev { transform: rotate(-90deg); }
+.ld-list { display: grid; margin: 0; padding: 0; list-style: none; overflow: hidden; transition: grid-template-rows 0.25s cubic-bezier(0.23, 1, 0.32, 1); }
+.ld.is-collapsed .ld-list { display: none; }
+.ld-step { position: relative; display: flex; gap: 12px; padding-top: 14px; }
+.ld-ico { position: relative; display: grid; place-items: center; flex: none; width: 16px; height: 16px; }
+.ld-ico > svg { width: 14px; height: 14px; }
+.ld-dot { width: 6px; height: 6px; border-radius: 50%; background: color-mix(in srgb, var(--ink) 22%, transparent); }
+.ld-ring { stroke: color-mix(in srgb, var(--ink) 16%, transparent); }
+.ld-arc { stroke: var(--ld-ok); }
+.ld-spin { animation: ld-spin 0.8s linear infinite; }
+@keyframes ld-spin { to { transform: rotate(360deg); } }
+.ld-check { color: var(--ld-ok); }
+.ld-check path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: ld-draw 0.3s cubic-bezier(0.23, 1, 0.32, 1) 0.05s forwards; }
+@keyframes ld-draw { to { stroke-dashoffset: 0; } }
+.ld-x { color: #d92d20; }
+.ld-rail { position: absolute; top: 34px; bottom: -10px; left: 7.5px; width: 1px; background: var(--hairline); }
+.ld-rail::after { content: ""; display: block; height: 100%; background: color-mix(in srgb, var(--ld-ok) 55%, transparent); transform: scaleY(0); transform-origin: top; transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1); }
+.ld-step[data-status="done"] .ld-rail::after { transform: none; }
+.ld-body { flex: 1; min-width: 0; margin-top: -2px; }
+.ld-line { display: flex; align-items: baseline; gap: 8px; }
+.ld-label { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.875rem; color: var(--muted); transition: color 0.2s ease; }
+.ld-step[data-status="running"] .ld-label { color: var(--ink); }
+.ld-step[data-status="error"] .ld-label { color: #d92d20; }
+.ld-ch { display: inline-block; }
+.ld-step[data-status="running"] .ld-ch { animation: ld-wave 1.6s ease-in-out infinite both; }
+@keyframes ld-wave { 50% { opacity: 0.3; } }
+.ld-dur { margin-left: auto; flex: none; font-size: 0.75rem; font-variant-numeric: tabular-nums; color: var(--muted); }
+.ld-log { height: 0; margin-top: 4px; overflow: hidden; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.75rem; transition: height 0.24s cubic-bezier(0.23, 1, 0.32, 1); }
+.ld-log.is-fade { -webkit-mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.25), #000 70%); mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.25), #000 70%); }
+.ld-log-in { transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1); }
+.ld-row { display: flex; align-items: center; gap: 8px; height: 24px; color: var(--muted); animation: fade 0.2s ease backwards; }
+.ld-n { width: 16px; text-align: right; font-variant-numeric: tabular-nums; opacity: 0.55; user-select: none; }
+.ld-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) {
+  .ld-spin, .ld-step[data-status="running"] .ld-ch, .ld-row { animation: none; }
+  .ld-check path { animation: none; stroke-dashoffset: 0; }
+  .ld-chev, .ld-rail::after, .ld-log, .ld-log-in { transition: none; }
+}
+
+/* Datei-Upload (Nachbau von „File Upload“, Kokonut UI): Ablagefläche und Dateizeile mit Fortschritt */
+.fu { --fu-ok: #059669; display: grid; gap: var(--s-xs); }
+:root[data-theme="dark"] .fu { --fu-ok: #34d399; }
+.fu-zone {
+  display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; padding: 24px 16px; cursor: pointer; text-align: center;
+  border: 1.5px dashed var(--hairline); border-radius: var(--r-md); background: var(--canvas); color: var(--ink); font: inherit;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.fu-zone:hover:not(:disabled) { border-color: color-mix(in srgb, var(--ink) 45%, transparent); }
+.fu-zone:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.fu-zone:disabled { cursor: not-allowed; opacity: 0.5; }
+.fu.is-drag .fu-zone { border-color: var(--ink); background: var(--canvas-soft); }
+.fu-zone-ico { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--hairline); border-radius: 50%; color: var(--muted); transition: color 0.15s ease, border-color 0.15s ease, transform 0.2s cubic-bezier(0.23, 1, 0.32, 1); }
+.fu-zone-ico svg { width: 20px; height: 20px; }
+.fu-zone:hover:not(:disabled) .fu-zone-ico, .fu.is-drag .fu-zone-ico { color: var(--ink); border-color: color-mix(in srgb, var(--ink) 45%, transparent); }
+.fu.is-drag .fu-zone-ico { transform: translateY(-3px); }
+.fu-zone-text { display: grid; gap: 4px; }
+.fu-zone-title { font-size: 0.9375rem; font-weight: 600; }
+.fu-zone-hint { font-size: 0.8125rem; color: var(--muted); }
+.fu.has-file .fu-zone { flex-direction: row; justify-content: center; padding: 12px 16px; }
+.fu.has-file .fu-zone-ico { width: 32px; height: 32px; }
+.fu.has-file .fu-zone-ico svg { width: 16px; height: 16px; }
+.fu.has-file .fu-zone-text { text-align: left; }
+.fu.has-file .fu-zone-hint { display: none; }
+
+.fu-list { margin: 0; padding: 0; list-style: none; }
+.fu-row { position: relative; display: flex; align-items: center; gap: 12px; padding: 10px 4px; animation: fade 0.2s ease backwards; }
+.fu-thumb { flex: none; width: 36px; height: 36px; border-radius: 8px; background: var(--canvas-soft) center / cover; box-shadow: 0 0 0 1px var(--hairline) inset; }
+.fu-ext { display: grid; place-items: center; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 9px; font-weight: 600; letter-spacing: 0.04em; color: var(--muted); }
+.fu-info { flex: 1; min-width: 0; }
+.fu-name { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; font-weight: 600; line-height: 20px; }
+.fu-status { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem; font-variant-numeric: tabular-nums; line-height: 16px; color: var(--muted); }
+.fu-status.is-error { color: #d92d20; white-space: normal; }
+:root[data-theme="dark"] .fu-status.is-error { color: #f97066; }
+.fu-actions { display: flex; flex: none; align-items: center; gap: 4px; }
+.fu-ok { display: grid; place-items: center; width: 28px; height: 28px; color: var(--fu-ok); }
+.fu-ok svg { width: 16px; height: 16px; }
+.fu-ok[hidden], .fu-retry[hidden], .fu-bar[hidden] { display: none; }
+.fu-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 28px; height: 28px; padding: 0 6px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font: inherit; font-size: 0.75rem; cursor: pointer; transition: background-color 0.15s ease, color 0.15s ease; }
+.fu-btn svg { width: 14px; height: 14px; }
+.fu-btn:hover { background: var(--canvas-soft); color: var(--ink); }
+.fu-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.fu-bar { position: absolute; left: 4px; right: 4px; bottom: 0; height: 2px; overflow: hidden; border-radius: 2px; background: var(--hairline); }
+.fu-bar-fill { display: block; height: 100%; background: var(--fu-ok); transform: scaleX(0); transform-origin: left; transition: transform 0.25s cubic-bezier(0.23, 1, 0.32, 1); }
+.fu-row[data-status="done"] .fu-bar { opacity: 0; transition: opacity 0.4s ease 0.6s; }
+@media (prefers-reduced-motion: reduce) { .fu-row, .fu-zone-ico, .fu-bar-fill { animation: none; transition: none; } }
