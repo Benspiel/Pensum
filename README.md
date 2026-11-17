@@ -7,6 +7,8 @@ Schüler-Toolkit: mehrere Tools unter einem gemeinsamen Login. Statische Seite (
 
 - **Mindmap-Generator** (`/tools/mindmap/`): Gemini erstellt pro Tag eine Mindmap (nur mit Konto), die sich 3-mal mit KI und beliebig oft von Hand im Editor ändern lässt. Der Schlüssel liegt serverseitig (siehe „Mindmap-Generator einrichten“).
 
+- **Abschreiben** (`/tools/abschreiben/`): Tafelbild fotografieren (nur mit Konto), Gemini liest den Text heraus (5 Scans pro Tag). Der Text lässt sich kopieren oder mit „In Handschrift umwandeln“ ans Goodnotes-Tool übergeben (Schrift, eigene Handschrift, Export dort). Das Foto wird im Browser auf höchstens 1800 px verkleinert und nirgends gespeichert. Siehe „Abschreiben einrichten“.
+
 - **Spiele** (`/tools/spiele/`): 17 Spiele in vier Gruppen. Klassiker: 2048, Snake, Tetris, Minesweeper. Denken und Rätseln: Sudoku, Memory, Vier gewinnt (KI), Tic-Tac-Toe (KI), Schiebepuzzle, Lights Out, Mastermind. Wörter und Zahlen: Galgenmännchen, Kopfrechnen-Blitz. Geschick: Breakout, Pong (KI), Hüpfer, Simon. Alles ist selbst nach bekannten, freien Spielregeln geschrieben (kein fremder Code, keine fremden Bilder oder Töne). Die Regeln liegen ohne Oberfläche je Spiel in `tools/spiele/*.js` (getestet), die Oberflächen in `ui-klassiker.js`, `ui-denken.js`, `ui-geschick.js`, die Auswahl in `spiele.js`. Bestwerte stehen nur im `localStorage` (`pensum.spiele.best.v1`).
 
 Ohne Konto bleiben Daten im `localStorage`. Mit Konto liegen sie in Appwrite und sind auf allen Geräten gleich.
@@ -39,6 +41,8 @@ js/parallax.js             Parallax-Scrolling und Einblenden der Startseite (res
 tools/notenrechner/        core.js (Rechnen), store.js (Gast/Konto), notenrechner.js (Oberfläche)
 tools/mindmap/             tree.js (Baum, Layout), hand.js (eigene Handschrift), mindmap.js (Editor)
 functions/mindmap/         Appwrite-Function: Gemini-Aufruf und Tageslimits (lib.js = Logik, index.js = Anbindung)
+tools/abschreiben/         core.js (Bildgröße, Übergabe), abschreiben.js (Oberfläche)
+functions/abschreiben/     Appwrite-Function: Gemini mit Bild und Tageslimit (lib.js = Logik, index.js = Anbindung)
 tools/spiele/              17 Spiele: Regeln je Spiel (g2048.js, sudoku.js, connect4.js, …), ui-*.js (Oberflächen), spiele.js (Auswahl)
 tools/goodnotes/           ink-engine.js (Inkly-Logik), goodnotes.js (Oberfläche), templates.js
 konto/passwort/            Zielseite für „Passwort zurücksetzen“
@@ -87,6 +91,20 @@ appwrite functions create-variable --function-id mindmap --key GEMINI_MODEL --va
 ```
 
 Danach `appwrite push function` erneut ausführen, falls die Variable erst nach dem ersten Deploy gesetzt wurde. Läuft die Function nicht, zeigt das Tool „Der Mindmap-Dienst ist noch nicht eingerichtet“ und alte Mindmaps bleiben bearbeitbar. Da die Function jede Anfrage bezahlt, begrenzen die Limits die Kosten pro Konto; im Google-Konto lohnt sich zusätzlich eine Budgetgrenze für den Schlüssel.
+
+### Abschreiben einrichten
+
+Die Function `abschreiben` (`functions/abschreiben/`) schickt das Foto an Gemini und zählt das Tageslimit (5 Scans pro Konto und Tag, Tageswechsel um Mitternacht deutscher Zeit; ein fehlgeschlagener oder leerer Scan wird zurückgegeben). Neue Tabelle: `abschreiben_usage` (nur Zähler, ohne Nutzerrechte). Es wird weder Bild noch Text gespeichert. Der Schlüssel kann derselbe sein wie bei der Mindmap, liegt aber als eigene Variable an dieser Function.
+
+```bash
+appwrite push table --all --force
+appwrite push function --function-id abschreiben --force
+appwrite functions create-variable --function-id abschreiben --key GEMINI_API_KEY --value "<dein Schlüssel aus Google AI Studio>" --secret true
+# optional anderes Modell (Standard: gemini-3.5-flash-lite)
+appwrite functions create-variable --function-id abschreiben --key GEMINI_MODEL --value "<modellname>"
+```
+
+Danach `appwrite push function` erneut ausführen, falls die Variable erst nach dem ersten Deploy gesetzt wurde. Vergibt Appwrite eine andere Function-ID als `abschreiben`, diese in `js/config.js` unter `functions.abschreiben` eintragen. Fehlt die Function, zeigt das Tool „Der Abschreiben-Dienst ist noch nicht eingerichtet“.
 
 ### Rechtsseiten
 

@@ -355,6 +355,56 @@
             ]
         },
         {
+            "$id": "abschreiben_usage",
+            "$permissions": [],
+            "databaseId": "pensum",
+            "name": "abschreiben_usage",
+            "enabled": true,
+            "rowSecurity": false,
+            "columns": [
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 36,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "day",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 10,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "scans",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "default": 0,
+                    "min": 0,
+                    "max": 20
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "by_user",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId"
+                    ],
+                    "orders": [
+                        "ASC"
+                    ]
+                }
+            ]
+        },
+        {
             "$id": "decks",
             "$permissions": [
                 "create(\"users\")"
@@ -624,6 +674,26 @@
                 "rows.write"
             ],
             "path": "functions/mindmap"
+        },
+        {
+            "$id": "abschreiben",
+            "name": "abschreiben",
+            "runtime": "node-16.0",
+            "execute": [
+                "users"
+            ],
+            "events": [],
+            "schedule": "",
+            "timeout": 60,
+            "enabled": true,
+            "logging": true,
+            "entrypoint": "index.js",
+            "commands": "",
+            "scopes": [
+                "rows.read",
+                "rows.write"
+            ],
+            "path": "functions/abschreiben"
         },
         {
             "$id": "lehrer-schmidt",

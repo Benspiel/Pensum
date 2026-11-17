@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Abschreiben – Pensum</title>
+  <meta name="description" content="Tafelbild fotografieren, die KI liest den Text heraus. Du kopierst ihn oder wandelst ihn mit dem Goodnotes-Tool in deine Handschrift um.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="icon" href="/assets/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="/assets/favicon.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="preload" href="/vendor/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/vendor/fonts.css">
+  <script src="/js/theme.js"></script>
+  <link rel="stylesheet" href="/css/pensum.css">
+  <link rel="stylesheet" href="/tools/abschreiben/abschreiben.css">
+  <link rel="modulepreload" href="/vendor/appwrite.js">
+  <link rel="modulepreload" href="/js/auth.js">
+  <script type="module" src="/js/shell.js"></script>
+  <script type="module" src="/tools/abschreiben/abschreiben.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+  <pensum-nav></pensum-nav>
+
+  <main id="inhalt" class="container">
+    <header class="tool-head">
+      <h1>Abschreiben.</h1>
+      <p class="body-lg">Fotografier das Tafelbild, die KI schreibt es für dich ab. Danach kopierst du den Text oder wandelst ihn in deine Handschrift um und exportierst ihn nach Goodnotes.</p>
+    </header>
+
+    <section class="panel on-tint ab-gate" id="gate" hidden aria-live="polite">
+      <h2 class="h4">Melde dich an, um loszulegen.</h2>
+      <p class="body-sm muted-tint">Das Erkennen läuft über die KI auf dem Server, deshalb braucht es ein Konto. Pro Tag sind 5 Scans frei.</p>
+      <div class="row">
+        <button class="btn btn-primary" type="button" data-auth-action="login">Anmelden</button>
+        <button class="btn btn-soft" type="button" data-auth-action="register">Konto erstellen</button>
+      </div>
+    </section>
+
+    <div id="app" hidden>
+      <div class="chips-row" id="usage" aria-live="polite"></div>
+
+      <div class="ab-grid">
+        <!-- 1. Foto -->
+        <section class="panel on-tint ab-photo" aria-labelledby="photoTitle">
+          <h2 class="h4 panel-title" id="photoTitle">1. Foto.</h2>
+
+          <div class="ab-drop" id="drop">
+            <img class="ab-preview" id="preview" alt="Vorschau deines Fotos" hidden>
+            <div class="ab-empty" id="empty">
+              <span class="squircle" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.6l1.2-1.8A1 1 0 0 1 10.1 4h3.8a1 1 0 0 1 .8.4L15.9 6h1.6A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-8Z"/><circle cx="12" cy="12.5" r="3.2"/></svg>
+              </span>
+              <p class="body-sm muted-tint">Foto aufnehmen oder ein Bild auswählen. Du kannst es auch hierher ziehen.</p>
+            </div>
+          </div>
+
+          <div class="row">
+            <label class="btn btn-primary ab-pick" id="camLabel">
+              <input type="file" id="camInput" class="sr-only" accept="image/*" capture="environment">
+              Foto aufnehmen
+            </label>
+            <label class="btn btn-soft ab-pick" id="fileLabel">
+              <input type="file" id="fileInput" class="sr-only" accept="image/*">
+              Bild auswählen
+            </label>
+          </div>
+
+          <p class="form-message" id="photoError" role="alert" hidden></p>
+
+          <button class="btn btn-primary btn-wide btn-lg" type="button" id="scanBtn" disabled>Text erkennen</button>
+          <p class="body-sm muted-tint" id="scanHint">Tipp: Fotografier die Tafel von vorn, mit gutem Licht und ohne Spiegelung. Ein Scan zählt erst, wenn die KI Text geliefert hat.</p>
+        </section>
+
+        <!-- 2. Text -->
+        <section class="panel on-tint ab-result" id="result" aria-labelledby="resultTitle">
+          <h2 class="h4 panel-title" id="resultTitle">2. Text.</h2>
+          <p class="body-sm muted-tint" id="resultEmpty">Hier erscheint der abgeschriebene Text. Du kannst ihn danach noch verbessern.</p>
+          <div id="resultBody" hidden>
+            <label class="field">
+              <span class="sr-only">Erkannter Text</span>
+              <textarea class="textarea ab-text" id="text" rows="14" spellcheck="true"></textarea>
+              <span class="field-hint"># steht für eine Überschrift, - für einen Aufzählungspunkt. [unleserlich] markiert Stellen, die die KI nicht lesen konnte. Prüf den Text, die KI kann sich irren.</span>
+            </label>
+            <div class="row">
+              <button class="btn btn-outline" type="button" id="copyBtn">Text kopieren</button>
+              <button class="btn btn-primary" type="button" id="handBtn">In Handschrift umwandeln</button>
+            </div>
+            <p class="body-sm muted-tint">„In Handschrift umwandeln“ öffnet das Goodnotes-Tool. Dort wählst du Schrift oder deine eigene Handschrift, Papier und exportierst als .goodnotes oder PDF.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <pensum-footer></pensum-footer>
+</body>
+</html>

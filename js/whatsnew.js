@@ -2,7 +2,7 @@
  * Gemerkt wird nur, welche Version man schon gesehen hat (localStorage). Über „Was ist neu?“ im Footer lässt es sich wieder öffnen.
  *
  * Neue Neuerungen: Einträge in SLIDES ergänzen und VERSION erhöhen, dann sehen es alle noch einmal. */
-const VERSION = "2026-11-a";
+const VERSION = "2026-11-b";
 const KEY = "pensum.whatsnew.seen";
 
 const closeIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
@@ -27,6 +27,13 @@ const SLIDES = [
     text: "Hausaufgaben mit Fälligkeit und Klausuren mit Countdown. Verknüpfe eine Klausur mit einem Karteikarten-Stapel und lerne direkt dafür.",
     href: "/tools/planer/",
     cta: "Planer öffnen",
+  },
+  {
+    icon: svg('<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.6l1.2-1.8A1 1 0 0 1 10.1 4h3.8a1 1 0 0 1 .8.4L15.9 6h1.6A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-8Z"/><path d="M9 12.5h6M9 15h3.5"/>'),
+    title: "Abschreiben.",
+    text: "Fotografier das Tafelbild und die KI schreibt es ab. Du kopierst den Text oder wandelst ihn mit dem Goodnotes-Tool in deine Handschrift um.",
+    href: "/tools/abschreiben/",
+    cta: "Abschreiben öffnen",
   },
   {
     icon: svg('<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h4.5V14h4v5.5h4.5V10"/>'),

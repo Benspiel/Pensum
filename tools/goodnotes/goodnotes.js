@@ -8,6 +8,7 @@ import { onAuthChange } from "/js/auth.js";
 import { toast, confirmDialog, esc } from "/js/shell.js";
 import { tablesDB, databaseId, tableIds, ownerPermissions } from "/js/db.js";
 import { createInkEngine } from "./ink-engine.js";
+import { HANDOFF_KEY, readHandoff } from "/tools/abschreiben/core.js";
 
 const engine = createInkEngine();
 const { state, PAPERS, HAND_ID, HAND_W, HAND_CHARS } = engine;
@@ -561,6 +562,22 @@ function wireHandPad() {
   window.addEventListener("resize", () => { if (els.handDialog.open) { sizePad(); drawPad(); } });
 }
 
+/* ---------- Text aus „Abschreiben“ übernehmen ----------
+   Das Abschreiben-Tool legt den erkannten Text kurz in sessionStorage. Er wird einmal gelesen und sofort gelöscht. */
+
+function takeHandoff() {
+  let raw = null;
+  try {
+    raw = sessionStorage.getItem(HANDOFF_KEY);
+    sessionStorage.removeItem(HANDOFF_KEY);
+  } catch (_) { /* gesperrt: dann gibt es nichts zu übernehmen */ }
+  const h = readHandoff(raw);
+  if (!h) return;
+  els.text.value = h.text;
+  els.fileName.value = h.name;
+  toast("Text aus „Abschreiben“ übernommen. Wähl Schrift und Papier und exportier.");
+}
+
 /* ---------- Start ---------- */
 
 try {
@@ -571,6 +588,7 @@ applyHandVary();
 applyMode();
 wireHandPad();
 renderNote();
+takeHandoff();
 
 // Gespeicherte Vorlage wiederherstellen, dann erste Vorschau
 (async () => {
