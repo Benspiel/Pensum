@@ -50,8 +50,34 @@ export async function refresh() {
   return state.user;
 }
 
+/* Rückkehr von Google: Appwrite hängt userId und secret an die Adresse (Token-Flow). Daraus wird hier die
+ * Session angelegt. Das geht ohne Drittanbieter-Cookies und klappt deshalb auch in Safari. */
+let oauthFailed = false;
+async function finishOAuth() {
+  const params = new URLSearchParams(location.search);
+  const userId = params.get("userId"), secret = params.get("secret");
+  if (!userId || !secret) return;
+  params.delete("userId"); params.delete("secret");
+  const rest = params.toString();
+  history.replaceState(null, "", location.pathname + (rest ? "?" + rest : "") + location.hash);
+  try {
+    await account.createSession({ userId, secret });
+    if (channel) channel.postMessage({ type: "changed" });
+  } catch (e) {
+    console.warn("Google-Anmeldung fehlgeschlagen", e);
+    oauthFailed = true;
+  }
+}
+
+/** true, wenn die Rückkehr von Google nicht zu einer Session geführt hat (einmal abrufbar). */
+export function takeOAuthError() {
+  const v = oauthFailed;
+  oauthFailed = false;
+  return v;
+}
+
 /** Wird aufgelöst, sobald die Session beim Seitenstart wiederhergestellt (oder keine vorhanden) ist. */
-export const ready = refresh();
+export const ready = finishOAuth().then(refresh);
 
 if (channel) channel.onmessage = () => refresh();
 
@@ -74,7 +100,7 @@ export async function sendCode({ userId, email }) {
 /** Code-Schritt: Schlägt nur der Mailversand fehl, bleibt der Nutzer im Code-Dialog und kann erneut senden. */
 async function codeStep(userId, email) {
   try {
-    return codeStep(userId, email);
+    return { needsCode: true, ...(await sendCode({ userId, email })) };
   } catch (e) {
     console.warn("Code konnte nicht gesendet werden", e);
     return { needsCode: true, userId, email, mailFailed: true };
@@ -145,7 +171,7 @@ export function loginWithGoogle() {
   const back = new URL(location.href);
   const failure = new URL("/", location.origin);
   failure.searchParams.set("anmeldung", "fehlgeschlagen");
-  account.createOAuth2Session({ provider: OAuthProvider.Google, success: back.href, failure: failure.href });
+  account.createOAuth2Token({ provider: OAuthProvider.Google, success: back.href, failure: failure.href });
 }
 
 /** Einstellungen im Konto (Appwrite Preferences) – für Tool-Einstellungen, die überall gelten sollen. */

@@ -209,6 +209,11 @@ a { color: inherit; }
 
 .btn-outline { background: var(--canvas); color: var(--ink); border-color: var(--hairline); }
 .btn-outline:hover:not([disabled]) { background: var(--canvas-soft); }
+.btn-google { gap: 10px; }
+.btn-google svg { flex: none; }
+.auth-or { display: flex; align-items: center; gap: var(--s-md); margin-block: var(--s-lg) !important; color: var(--muted, var(--ink)); font-size: 0.875rem; }
+.auth-or[hidden] { display: none; }
+.auth-or::before, .auth-or::after { content: ""; flex: 1; height: 1px; background: var(--hairline); }
 
 .btn-soft { background: var(--canvas-soft); color: var(--ink); }
 .btn-soft:hover:not([disabled]) { background: var(--hairline); }
