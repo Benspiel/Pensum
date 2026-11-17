@@ -64,7 +64,8 @@ function measureStd(text, size, depth) {
   ctx.font = `${weightOf(depth)} ${size}px ${STD_FONT}`;
   return ctx.measureText(text).width;
 }
-const measureHand = (text, size) => H.width(state.hand, text, size);
+// Zeichen, die in der eigenen Handschrift fehlen, werden in Standardschrift gesetzt (die ganze Zeile), sonst würden sie fehlen
+const measureHand = (text, size, depth) => (H.covers(state.hand, text) ? H.width(state.hand, text, size) : measureStd(text, size, depth));
 const useHand = () => state.font === "hand" && !!state.hand;
 const currentMeasure = () => (useHand() ? measureHand : measureStd);
 const currentStyle = () => (useHand() ? T.HAND_STYLE : T.STYLE);
@@ -212,7 +213,7 @@ function updateNodeView(v, n, hand) {
     v.textKey = key;
     v.textG.replaceChildren();
     n.lines.forEach((line, i) => {
-      if (hand) {
+      if (hand && H.covers(state.hand, line)) {
         const lw = H.width(state.hand, line, n.fontSize);
         svgEl("path", { class: "mm-ink", d: H.pathData(state.hand, line, n.fontSize, (w - lw) / 2, handBaseline(n, i)), stroke: ink, "stroke-width": handStroke(n) }, v.textG);
       } else {
@@ -760,7 +761,7 @@ function drawToCanvas(scale = 2) {
       c.lineWidth = 2.5; c.strokeStyle = ink; c.stroke();
     }
     n.lines.forEach((line, i) => {
-      if (hand) {
+      if (hand && H.covers(state.hand, line)) {
         const lw = H.width(state.hand, line, n.fontSize);
         c.lineWidth = handStroke(n); c.strokeStyle = ink;
         c.stroke(new Path2D(H.pathData(state.hand, line, n.fontSize, n.x + (n.w - lw) / 2, n.y + handBaseline(n, i))));
@@ -870,7 +871,8 @@ async function buildGoodnotesFile() {
   pc.drawImage(drawToCanvas(2).canvas, ox * px, oy * px, lay.width * s * px, lay.height * s * px);
 
   let strokes = null;
-  if (hand) {
+  // Striche nur, wenn die Handschrift jedes Zeichen kennt; sonst als Bild (siehe oben)
+  if (hand && lay.nodes.every((n) => n.lines.every((l) => H.covers(state.hand, l)))) {
     strokes = [];
     const P = (x, y) => [ox + x * s, oy + y * s];
     for (const e of lay.edges) {

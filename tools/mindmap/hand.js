@@ -34,8 +34,13 @@ function glyph(hand, ch) {
   const g = hand.glyphs;
   if (g[ch]) return g[ch];
   const alt = ALIAS[ch] || (ch === ch.toLowerCase() ? ch.toUpperCase() : ch.toLowerCase());
-  return g[alt] || null;
+  if (g[alt]) return g[alt];
+  const base = ch.normalize("NFD").replace(/[̀-ͯ]/g, ""); // é -> e, ñ -> n
+  return base !== ch ? g[base] || g[base.toLowerCase()] || g[base.toUpperCase()] || null : null;
 }
+
+/** Hat die Handschrift für jedes Zeichen des Textes einen Buchstaben? */
+export const covers = (hand, text) => [...String(text)].every((ch) => !ch.trim() || !!glyph(hand, ch));
 
 const advance = (hand, ch) => (ch.trim() ? (glyph(hand, ch) || { adv: MISSING }).adv : SPACE);
 
