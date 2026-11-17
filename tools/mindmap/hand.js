@@ -66,3 +66,15 @@ export function pathData(hand, text, size, x, baseline) {
   }
   return d;
 }
+
+/** Wie pathData, aber als Punktlisten je Strich ([[x, y], …][]) – für den Goodnotes-Export. */
+export function strokes(hand, text, size, x, baseline) {
+  const out = [];
+  let pen = x;
+  for (const ch of String(text)) {
+    const g = ch.trim() ? glyph(hand, ch) : null;
+    if (g) for (const pts of g.strokes) if (pts.length) out.push(pts.map(([px, py]) => [pen + px * size, baseline + py * size]));
+    pen += advance(hand, ch) * size;
+  }
+  return out;
+}

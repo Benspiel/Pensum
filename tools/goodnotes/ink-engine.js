@@ -900,6 +900,11 @@ export function createInkEngine() {
       return r;
     },
     buildGoodnotes, buildPdf,
+    /** Mindmap-Export: eine Blanko-Seite (A4); strokes in PDF-Punkten (Striche) oder null (nur das Seitenbild). */
+    async buildSinglePage(page, strokes, ink) {
+      state.paper = "blank"; state.custom = null; state.ink = ink || state.ink; lastK = 1;
+      return buildGoodnotes(await builtinTemplate("blank"), [page], strokes);
+    },
     download, safeName, latin1, rdp, chaikin, unpackHand,
   };
 }

@@ -9,6 +9,8 @@ import { tablesDB, databaseId, tableIds, listAllRows, Query } from "/js/db.js";
 import { config } from "/js/config.js";
 import * as T from "./tree.js";
 import * as H from "./hand.js";
+import { onTesterChange } from "/js/access.js";
+import { createInkEngine } from "/tools/goodnotes/ink-engine.js";
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -18,7 +20,7 @@ const els = {
   canvas: $("canvas"), svg: $("svg"), nodeText: $("nodeText"), editError: $("editError"), saveState: $("saveState"),
   addChild: $("addChild"), addSibling: $("addSibling"), moveUp: $("moveUp"), moveDown: $("moveDown"), removeNode: $("removeNode"),
   undo: $("undoBtn"), redo: $("redoBtn"), zoomIn: $("zoomIn"), zoomOut: $("zoomOut"), zoomFit: $("zoomFit"),
-  exportPng: $("exportPng"), exportPdf: $("exportPdf"), inkSwitch: $("inkSwitch"),
+  exportPng: $("exportPng"), exportPdf: $("exportPdf"), exportGn: $("exportGn"), inkSwitch: $("inkSwitch"),
   foldNode: $("foldNode"), foldAll: $("foldAll"), unfoldAll: $("unfoldAll"), fontSwitch: $("fontSwitch"), fontHint: $("fontHint"),
   aiCard: $("aiCard"), aiInfo: $("aiInfo"), aiText: $("aiText"), aiBtn: $("aiBtn"), aiError: $("aiError"),
 };
@@ -128,7 +130,7 @@ function renderPanels() {
     : left <= 0 ? "Du hast heute alle KI-Änderungen verbraucht. Morgen sind es wieder 3. Von Hand kannst du weiter ändern."
     : `Beschreib in eigenen Worten, was geändert werden soll. Heute sind noch ${left} von ${state.usage.maxEdits} Änderungen frei.`;
 
-  els.exportPng.disabled = els.exportPdf.disabled = !hasMap;
+  els.exportPng.disabled = els.exportPdf.disabled = els.exportGn.disabled = !hasMap;
   els.createBtn.disabled = state.busy;
   els.createBtn.textContent = state.busy ? "KI arbeitet …" : "Mindmap erstellen";
   els.topic.disabled = els.notes.disabled = state.busy;
@@ -822,6 +824,80 @@ els.exportPdf.addEventListener("click", async () => {
     toast(e && e.message ? e.message : "Das PDF konnte nicht erstellt werden.", { error: true });
   } finally {
     els.exportPdf.disabled = false;
+  }
+});
+
+/* ---------- Goodnotes-Export (nur für Tester) ----------
+ * Eigene Handschrift: echte Stiftstriche (in Goodnotes radierbar und umfärbbar). Standardschrift: Bild der Seite.
+ * Die Mindmap wird auf eine A4-Seite (Hochformat) der Blanko-Vorlage des Goodnotes-Tools eingepasst. */
+onTesterChange((tester) => { els.exportGn.hidden = !tester; });
+
+const loadScript = (src, test) => test() ? Promise.resolve() : new Promise((resolve, reject) => {
+  const el = Object.assign(document.createElement("script"), { src });
+  el.onload = () => (test() ? resolve() : reject(new Error("Bibliothek fehlt.")));
+  el.onerror = () => reject(new Error("Eine Bibliothek konnte nicht geladen werden."));
+  document.head.append(el);
+});
+
+let gnEngine = null;
+async function buildGoodnotesFile() {
+  await loadScript("/vendor/jszip.min.js", () => !!window.JSZip);
+  await loadScript("/vendor/jspdf.umd.min.js", () => !!window.jspdf);
+  await loadScript("/tools/goodnotes/templates.js", () => !!window.GOODI_TEMPLATES);
+  gnEngine = gnEngine || createInkEngine();
+
+  const PW = 595.28, PH = 841.89, M = 28, GN = 11 / 6;
+  const hand = useHand();
+  const lay = T.layout(state.current.root, currentMeasure(), currentStyle(), state.collapsed);
+  const s = Math.min((PW - 2 * M) / lay.width, (PH - 2 * M) / lay.height);
+  const ox = (PW - lay.width * s) / 2, oy = (PH - lay.height * s) / 2;
+
+  // Seitenbild (Standardschrift) und Vorschaubild
+  const px = 1654 / PW;
+  const page = document.createElement("canvas");
+  page.width = 1654; page.height = Math.round(PH * px);
+  const pc = page.getContext("2d");
+  pc.fillStyle = "#fff"; pc.fillRect(0, 0, page.width, page.height);
+  pc.drawImage(drawToCanvas(2).canvas, ox * px, oy * px, lay.width * s * px, lay.height * s * px);
+
+  let strokes = null;
+  if (hand) {
+    strokes = [];
+    const P = (x, y) => [ox + x * s, oy + y * s];
+    for (const e of lay.edges) {
+      const l = T.edgeLine(e.from, e.to);
+      if (!l) continue;
+      const mid = [(l.x1 + l.x2) / 2, (l.y1 + l.y2) / 2];
+      strokes.push({ pts: [P(l.x1, l.y1), P(...mid), P(l.x2, l.y2)], width: edgeWidth(e.to.depth) * s * GN });
+    }
+    for (const n of lay.nodes) {
+      if (n.depth === 0) {
+        const pts = [];
+        for (let i = 0; i <= 48; i++) { const a = (i / 48) * Math.PI * 2; pts.push(P(n.x + n.w / 2 + Math.cos(a) * n.w / 2, n.y + n.h / 2 + Math.sin(a) * n.h / 2)); }
+        strokes.push({ pts, width: 2.5 * s * GN });
+      }
+      n.lines.forEach((line, i) => {
+        const lw = H.width(state.hand, line, n.fontSize);
+        for (const st of H.strokes(state.hand, line, n.fontSize, n.x + (n.w - lw) / 2, n.y + handBaseline(n, i))) {
+          strokes.push({ pts: st.map(([x, y]) => P(x, y)), width: handStroke(n) * s * GN });
+        }
+      });
+    }
+  }
+  return gnEngine.buildSinglePage(page, strokes, state.ink);
+}
+
+els.exportGn.addEventListener("click", async () => {
+  if (!state.current) return;
+  els.exportGn.disabled = true;
+  try {
+    saveBlob(await buildGoodnotesFile(), `${fileBase()} ${stamp()}.goodnotes`);
+    toast(useHand() ? "Goodnotes-Datei gespeichert (Handschrift als Stiftstriche)." : "Goodnotes-Datei gespeichert (als Bild, für Striche die eigene Handschrift wählen).");
+  } catch (e) {
+    console.error(e);
+    toast(e && e.message ? e.message : "Die Goodnotes-Datei konnte nicht erstellt werden.", { error: true });
+  } finally {
+    els.exportGn.disabled = false;
   }
 });
 
