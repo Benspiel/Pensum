@@ -190,9 +190,6 @@ function createNodeView(n) {
   v.shape = svgEl(v.root ? "ellipse" : "rect", { class: "mm-shape" + (v.root ? " is-root" : "") }, g);
   v.textG = svgEl("g", {}, g);
   v.sel = svgEl(v.root ? "ellipse" : "rect", { class: "mm-sel" }, g);
-  v.toggle = svgEl("g", { class: "mm-toggle", "data-toggle": n.id }, g);
-  v.toggleCircle = svgEl("circle", { r: 10 }, v.toggle);
-  v.toggleText = svgEl("text", { "text-anchor": "middle", "dominant-baseline": "central" }, v.toggle);
   return v;
 }
 
@@ -227,14 +224,6 @@ function updateNodeView(v, n, hand) {
   v.g.classList.toggle("is-selected", n.id === state.selectedId);
   v.g.classList.toggle("is-folded", n.folded);
   v.g.setAttribute("aria-label", (n.text || "leerer Punkt") + (n.hasKids ? (n.folded ? ", eingeklappt" : ", ausgeklappt") : ""));
-  const showToggle = n.hasKids && n.depth > 0;
-  v.toggle.style.display = showToggle ? "" : "none";
-  if (showToggle) {
-    v.toggle.setAttribute("transform", `translate(${n.side > 0 ? w + 14 : -14} ${h / 2})`);
-    v.toggleCircle.setAttribute("stroke", ink);
-    v.toggleText.textContent = n.folded ? `+${n.hidden}` : "−";
-    v.toggleCircle.setAttribute("r", n.folded && n.hidden > 9 ? 13 : 10);
-  }
 }
 
 function edgePath(link, pos, size) {
@@ -268,6 +257,7 @@ function renderMap({ animate = true } = {}) {
   els.svg.style.width = Math.round(lay.width * state.zoom) + "px";
   els.svg.style.height = Math.round(lay.height * state.zoom) + "px";
   els.svg.style.setProperty("--mm-ink", state.ink);
+  els.canvas.classList.toggle("is-paper", state.ink === "#262626");
 
   const parentOf = new Map(lay.edges.map((e) => [e.to.id, e.from.id]));
   const fresh = new Set();
@@ -634,12 +624,10 @@ function toggleFold(id) {
 }
 
 els.svg.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-toggle]");
-  if (t) { e.stopPropagation(); toggleFold(t.dataset.toggle); return; }
   const g = e.target.closest(".mm-node");
   if (g) select(g.dataset.id, { scroll: false });
 });
-els.svg.addEventListener("dblclick", (e) => { if (e.target.closest(".mm-node") && !e.target.closest("[data-toggle]")) focusText(); });
+els.svg.addEventListener("dblclick", (e) => { if (e.target.closest(".mm-node")) focusText(); });
 els.svg.addEventListener("keydown", (e) => {
   const g = e.target.closest(".mm-node");
   if (!g || !state.current) return;
@@ -781,11 +769,6 @@ function drawToCanvas(scale = 2) {
         c.fillText(line, n.x + n.w / 2, n.y + textTop(n) + n.lineH * (i + 0.5));
       }
     });
-    if (n.folded) { // Hinweis auf verborgene Unterpunkte
-      const cx = n.side > 0 ? n.x + n.w + 14 : n.x - 14, cy = n.y + n.h / 2;
-      c.beginPath(); c.arc(cx, cy, 11, 0, Math.PI * 2); c.fillStyle = "#fff"; c.fill(); c.lineWidth = 1.8; c.strokeStyle = ink; c.stroke();
-      c.font = `650 11px ${STD_FONT}`; c.textAlign = "center"; c.textBaseline = "middle"; c.fillStyle = "#141414"; c.fillText(`+${n.hidden}`, cx, cy + 0.5);
-    }
   }
   return { canvas, width: lay.width, height: lay.height };
 }

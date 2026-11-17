@@ -107,7 +107,7 @@ export function move(root, id, dir) {
 /* Maße der Darstellung. sizes/maxW gelten je Ebene (Thema, Hauptast, tiefere Ebenen). */
 export const STYLE = {
   sizes: [24, 17, 14.5], lh: 1.3, padX: 9, padY: 5, minW: 24, maxW: [280, 190, 160],
-  rootPadX: 36, rootPadY: 18, margin: 40, gap: 32, pad: 14, fan: 2.8, fanBase: 0.4, fanPer: 0.35, spanK: 1, clearRounds: 3, clearStep: 8,
+  rootPadX: 36, rootPadY: 18, margin: 40, gap: 32, pad: 14, fan: 2.8, fanBase: 0.4, fanPer: 0.35, spanK: 1, clearRounds: 10, clearStep: 8,
 };
 /** Eigene Handschrift: größer und luftiger, weil Handschrift bei gleicher Größe kleiner wirkt. */
 export const HAND_STYLE = {
@@ -212,14 +212,22 @@ export function layout(root, measure, style = STYLE, collapsed = new Set()) {
     if (!kids.length) return;
     const total = kids.reduce((t, k) => t + k.leaves, 0);
     let a = centre - width / 2;
+    kids.forEach((k) => { const part = width * k.leaves / total; k.angle = a + part / 2; k.span = part; a += part; });
+    // Mindestabstand vom Elternknoten, damit nebeneinanderliegende Geschwister im Fächer gar nicht erst überlappen
+    // (sonst müsste der Entzerr-Schritt sie später seitlich verschieben, und die Linien gerieten durcheinander)
+    let ring = 0;
+    for (let i = 1; i < kids.length; i++) {
+      const p = kids[i - 1], q = kids[i], mid = (p.angle + q.angle) / 2, t = [-Math.sin(mid), Math.cos(mid)];
+      const need = reach(p, t) + reach(q, t) + S.pad;
+      const half = Math.sin(Math.min(Math.PI / 2, (q.angle - p.angle) / 2));
+      if (half > 0.01) ring = Math.max(ring, need / (2 * half));
+    }
     kids.forEach((k, i) => {
-      const part = width * k.leaves / total;
-      k.angle = a + part / 2; k.span = part; a += part;
       const u = [Math.cos(k.angle), Math.sin(k.angle)];
       const start = parent.depth === 0
         ? 1 / Math.sqrt((u[0] / (parent.w / 2)) ** 2 + (u[1] / (parent.h / 2)) ** 2) // Rand der Ellipse
         : reach(parent, u);
-      const dist = start + reach(k, u) + S.gap;
+      const dist = Math.max(start + reach(k, u) + S.gap, ring);
       k.cx = parent.cx + u[0] * dist; k.cy = parent.cy + u[1] * dist;
       k.branch = parent.depth === 0 ? i : parent.branch;
       // Unterpunkte fächern sich um ihren Ast auf, auch breiter als dessen Winkelanteil (Nachbarn weichen im Entzerr-Schritt aus)
@@ -306,6 +314,20 @@ export function layout(root, measure, style = STYLE, collapsed = new Set()) {
         shift(n, nx * S.clearStep, ny * S.clearStep);
         moved = true;
       }
+    }
+    // Zwei Linien dürfen sich nicht kreuzen: der Unterpunkt der einen wandert (samt seinen Unterpunkten) von der anderen Linie weg
+    const side = (l, x, y) => (l.x2 - l.x1) * (y - l.y1) - (l.y2 - l.y1) * (x - l.x1);
+    const lines = [];
+    for (const p of all) for (const k of p.kids) { const l = edgeLine(box(p), box(k)); if (l) lines.push({ p, k, l }); }
+    for (let i = 0; i < lines.length; i++) for (let j = i + 1; j < lines.length; j++) {
+      const A = lines[i], B = lines[j];
+      if (A.p === B.p) continue;
+      if (side(A.l, B.l.x1, B.l.y1) * side(A.l, B.l.x2, B.l.y2) >= 0 || side(B.l, A.l.x1, A.l.y1) * side(B.l, A.l.x2, A.l.y2) >= 0) continue;
+      const lx = A.l.x2 - A.l.x1, ly = A.l.y2 - A.l.y1, len = Math.hypot(lx, ly) || 1;
+      let nx = -ly / len, ny = lx / len;
+      if ((B.p.cx - A.l.x1) * nx + (B.p.cy - A.l.y1) * ny < 0) { nx = -nx; ny = -ny; } // zur Seite des eigenen Elternknotens
+      shift(B.k, nx * S.clearStep * 2, ny * S.clearStep * 2);
+      moved = true;
     }
     return moved;
   };
