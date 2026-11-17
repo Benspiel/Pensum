@@ -29,6 +29,7 @@ const els = {
   jitterVal: $("jitterVal"),
   width: $("widthInput"),
   widthVal: $("widthVal"),
+  widthNum: $("widthNum"),
   drop: $("dropzone"),
   tplInput: $("templateInput"),
   tplTitle: $("templateTitle"),
@@ -256,11 +257,18 @@ els.jitter.addEventListener("input", () => {
   els.jitterVal.textContent = state.jitter < 0.4 ? "gering" : state.jitter < 1.4 ? "mittel" : "stark";
   scheduleRender(60);
 });
-els.width.addEventListener("input", () => {
-  state.weight = parseFloat(els.width.value);
-  els.widthVal.textContent = state.weight < 0.85 ? "dünner" : state.weight <= 1.15 ? "wie die Schrift" : "kräftiger";
+function setWeight(v, from) {
+  if (!Number.isFinite(v)) return;
+  v = Math.min(3, Math.max(0.3, v));
+  state.weight = v;
+  if (from !== "range") els.width.value = v;
+  if (from !== "num") els.widthNum.value = Math.round(v * 100) / 100;
+  els.widthVal.textContent = v < 0.85 ? "dünner" : v <= 1.15 ? "wie die Schrift" : "kräftiger";
   scheduleRender(60);
-});
+}
+els.width.addEventListener("input", () => setWeight(parseFloat(els.width.value), "range"));
+els.widthNum.addEventListener("input", () => setWeight(parseFloat(els.widthNum.value.replace(",", ".")), "num"));
+els.widthNum.addEventListener("change", () => setWeight(parseFloat(els.widthNum.value.replace(",", ".")) || 1));
 
 els.tplInput.addEventListener("change", () => handleFile(els.tplInput.files[0]));
 ["dragenter", "dragover"].forEach((ev) => els.drop.addEventListener(ev, (e) => { e.preventDefault(); els.drop.classList.add("drag"); }));
