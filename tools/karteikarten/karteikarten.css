@@ -41,8 +41,6 @@
 .kk-levels i[data-l="3"].on { opacity: 0.6; }
 .kk-levels i[data-l="4"].on { opacity: 0.8; }
 
-.kk-empty { display: grid; place-items: center; align-content: center; gap: var(--s-md); flex: 1; padding: var(--s-xxl) var(--s-md); border-radius: var(--r-md); background: var(--canvas-soft); text-align: center; }
-.kk-empty p { max-width: 40ch; color: var(--muted-on-tint); }
 
 /* Detailansicht */
 .kk-bar { display: flex; align-items: center; gap: var(--s-sm); }

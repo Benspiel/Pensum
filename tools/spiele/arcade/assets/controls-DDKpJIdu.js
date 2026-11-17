@@ -1,0 +1,1 @@
+import{t as e}from"./rolldown-runtime-DK3Fl9T5.js";var t=e({EXTRA_CONTROLS:()=>n}),n={flipL:{label:`Left flipper`,keys:[`Z`],buttons:[4,6]},flipR:{label:`Right flipper`,keys:[`FORWARD_SLASH`],buttons:[5,7]}};export{t as n,n as t};

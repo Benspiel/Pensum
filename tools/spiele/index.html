@@ -2,9 +2,9 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Spiele – Pensum</title>
-  <meta name="description" content="Spiele für die Pause: Vier gewinnt gegen den Computer sowie die Open-Source-Klassiker Asteroids und Dino-Runner. Läuft komplett im Browser.">
+  <meta name="description" content="Spiele für die Pause: Arcade-Action und kleine Herausforderungen, direkt im Browser und mit Touch spielbar.">
   <meta name="theme-color" content="#ffffff">
   <link rel="icon" href="/assets/favicon.ico" sizes="any">
   <link rel="icon" href="/assets/favicon-32.png" type="image/png" sizes="32x32">
@@ -22,10 +22,11 @@
   <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
   <pensum-nav></pensum-nav>
 
-  <main id="inhalt" class="container">
+  <!-- Übersicht: große Kacheln mit kleiner Vorschau -->
+  <main id="menu" class="container">
     <header class="tool-head">
       <h1>Spiele.</h1>
-      <p class="body-lg">Vier gewinnt und echte Open-Source-Klassiker für die Pause. Alles läuft in deinem Browser.</p>
+      <p class="muted">Eine kleine Pause? Such dir ein Spiel aus.</p>
     </header>
 
     <section class="panel on-tint sp-soon" id="soon" hidden aria-live="polite">
@@ -34,31 +35,33 @@
       <a class="btn btn-primary" href="/">Zur Startseite</a>
     </section>
 
-    <nav class="sp-picker" id="gameTabs" aria-label="Spiel wählen"></nav>
-
-    <section class="panel on-tint sp-panel" aria-labelledby="gameTitle">
-      <div class="sp-head">
-        <h2 class="h4" id="gameTitle">Vier gewinnt.</h2>
-        <div class="sp-actions">
-          <button class="btn btn-soft btn-sm" type="button" id="pauseBtn" hidden>Pause</button>
-          <button class="btn btn-primary btn-sm" type="button" id="restartBtn">Neu starten</button>
-        </div>
+    <div id="gameCatalog" hidden>
+      <div class="sg-discover">
+        <label class="sg-search"> <span class="sr-only">Spiele suchen</span><input id="gameSearch" type="search" placeholder="Spiel suchen …" autocomplete="off"></label>
+        <div class="sg-filters" id="gameFilters" aria-label="Kategorie wählen"></div>
       </div>
-      <div class="chips-row sp-chips" id="chips" aria-live="polite"></div>
-      <div class="sp-frame" id="frame">
-        <div class="sp-stage" id="stage"></div>
-        <div class="sp-overlay" id="overlay" hidden role="status">
-          <div class="sp-overlay-box">
-            <p class="h4" id="overlayTitle"></p>
-            <p class="body-sm muted" id="overlayText"></p>
-            <button class="btn btn-primary" type="button" id="overlayBtn">Nochmal</button>
-          </div>
-        </div>
-      </div>
-      <div class="sp-controls" id="controls"></div>
-      <p class="body-sm muted-tint sp-help" id="help"></p>
-    </section>
+      <p class="sg-external-note">Direkt hier spielen – mit Touch oder Tastatur.</p>
+      <nav class="sg-tiles sg-catalog" id="externalGames" aria-label="Spiele entdecken"></nav>
+      <p id="noGames" hidden>Kein Spiel gefunden. Versuch einen anderen Suchbegriff.</p>
+    </div>
+    <p class="body-sm muted sg-credits" id="credits"></p>
   </main>
+
+  <!-- Spielansicht: nur das Spiel unter der Nav, ohne Knöpfe -->
+  <section class="sg-play" id="play" hidden aria-label="Spiel">
+    <div class="chips-row sp-chips" id="chips" aria-live="polite"></div>
+    <div class="sp-frame" id="frame">
+      <div class="sp-stage" id="stage"></div>
+      <div class="sp-controls touch-only" id="controls"></div>
+      <div class="sp-overlay" id="overlay" hidden role="status">
+        <div class="sp-overlay-box">
+          <p class="h4" id="overlayTitle"></p>
+          <p class="body-sm muted" id="overlayText"></p>
+          <button class="btn btn-primary" type="button" id="overlayBtn">Nochmal</button>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <pensum-footer></pensum-footer>
 </body>

@@ -14,6 +14,8 @@
   <script src="/js/theme.js"></script>
   <link rel="stylesheet" href="/css/pensum.css">
   <link rel="stylesheet" href="/css/legal.css">
+  <link rel="stylesheet" href="/css/stack-panel.css">
+  <link rel="stylesheet" href="/css/loader.css">
   <script type="module" src="/js/shell.js"></script>
   <script type="module" src="/konto/konto.js"></script>
 </head>
@@ -26,6 +28,8 @@
       <h1 class="h2">Konto.</h1>
       <p class="body-lg" id="accLead">Dein Konto gilt für alle Tools.</p>
     </header>
+
+    <div id="accLoading" aria-live="polite"></div>
 
     <section class="card-soft on-tint stack" id="accGuest" hidden>
       <p class="body">Du bist nicht angemeldet. Melde dich an, um dein Konto zu verwalten.</p>
@@ -45,17 +49,45 @@
         <span class="badge badge-soft" id="accVerified"></span>
       </section>
 
-      <div class="segmented tabs" id="accTabs" role="group" aria-label="Bereich">
-        <button type="button" data-tab="profil" aria-pressed="true">Profil</button>
-        <button type="button" data-tab="sicherheit" aria-pressed="false">Sicherheit</button>
-        <button type="button" data-tab="daten" aria-pressed="false">Daten</button>
-      </div>
+      <!-- Einstellungen als Stack Panel (js/stack-panel.js): Eine Zeile öffnet ihre Seite, Zurück mit Knopf, Escape oder Wischen -->
+      <div class="sp" id="accPanel">
+        <header class="sp-head">
+          <button class="sp-back" type="button">Zurück</button>
+          <div class="sp-title-wrap"></div>
+          <span aria-hidden="true"></span>
+        </header>
 
-      <!-- Profil -->
-      <div data-panel="profil">
-        <div class="group">
-          <details class="group-row">
-            <summary><span class="group-row-label">Name</span><span class="group-row-value" id="valName"></span><span class="group-row-action">Ändern</span></summary>
+        <div class="sp-body">
+          <!-- Startseite -->
+          <div class="sp-page" data-sp-page="root" data-sp-title="Einstellungen">
+            <section class="sp-section" aria-label="Profil">
+              <h2 class="sp-section-title">Profil</h2>
+              <ul class="sp-list">
+                <li><button class="sp-row" type="button" data-sp-to="name"><span class="sp-label">Name</span><span class="sp-detail" id="valName"></span><svg class="sp-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button></li>
+                <li><button class="sp-row" type="button" data-sp-to="email"><span class="sp-label">E-Mail-Adresse</span><span class="sp-detail" id="valEmail"></span><svg class="sp-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button></li>
+              </ul>
+            </section>
+
+            <section class="sp-section" aria-label="Sicherheit">
+              <h2 class="sp-section-title">Sicherheit</h2>
+              <ul class="sp-list">
+                <li><button class="sp-row" type="button" data-sp-to="passwort"><span class="sp-label">Passwort</span><span class="sp-detail" aria-hidden="true">••••••••</span><svg class="sp-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button></li>
+                <li id="googleRow" hidden><button class="sp-row" type="button" data-sp-to="google"><span class="sp-label">Anmelden mit Google</span><span class="sp-detail" id="valGoogle"></span><svg class="sp-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button></li>
+                <li><button class="sp-row" type="button" data-sp-to="geraete"><span class="sp-label">Angemeldete Geräte</span><span class="sp-detail" id="valSessions"></span><svg class="sp-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button></li>
+              </ul>
+            </section>
+
+            <section class="sp-section" aria-label="Daten">
+              <h2 class="sp-section-title">Daten</h2>
+              <ul class="sp-list">
+                <li><button class="sp-row" type="button" data-sp-to="daten"><span class="sp-label">Gespeichert in deinem Konto</span><svg class="sp-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button></li>
+                <li><button class="sp-row is-danger-row" type="button" data-sp-to="loeschen"><span class="sp-label">Konto löschen</span><span class="sp-detail">Unwiderruflich</span><svg class="sp-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button></li>
+              </ul>
+            </section>
+          </div>
+
+          <!-- Name -->
+          <div class="sp-page" data-sp-page="name" data-sp-title="Name" hidden>
             <form class="form-stack" id="nameForm">
               <label class="field">
                 <span class="field-label">Name</span>
@@ -64,10 +96,10 @@
               <p class="form-message" role="alert" hidden></p>
               <div><button class="btn btn-primary" type="submit">Speichern</button></div>
             </form>
-          </details>
+          </div>
 
-          <details class="group-row">
-            <summary><span class="group-row-label">E-Mail-Adresse</span><span class="group-row-value" id="valEmail"></span><span class="group-row-action">Ändern</span></summary>
+          <!-- E-Mail -->
+          <div class="sp-page" data-sp-page="email" data-sp-title="E-Mail-Adresse" hidden>
             <form class="form-stack" id="emailForm">
               <p class="body-sm muted">Die neue Adresse bestätigst du beim nächsten Anmelden mit einem Code.</p>
               <label class="field">
@@ -81,15 +113,10 @@
               <p class="form-message" role="alert" hidden></p>
               <div><button class="btn btn-primary" type="submit">Adresse ändern</button></div>
             </form>
-          </details>
-        </div>
-      </div>
+          </div>
 
-      <!-- Sicherheit -->
-      <div data-panel="sicherheit" hidden>
-        <div class="group">
-          <details class="group-row">
-            <summary><span class="group-row-label">Passwort</span><span class="group-row-value">••••••••</span><span class="group-row-action">Ändern</span></summary>
+          <!-- Passwort -->
+          <div class="sp-page" data-sp-page="passwort" data-sp-title="Passwort" hidden>
             <form class="form-stack" id="passForm">
               <label class="field">
                 <span class="field-label">Aktuelles Passwort</span>
@@ -103,56 +130,64 @@
               <p class="form-message" role="alert" hidden></p>
               <div><button class="btn btn-primary" type="submit">Passwort ändern</button></div>
             </form>
-          </details>
+          </div>
+
+          <!-- Google -->
+          <div class="sp-page" data-sp-page="google" data-sp-title="Google" hidden>
+            <section class="panel" id="googlePanel" aria-labelledby="hGoogle">
+              <h2 class="h4" id="hGoogle">Anmelden mit Google.</h2>
+              <p class="body-sm muted" id="googleText"></p>
+              <p class="form-message" id="googleMsg" role="alert" hidden></p>
+              <div class="row">
+                <button class="btn btn-outline btn-sm" type="button" id="googleLink" hidden>Mit Google verbinden</button>
+                <button class="btn btn-outline btn-sm" type="button" id="googleUnlink" hidden>Verbindung lösen</button>
+              </div>
+            </section>
+          </div>
+
+          <!-- Geräte -->
+          <div class="sp-page" data-sp-page="geraete" data-sp-title="Angemeldete Geräte" hidden>
+            <section class="panel" aria-labelledby="hSessions">
+              <h2 class="h4" id="hSessions">Angemeldete Geräte.</h2>
+              <p class="body-sm muted">Beende Sitzungen, die du nicht kennst.</p>
+              <ul class="plain-list" id="sessionList" aria-live="polite"></ul>
+              <p class="form-message" id="sessionMsg" role="alert" hidden></p>
+              <div class="row">
+                <button class="btn btn-outline btn-sm" type="button" id="endOthers">Alle anderen beenden</button>
+                <button class="btn btn-outline btn-sm" type="button" id="endAll">Überall abmelden</button>
+              </div>
+            </section>
+          </div>
+
+          <!-- Gespeicherte Daten -->
+          <div class="sp-page" data-sp-page="daten" data-sp-title="Gespeicherte Daten" hidden>
+            <section class="panel" aria-labelledby="hData">
+              <h2 class="h4" id="hData">Gespeichert in deinem Konto.</h2>
+              <div class="chips-row" id="dataCount" aria-live="polite"></div>
+              <p class="form-message" id="dataMsg" role="alert" hidden></p>
+              <div class="row">
+                <button class="btn btn-outline btn-sm" type="button" id="exportBtn">Daten exportieren (JSON)</button>
+                <button class="btn btn-outline btn-sm" type="button" id="wipeBtn">Inhalte löschen</button>
+              </div>
+              <p class="body-sm muted">„Inhalte löschen“ entfernt Fächer, Noten, Mindmaps, Karteikarten, Planer-Einträge und Handschrift-Profil. Das Konto bleibt.</p>
+            </section>
+          </div>
+
+          <!-- Konto löschen -->
+          <div class="sp-page" data-sp-page="loeschen" data-sp-title="Konto löschen" hidden>
+            <div class="panel is-danger">
+              <p class="body-sm">Dabei werden dein Konto, alle Fächer und Noten, deine Mindmaps, dein Handschrift-Profil und alle Sitzungen <strong>sofort und endgültig</strong> gelöscht. Exportiere vorher deine Daten, wenn du sie behalten willst.</p>
+              <form class="form-stack" id="deleteForm">
+                <label class="field">
+                  <span class="field-label">Zur Bestätigung „LÖSCHEN“ eingeben</span>
+                  <input class="input" name="confirm" autocomplete="off" autocapitalize="characters" spellcheck="false">
+                </label>
+                <p class="form-message" role="alert" hidden></p>
+                <div><button class="btn btn-danger" type="submit" disabled>Konto endgültig löschen</button></div>
+              </form>
+            </div>
+          </div>
         </div>
-
-        <section class="panel" id="googlePanel" aria-labelledby="hGoogle" hidden>
-          <h2 class="h4" id="hGoogle">Anmelden mit Google.</h2>
-          <p class="body-sm muted" id="googleText"></p>
-          <p class="form-message" id="googleMsg" role="alert" hidden></p>
-          <div class="row">
-            <button class="btn btn-outline btn-sm" type="button" id="googleLink" hidden>Mit Google verbinden</button>
-            <button class="btn btn-outline btn-sm" type="button" id="googleUnlink" hidden>Verbindung lösen</button>
-          </div>
-        </section>
-
-        <section class="panel" aria-labelledby="hSessions">
-          <h2 class="h4" id="hSessions">Angemeldete Geräte.</h2>
-          <p class="body-sm muted">Beende Sitzungen, die du nicht kennst.</p>
-          <ul class="plain-list" id="sessionList" aria-live="polite"></ul>
-          <p class="form-message" id="sessionMsg" role="alert" hidden></p>
-          <div class="row">
-            <button class="btn btn-outline btn-sm" type="button" id="endOthers">Alle anderen beenden</button>
-            <button class="btn btn-outline btn-sm" type="button" id="endAll">Überall abmelden</button>
-          </div>
-        </section>
-      </div>
-
-      <!-- Daten -->
-      <div data-panel="daten" hidden>
-        <section class="panel" aria-labelledby="hData">
-          <h2 class="h4" id="hData">Gespeichert in deinem Konto.</h2>
-          <div class="chips-row" id="dataCount" aria-live="polite"></div>
-          <p class="form-message" id="dataMsg" role="alert" hidden></p>
-          <div class="row">
-            <button class="btn btn-outline btn-sm" type="button" id="exportBtn">Daten exportieren (JSON)</button>
-            <button class="btn btn-outline btn-sm" type="button" id="wipeBtn">Inhalte löschen</button>
-          </div>
-          <p class="body-sm muted">„Inhalte löschen“ entfernt Fächer, Noten, Mindmaps, Karteikarten, Planer-Einträge und Handschrift-Profil. Das Konto bleibt.</p>
-        </section>
-
-        <details class="group-row is-danger">
-          <summary><span class="group-row-label">Konto löschen</span><span class="group-row-value">Unwiderruflich</span><span class="group-row-action">Öffnen</span></summary>
-          <p class="body-sm">Dabei werden dein Konto, alle Fächer und Noten, deine Mindmaps, dein Handschrift-Profil und alle Sitzungen <strong>sofort und endgültig</strong> gelöscht. Exportiere vorher deine Daten, wenn du sie behalten willst.</p>
-          <form class="form-stack" id="deleteForm">
-            <label class="field">
-              <span class="field-label">Zur Bestätigung „LÖSCHEN“ eingeben</span>
-              <input class="input" name="confirm" autocomplete="off" autocapitalize="characters" spellcheck="false">
-            </label>
-            <p class="form-message" role="alert" hidden></p>
-            <div><button class="btn btn-danger" type="submit" disabled>Konto endgültig löschen</button></div>
-          </form>
-        </details>
       </div>
 
       <p class="body-sm muted legal-stand">Mehr dazu in der <a href="/datenschutz/">Datenschutzerklärung</a> und den <a href="/nutzungsbedingungen/">Nutzungsbedingungen</a>.</p>

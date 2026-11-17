@@ -80,20 +80,28 @@ function database(key) {
   };
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const RETRY_WAIT = [2500, 6000]; // bei Überlastung (503) und Ratenlimit (429) bis zu zweimal nach Wartezeit neu versuchen
+
 async function gemini(system, userText, image) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw Object.assign(new Error("GEMINI_API_KEY fehlt"), { setup: true });
   const model = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
-  const r = await request(https, new URL(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`), {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-goog-api-key": apiKey },
-  }, {
+  const url = new URL(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`);
+  const body = {
     systemInstruction: { parts: [{ text: system }] },
     contents: [{ role: "user", parts: [{ inlineData: { mimeType: image.mime, data: image.data } }, { text: userText }] }],
     generationConfig: { responseMimeType: "application/json", temperature: 0.2, maxOutputTokens: 8192 },
-  }, 80000);
+  };
 
-  if (r.status === 429) throw new UserError("Die KI ist gerade ausgelastet. Probier es in ein paar Minuten noch einmal. Dieser Versuch wurde nicht gezählt.", 503, "busy");
+  let r;
+  for (let attempt = 0; ; attempt++) {
+    r = await request(https, url, { method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": apiKey } }, body, 35000);
+    if ((r.status !== 503 && r.status !== 429) || attempt >= RETRY_WAIT.length) break;
+    await sleep(RETRY_WAIT[attempt]);
+  }
+
+  if (r.status === 503 || r.status === 429) throw new UserError("Die KI ist gerade überlastet. Probier es in ein paar Minuten noch einmal. Dieser Versuch wurde nicht gezählt.", 503, "busy");
   if (r.status !== 200) throw new Error(`Gemini ${r.status}: ${(r.json && r.json.error && r.json.error.message) || "keine Antwort"}`);
   const cand = r.json && r.json.candidates && r.json.candidates[0];
   const text = cand && cand.content && cand.content.parts ? cand.content.parts.map((p) => p.text || "").join("") : "";

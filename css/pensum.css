@@ -491,12 +491,77 @@ pensum-nav {
   font-weight: 600;
   text-transform: none;
 }
-.nav-user { display: flex; align-items: center; gap: var(--s-xs); }
-.nav-user-name { display: none; max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+/* ---------- Profilmenü (Nachbau von Kokonut UI „Profile Dropdown“, MIT) – siehe js/profile-menu.js ---------- */
+.pm { position: relative; }
+.pm-trigger { display: flex; align-items: center; gap: var(--s-xs); min-height: 44px; padding: 0; border: 0; border-radius: var(--r-full); background: transparent; color: inherit; font: inherit; cursor: pointer; transition: background-color 0.15s ease; }
+.pm-trigger:has(.pm-name) { padding-right: var(--s-xs); }
+.pm-trigger:hover, .pm-trigger[aria-expanded="true"] { background: var(--canvas); }
+.pm-trigger:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.pm-name { display: none; max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.pm-trigger > svg { display: none; width: 16px; height: 16px; color: var(--muted); }
+@media (min-width: 768px) { .pm-trigger > svg { display: block; } .pm-name { display: block; } }
+.pm-avatar svg { width: 20px; height: 20px; }
+.pm-avatar-lg { width: 48px; height: 48px; font-size: 16px; }
+.pm-avatar-lg svg { width: 22px; height: 22px; }
+
+.pm-panel {
+  position: absolute; top: calc(100% + 16px); right: 0; z-index: 60; width: min(300px, calc(100vw - 2 * var(--gutter)));
+  padding: var(--s-xs); border: 1px solid var(--hairline); border-radius: var(--r-md); background: var(--canvas);
+  box-shadow: 0 0 0 4px var(--canvas); transform-origin: top right; animation: pm-in 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.pm-panel[hidden] { display: none; }
+/* Schmale Fenster: Die Nav ist kurz und mittig, das Menü steht deshalb mittig unter ihr statt am Knopf */
+@media (max-width: 560px) {
+  .pm-panel { position: fixed; top: 88px; left: var(--gutter); right: var(--gutter); width: auto; max-width: 380px; margin-inline: auto; transform-origin: top center; }
+}
+@keyframes pm-in { from { opacity: 0; transform: translateY(-6px) scale(0.97); } }
+.pm-head { display: flex; align-items: center; gap: var(--s-sm); padding: var(--s-sm); }
+.pm-who { display: grid; min-width: 0; }
+.pm-who b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9375rem; font-weight: 600; }
+.pm-who small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; color: var(--muted); }
+.pm-list { margin: 0; padding: 0; list-style: none; }
+.pm-item {
+  position: relative; display: flex; align-items: center; gap: var(--s-sm); width: 100%; min-height: 44px; padding: 0 var(--s-sm); overflow: hidden;
+  border: 0; border-radius: var(--r-sm); background: transparent; color: var(--ink); font: inherit; font-size: 0.9375rem; text-align: left; text-decoration: none; cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.pm-item svg { flex: none; width: 18px; height: 18px; color: var(--muted); }
+.pm-item:hover, .pm-item:focus-visible { background: var(--canvas-soft); }
+.pm-item:focus-visible, .pm-radio:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.pm-label { padding: var(--s-sm) var(--s-sm) var(--s-xs); font-size: 0.8125rem; font-weight: 500; color: var(--muted); }
+.pm-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 0 var(--s-xs) var(--s-xs); padding: 4px; border-radius: var(--r-sm); background: var(--canvas-soft); }
+.pm-radio { display: grid; justify-items: center; gap: 2px; padding: var(--s-xs) 0; border: 0; border-radius: calc(var(--r-sm) - 4px); background: transparent; color: var(--muted); font: inherit; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: background-color 0.15s ease, color 0.15s ease; }
+.pm-radio svg { width: 18px; height: 18px; }
+.pm-radio:hover { color: var(--ink); }
+.pm-radio[aria-checked="true"] { background: var(--canvas); color: var(--ink); box-shadow: 0 0 0 1px var(--hairline); }
+.pm-sep { height: 1px; margin: var(--s-xs) var(--s-sm); background: var(--hairline); }
+.pm-signout { color: #d92d20; }
+.pm-signout svg { color: currentColor; }
+.pm-signout small { margin-left: auto; font-size: 0.75rem; color: var(--muted); }
+.pm-signout > :not(.pm-fill) { position: relative; }
+.pm-fill { position: absolute; inset: 0 auto 0 0; width: 0; background: rgb(217 45 32 / 0.16); }
+.pm-signout.is-holding .pm-fill { width: 100%; transition: width 700ms linear; } /* 700 ms = HOLD_MS in js/profile-menu.js */
+:root[data-theme="dark"] .pm-signout { color: #f97066; }
+:root[data-theme="dark"] .pm-fill { background: rgb(249 112 102 / 0.2); }
+@media (prefers-reduced-motion: reduce) { .pm-panel { animation: none; } .pm-trigger, .pm-item, .pm-radio { transition: none; } }
+
 .nav-skeleton { width: 96px; height: 44px; border-radius: var(--r-full); background: var(--hairline); opacity: 0.6; }
 
+/* Kontext in der Nav (z. B. „‹ Spiele  Vier gewinnt“), gesetzt über PensumNav.setContext */
+.nav-context { display: inline-flex; align-items: center; gap: var(--s-xs); min-width: 0; margin-left: var(--s-xxs); padding-left: var(--s-sm); border-left: 1px solid var(--hairline); }
+.nav-context[hidden] { display: none; }
+.nav-back { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; padding: 0 var(--s-xs); border-radius: var(--r-full); color: var(--muted); font-size: 14px; font-weight: 600; text-decoration: none; }
+.nav-back:hover { background: var(--canvas); color: var(--ink); }
+.nav-back svg { width: 18px; height: 18px; flex: none; }
+.nav-context-title { min-width: 0; max-width: 18ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 600; }
+@media (max-width: 640px) {
+  .nav-pill.has-context .nav-login { display: none; }
+  .nav-pill.has-context .nav-logo { margin-right: 0; }
+  .nav-pill.has-context .nav-context { flex: 1; }
+  .nav-pill.has-context .nav-auth { margin-left: var(--s-xs); }
+}
+
 @media (min-width: 768px) {
-  .nav-user-name { display: block; }
   .nav-auth { margin-left: var(--s-md); }
 }
 
@@ -666,8 +731,6 @@ a.tool-card:hover p { color: var(--muted-on-tint); }
 .check input { flex: none; width: 24px; height: 24px; margin: 10px 0 0; accent-color: var(--ink); }
 .check span { padding-block: 10px; }
 .check a { text-decoration: underline; text-underline-offset: 3px; }
-a.nav-user { min-height: 44px; border-radius: var(--r-full); text-decoration: none; color: inherit; }
-a.nav-user:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 @media (min-width: 640px) { .footer-cols { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
 /* ---------- Gemeinsame Bausteine (Konto, Notenrechner, Mindmap, Goodnotes) ---------- */
@@ -831,20 +894,6 @@ body.home pensum-nav { position: relative; z-index: 20; }
 :root[data-theme="dark"] .footer :focus-visible { outline-color: var(--ink); }
 :root[data-theme="dark"] dialog.modal::backdrop { background: rgba(0, 0, 0, 0.65); }
 :root[data-theme="dark"] .skip-link:focus { outline-color: var(--canvas); }
-
-/* Umschalter in der Nav */
-.theme-toggle { color: var(--ink); }
-.theme-toggle svg { width: 20px; height: 20px; }
-.theme-toggle .i-sun { display: none; }
-:root[data-theme="dark"] .theme-toggle .i-sun { display: block; }
-:root[data-theme="dark"] .theme-toggle .i-moon { display: none; }
-.nav-pill .theme-toggle { margin-left: var(--s-xs); }
-
-/* Home-Knopf in der Nav (nur außerhalb der Startseite) */
-.nav-home { display: inline-flex; align-items: center; gap: var(--s-xs); min-height: 44px; padding: 0 var(--s-sm); border-radius: var(--r-full); color: var(--ink); font-size: 14px; font-weight: 600; text-decoration: none; transition: background-color 0.15s ease; }
-.nav-home:hover { background: var(--canvas); }
-.nav-home svg { width: 20px; height: 20px; flex: none; }
-@media (max-width: 479px) { .nav-home { width: 44px; justify-content: center; padding: 0; } .nav-home span { display: none; } }
 
 /* ---------- „Was ist neu“ ---------- */
 

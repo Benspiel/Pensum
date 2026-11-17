@@ -9,7 +9,10 @@
 const icon = (paths) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 
-export const tools = [
+/** Reihenfolge auf Startseite und im Footer. Tools, die hier fehlen, stehen am Ende (in der Reihenfolge ihrer Einträge unten). */
+export const TOOL_ORDER = ["goodnotes", "mindmap", "kichat", "aufgaben", "abschreiben", "karteikarten", "planer", "videos", "spiele"];
+
+const entries = [
   {
     id: "goodnotes",
     name: "Goodnotes-Tool",
@@ -80,6 +83,18 @@ export const tools = [
     badge: "Kommt bald",
     soon: true, // ausgegraut und nicht klickbar; zum Freischalten die Zeile entfernen
   },
+  {
+    id: "kichat",
+    name: "KI-Chat",
+    href: "/tools/kichat/",
+    description: "Ganz normale Chats mit der Gemini-KI. Deine Chats werden in deinem Konto gespeichert und lassen sich jederzeit weiterführen.",
+    icon: icon('<path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-4.5 3.5V17H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path d="M8 10h8M8 13h5"/>'),
+    badge: "Ki-Tester",
+    team: "kiTester", // nur für Mitglieder des Teams „ki-tester“ (config.kiTesterTeam), sonst ausgegraut
+  },
 ];
+
+const rank = (t) => { const i = TOOL_ORDER.indexOf(t.id); return i < 0 ? TOOL_ORDER.length : i; };
+export const tools = [...entries].sort((a, b) => rank(a) - rank(b)); // Array.sort ist stabil: Unbekannte behalten ihre Reihenfolge
 
 export const toolById = (id) => tools.find((t) => t.id === id);

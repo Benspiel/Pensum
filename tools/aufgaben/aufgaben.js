@@ -4,6 +4,7 @@
  * Die Antworten schreibt dieses Modul selbst auf das Blatt (Schrift oder eigene Handschrift) und exportiert PDF oder PNG. */
 import { onAuthChange, client, authMessage } from "/js/auth.js";
 import { toast, esc, confirmDialog, closeIcon } from "/js/shell.js";
+import { openExportMenu } from "/js/export-menu.js";
 import { Functions, ExecutionMethod } from "/vendor/appwrite.js";
 import { config } from "/js/config.js";
 import { loadHand, width as handWidth, pathData, strokeWidth } from "/tools/mindmap/hand.js";
@@ -21,7 +22,7 @@ const els = {
   sheetError: $("sheetError"), solveBtn: $("solveBtn"),
   resultEmpty: $("resultEmpty"), resultBody: $("resultBody"),
   fontSel: $("fontSel"), inkSel: $("inkSel"), size: $("sizeInput"), sizeVal: $("sizeVal"), handHint: $("handHint"),
-  canvas: $("sheet"), dragHint: $("dragHint"), pdfBtn: $("pdfBtn"), pngBtn: $("pngBtn"),
+  canvas: $("sheet"), dragHint: $("dragHint"), exportBtn: $("exportBtn"),
   list: $("list"), skipped: $("skipped"), skippedList: $("skippedList"),
 };
 
@@ -438,16 +439,19 @@ function exportCanvas() {
   return c;
 }
 
+/** Bild speichern. Gibt den Dateinamen zurück, Fehler werfen (das Export-Menü zeigt sie als Toast). */
 async function savePng() {
   const blob = await new Promise((res) => exportCanvas().toBlob(res, "image/png"));
-  if (!blob) { toast("Das Bild konnte nicht erstellt werden.", { error: true }); return; }
-  download(blob, fileName(new Date(), "png"));
-  toast("Bild gespeichert.");
+  if (!blob) throw new Error("Das Bild konnte nicht erstellt werden.");
+  const name = fileName(new Date(), "png");
+  download(blob, name);
+  return name;
 }
 
+/** PDF speichern. Gibt den Dateinamen zurück, Fehler werfen. */
 function savePdf() {
   const lib = window.jspdf && window.jspdf.jsPDF;
-  if (!lib) { toast("Die PDF-Bibliothek ist noch nicht geladen. Versuch es gleich noch einmal.", { error: true }); return; }
+  if (!lib) throw new Error("Die PDF-Bibliothek ist noch nicht geladen. Versuch es gleich noch einmal.");
   const c = exportCanvas();
   const A4 = [210, 297];
   // Blatt hoch oder quer auf A4, ganze Seite ausgefüllt; andere Seitenverhältnisse behalten ihre Form
@@ -458,8 +462,9 @@ function savePdf() {
   const ph = isA4 ? (portrait ? A4[1] : A4[0]) : pw / ratio;
   const pdf = new lib({ orientation: portrait ? "p" : "l", unit: "mm", format: [pw, ph] });
   pdf.addImage(c.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, pw, ph, undefined, "FAST");
-  pdf.save(fileName(new Date(), "pdf"));
-  toast("PDF gespeichert.");
+  const name = fileName(new Date(), "pdf");
+  pdf.save(name);
+  return name;
 }
 
 /* ---------- Verschieben mit der Maus ---------- */
@@ -527,8 +532,14 @@ els.pageSel.addEventListener("change", changePage);
 els.fontSel.addEventListener("change", changeFont);
 els.inkSel.addEventListener("change", () => { state.inkId = els.inkSel.value; redraw(); });
 els.size.addEventListener("input", () => { state.scale = Number(els.size.value) / 100; els.sizeVal.textContent = `${els.size.value} %`; redraw(); });
-els.pngBtn.addEventListener("click", savePng);
-els.pdfBtn.addEventListener("click", savePdf);
+// Ein Knopf „Exportieren“ öffnet das Export-Menü (js/export-menu.js) mit Bild und PDF
+els.exportBtn.addEventListener("click", () => openExportMenu({
+  title: "Blatt exportieren",
+  options: [
+    { id: "pdf", icon: "pdf", label: "Als PDF", hint: "Zum Drucken und Abgeben", loading: "PDF wird erstellt …", success: "PDF gespeichert", errorTitle: "PDF-Export fehlgeschlagen", run: savePdf },
+    { id: "png", icon: "image", label: "Als Bild", hint: "PNG, z. B. zum Weiterschicken", loading: "Bild wird erstellt …", success: "Bild gespeichert", errorTitle: "Bild-Export fehlgeschlagen", run: savePng },
+  ],
+}));
 
 els.list.addEventListener("input", (e) => {
   const ta = e.target.closest("textarea[data-id]");

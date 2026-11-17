@@ -4,6 +4,7 @@
  * „mindmaps“ (nur für den eigenen Benutzer lesbar). Baum und Layout: tree.js. */
 import { onAuthChange, onBeforeLogout, client, authMessage, getPrefs, savePrefs } from "/js/auth.js";
 import { toast, confirmDialog, esc } from "/js/shell.js";
+import { openExportMenu } from "/js/export-menu.js";
 import { Functions, ExecutionMethod } from "/vendor/appwrite.js";
 import { tablesDB, databaseId, tableIds, listAllRows, Query } from "/js/db.js";
 import { config } from "/js/config.js";
@@ -19,7 +20,7 @@ const els = {
   canvas: $("canvas"), svg: $("svg"), nodeText: $("nodeText"), editError: $("editError"), saveState: $("saveState"),
   addChild: $("addChild"), addSibling: $("addSibling"), moveUp: $("moveUp"), moveDown: $("moveDown"), removeNode: $("removeNode"),
   undo: $("undoBtn"), redo: $("redoBtn"), zoomIn: $("zoomIn"), zoomOut: $("zoomOut"), zoomFit: $("zoomFit"),
-  exportPdf: $("exportPdf"), exportGn: $("exportGn"), inkSwitch: $("inkSwitch"),
+  exportBtn: $("exportBtn"), inkSwitch: $("inkSwitch"),
   foldNode: $("foldNode"), foldAll: $("foldAll"), unfoldAll: $("unfoldAll"), fontSwitch: $("fontSwitch"), fontHint: $("fontHint"),
   aiCard: $("aiCard"), aiInfo: $("aiInfo"), aiText: $("aiText"), aiBtn: $("aiBtn"), aiError: $("aiError"),
 };
@@ -130,7 +131,7 @@ function renderPanels() {
     : left <= 0 ? "Du hast heute alle KI-Änderungen verbraucht. Morgen sind es wieder 3. Von Hand kannst du weiter ändern."
     : `Beschreib in eigenen Worten, was geändert werden soll. Heute sind noch ${left} von ${state.usage.maxEdits} Änderungen frei.`;
 
-  els.exportPdf.disabled = els.exportGn.disabled = !hasMap;
+  els.exportBtn.disabled = !hasMap;
   els.createBtn.disabled = state.busy;
   els.createBtn.textContent = state.busy ? "KI arbeitet …" : "Mindmap erstellen";
   els.topic.disabled = els.notes.disabled = state.busy;
@@ -819,25 +820,19 @@ function loadJsPdf() {
   });
 }
 
-els.exportPdf.addEventListener("click", async () => {
-  if (!state.current) return;
-  els.exportPdf.disabled = true;
-  try {
-    const { jsPDF } = await loadJsPdf();
-    const { canvas, width, height } = trimCanvas(drawToCanvas(2), 24);
-    const pdf = new jsPDF({ orientation: width >= height ? "landscape" : "portrait", unit: "pt", format: "a4" });
-    const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight(), m = 28;
-    const k = Math.min((pw - 2 * m) / width, (ph - 2 * m) / height);
-    pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", (pw - width * k) / 2, (ph - height * k) / 2, width * k, height * k); // weißer Grund: JPEG hält das PDF klein
-    pdf.save(`${fileBase()} ${stamp()}.pdf`);
-    toast("PDF gespeichert.");
-  } catch (e) {
-    console.error(e);
-    toast(e && e.message ? e.message : "Das PDF konnte nicht erstellt werden.", { error: true });
-  } finally {
-    els.exportPdf.disabled = false;
-  }
-});
+/** PDF der Mindmap speichern. Gibt den Dateinamen zurück, Fehler werfen (das Export-Menü zeigt sie als Toast). */
+async function exportPdfFile() {
+  if (!state.current) throw new Error("Es gibt noch keine Mindmap zum Exportieren.");
+  const { jsPDF } = await loadJsPdf();
+  const { canvas, width, height } = trimCanvas(drawToCanvas(2), 24);
+  const pdf = new jsPDF({ orientation: width >= height ? "landscape" : "portrait", unit: "pt", format: "a4" });
+  const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight(), m = 28;
+  const k = Math.min((pw - 2 * m) / width, (ph - 2 * m) / height);
+  pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", (pw - width * k) / 2, (ph - height * k) / 2, width * k, height * k); // weißer Grund: JPEG hält das PDF klein
+  const name = `${fileBase()} ${stamp()}.pdf`;
+  pdf.save(name);
+  return name;
+}
 
 /* ---------- Goodnotes-Export ----------
  * Eigene Handschrift: echte Stiftstriche (in Goodnotes radierbar und umfärbbar). Standardschrift: Bild der Seite.
@@ -898,18 +893,23 @@ async function buildGoodnotesFile() {
   return gnEngine.buildSinglePage(page, strokes, state.ink);
 }
 
-els.exportGn.addEventListener("click", async () => {
+/** Goodnotes-Datei speichern. Gibt einen Hinweistext zurück, Fehler werfen. */
+async function exportGoodnotesFile() {
+  if (!state.current) throw new Error("Es gibt noch keine Mindmap zum Exportieren.");
+  saveBlob(await buildGoodnotesFile(), `${fileBase()} ${stamp()}.goodnotes`);
+  return useHand() ? "Handschrift als Stiftstriche" : "Als Bild; für Striche die eigene Handschrift wählen";
+}
+
+/* Ein Knopf „Exportieren“ öffnet das Export-Menü (js/export-menu.js) mit Goodnotes und PDF */
+els.exportBtn.addEventListener("click", () => {
   if (!state.current) return;
-  els.exportGn.disabled = true;
-  try {
-    saveBlob(await buildGoodnotesFile(), `${fileBase()} ${stamp()}.goodnotes`);
-    toast(useHand() ? "Goodnotes-Datei gespeichert (Handschrift als Stiftstriche)." : "Goodnotes-Datei gespeichert (als Bild, für Striche die eigene Handschrift wählen).");
-  } catch (e) {
-    console.error(e);
-    toast(e && e.message ? e.message : "Die Goodnotes-Datei konnte nicht erstellt werden.", { error: true });
-  } finally {
-    els.exportGn.disabled = false;
-  }
+  openExportMenu({
+    title: "Mindmap exportieren",
+    options: [
+      { id: "gn", icon: "goodnotes", label: "Als Goodnotes", hint: ".goodnotes-Datei zum Öffnen in Goodnotes", loading: "Goodnotes-Datei wird erstellt …", success: "Goodnotes-Datei gespeichert", errorTitle: "Goodnotes-Export fehlgeschlagen", run: exportGoodnotesFile },
+      { id: "pdf", icon: "pdf", label: "Als PDF", hint: "Zum Drucken und Teilen", loading: "PDF wird erstellt …", success: "PDF gespeichert", errorTitle: "PDF-Export fehlgeschlagen", run: exportPdfFile },
+    ],
+  });
 });
 
 /* ---------- Start ---------- */

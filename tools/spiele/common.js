@@ -3,7 +3,11 @@ import { toast, esc } from "/js/shell.js";
 export { toast, esc };
 
 export const $ = (id) => document.getElementById(id);
+
+/* Geräte mit Touch bekommen die Bildschirm-Steuerung der Spiele (auch Laptops mit Touchscreen, deshalb nicht über „hover“ geraten) */
+if (navigator.maxTouchPoints > 0 || "ontouchstart" in window) document.documentElement.classList.add("has-touch");
 export const BEST_KEY = "pensum.spiele.best.v1";
+export const haptic = (pattern = 10) => { try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (_) {} };
 export const reduceMotion = () => !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
 
 /* ---------- Bestwerte ---------- */
@@ -34,6 +38,8 @@ export const host = {
     $("overlayBtn").focus({ preventScroll: true });
   },
   clearOverlay() { $("overlay").hidden = true; },
+  /** Platz für Bildschirm-Knöpfe (nur bei Touch sichtbar). */
+  controlsEl: () => $("controls"),
   controls(html, { touchOnly = true } = {}) {
     const c = $("controls");
     c.innerHTML = html;
@@ -69,7 +75,7 @@ export function sizeCanvas(canvas, cols, rows) {
 export const roundRect = (c, x, y, w, h, r) => { c.beginPath(); c.roundRect ? c.roundRect(x, y, w, h, r) : c.rect(x, y, w, h); };
 export const KEYS = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down", a: "left", d: "right", w: "up", s: "down", A: "left", D: "right", W: "up", S: "down" };
 
-export { seeded, shuffle, clock } from "./util.js";
+export { seeded, shuffle, clock, fitScale } from "./util.js";
 
 /** Auswahlleiste (Segmented) für Stufen u. Ä. items: [[id, Text], …]. Liefert das Element. */
 export function segmented(items, current, onPick, label) {

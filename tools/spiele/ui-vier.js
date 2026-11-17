@@ -1,5 +1,5 @@
 /* Spiele – Vier gewinnt gegen den Computer. Die Regeln liegen in connect4.js (ohne Oberfläche, getestet). */
-import { best, host, reduceMotion, segmented, bar } from "./common.js";
+import { best, host, reduceMotion, segmented, bar, haptic } from "./common.js";
 import * as C4 from "./connect4.js";
 
 const root = (cls) => { const el = document.createElement("div"); el.className = cls; host.stage.append(el); return el; };
@@ -39,7 +39,10 @@ export function makeConnect4() {
     return true;
   }
   function human(col) {
-    if (over || thinking || !play(col, 1) || over) return;
+    if (over || thinking) return;
+    if (!play(col, 1)) return;
+    haptic(over ? [20, 40, 20] : 10);
+    if (over) return;
     thinking = true; render();
     aiTimer = setTimeout(() => { thinking = false; play(C4.aiMove(board, 2, C4_LEVELS[level].depth), 2); if (!over) render(); }, 350);
   }

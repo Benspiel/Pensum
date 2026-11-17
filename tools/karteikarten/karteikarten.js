@@ -4,6 +4,7 @@ import { esc, toast, confirmDialog, closeIcon } from "/js/shell.js";
 import { MAX_DECKS, LEVELS, MODES, isLevelMode, levelCounts, dueCount, buildQueue, answerCard, resetLevels, isCorrect } from "./core.js";
 import { onAuthChange, onBeforeLogout } from "/js/auth.js";
 import { loadIslandsSoon } from "/js/islands.js";
+import { emptyStateHtml } from "/js/empty-state.js";
 import { createGuestStore, createCloudStore, newId } from "./store.js";
 
 const app = document.getElementById("app");
@@ -103,15 +104,22 @@ function renderList() {
     </section>
     ${data.decks.length ? `<section class="kk-decks" aria-label="Deine Stapel">${data.decks.map(deckRow).join("")}</section>
       ${full ? '<p class="body-sm muted center">Du hast die maximal 5 Stapel angelegt. Lösche einen, um einen neuen zu erstellen.</p>' : ""}` : `
-    <section class="kk-empty">
-      <span class="squircle squircle-96" aria-hidden="true">${CARD_ICON}</span>
-      <h2 class="h3">Noch keine Stapel.</h2>
-      <p>Lege bis zu 5 Stapel an, füge Karten mit Vorder- und Rückseite hinzu und lerne sie mit Leveln oder der Reihe nach.</p>
-      <button class="btn btn-primary btn-lg" type="button" data-act="new-deck">Ersten Stapel erstellen</button>
-    </section>`}`;
+    ${emptyStateHtml({
+      title: "Noch keine Vokabelstapel.",
+      description: "Lege bis zu 5 Stapel an, füge Karten mit Vorder- und Rückseite hinzu und lerne sie mit Leveln oder der Reihe nach.",
+      primary: { label: "Ersten Stapel erstellen", act: "new-deck" },
+    })}`}`;
 }
 
-const CARD_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="14" height="12" rx="2.5"/><path d="M7 3h12a2 2 0 0 1 2 2v10"/></svg>';
+/** Leerer Stapel: kleiner Empty State, der direkt in den Tab „Hinzufügen“ führt. */
+function noCardsHtml() {
+  return emptyStateHtml({
+    title: "Noch keine Karten.",
+    description: "Füge deine erste Vokabel mit Vorder- und Rückseite hinzu.",
+    primary: { label: "Erste Karte hinzufügen", act: "tab", attrs: { "data-tab": "add" } },
+    compact: true,
+  });
+}
 
 function deckRow(deck) {
   const due = dueCount(deck);
@@ -154,7 +162,7 @@ function renderDeck() {
         <button class="btn btn-primary" type="button" data-act="start" data-type="practice" ${deck.cards.length ? "" : "disabled"}>Üben<small>Karte umdrehen, selbst bewerten</small></button>
         <button class="btn btn-outline" type="button" data-act="start" data-type="test" ${deck.cards.length ? "" : "disabled"}>Test<small>Antwort schriftlich eingeben</small></button>
       </div>
-      ${deck.cards.length ? "" : '<p class="body-sm muted-tint center">Noch keine Karten. Füge sie im Tab „Hinzufügen“ hinzu.</p>'}
+      ${deck.cards.length ? "" : noCardsHtml()}
     </section>`;
   } else if (tab === "add") {
     panel = `
@@ -174,7 +182,7 @@ function renderDeck() {
             <button class="icon-btn" type="button" data-act="edit-card" data-id="${esc(c.id)}" aria-label="Karte bearbeiten">${ICON.edit}</button>
             <button class="icon-btn" type="button" data-act="delete-card" data-id="${esc(c.id)}" aria-label="Karte löschen">${ICON.trash}</button>
           </div>
-        </div>`).join("")}</div>` : '<p class="body-sm muted center">Noch keine Karten. Füge sie im Tab „Hinzufügen“ hinzu.</p>'}
+        </div>`).join("")}</div>` : noCardsHtml()}
     </section>`;
   }
 

@@ -3,8 +3,9 @@
  * deshalb zeigt die Nav-Pill in jedem Tool denselben Stand und reagiert sofort auf Änderungen. */
 import { tools } from "/js/tools.js";
 import * as auth from "/js/auth.js";
-import { onTesterChange, isLocked } from "/js/access.js";
+import { onAccessChange, isLocked } from "/js/access.js";
 import "/js/whatsnew.js";
+import { mountProfileMenu } from "/js/profile-menu.js";
 
 export const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -230,55 +231,49 @@ class PensumNav extends HTMLElement {
             <img class="nav-logo-full" src="/assets/logo.png" width="110" height="28" alt="Pensum">
             <img class="nav-logo-mark" src="/assets/icon.png" width="32" height="32" alt="Pensum">
           </a>
-          ${location.pathname === "/" ? "" : `<a class="nav-home" href="/" aria-label="Zur Startseite">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h4.5V14h4v5.5h4.5V10"/></svg>
-            <span>Home</span>
-          </a>`}
-          <button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="Dunklen Modus einschalten" title="Hell / Dunkel">
-            <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/></svg>
-            <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-          </button>
+          <span class="nav-context" data-nav-context hidden></span>
           <div class="nav-auth" data-nav-auth aria-live="polite"><span class="nav-skeleton" aria-hidden="true"></span></div>
         </nav>
       </div>`;
 
     this._off = auth.onAuthChange((s) => this.renderAuth(s));
-
-    const btn = this.querySelector("[data-theme-toggle]");
-    const sync = () => {
-      const dark = window.pensumTheme && window.pensumTheme.get() === "dark";
-      btn.setAttribute("aria-label", dark ? "Hellen Modus einschalten" : "Dunklen Modus einschalten");
-    };
-    btn.addEventListener("click", () => window.pensumTheme && window.pensumTheme.toggle());
-    this._themeSync = sync;
-    document.addEventListener("pensum-theme", sync);
-    sync();
   }
 
-  disconnectedCallback() { if (this._off) this._off(); if (this._themeSync) document.removeEventListener("pensum-theme", this._themeSync); }
+  disconnectedCallback() {
+    if (this._off) this._off();
+    if (this._menu) this._menu.destroy();
+  }
+
+  /** Zeigt in der Nav, wo man gerade ist: optional ein Zurück-Link und ein Titel, z. B. { title: "Vier gewinnt", backHref: "/tools/spiele/", backLabel: "Spiele" }.
+   *  setContext(null) räumt es wieder weg. Der Zurück-Link hat die Klasse nav-back (die Seite kann seinen Klick selbst übernehmen). */
+  setContext(ctx) {
+    const slot = this.querySelector("[data-nav-context]");
+    const pill = this.querySelector(".nav-pill");
+    if (!slot) return;
+    if (!ctx || !ctx.title) { slot.hidden = true; slot.innerHTML = ""; pill.classList.remove("has-context"); return; }
+    slot.innerHTML = `${ctx.backHref ? `<a class="nav-back" href="${esc(ctx.backHref)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg><span>${esc(ctx.backLabel || "Zurück")}</span></a>` : ""}<strong class="nav-context-title">${esc(ctx.title)}</strong>`;
+    slot.hidden = false;
+    pill.classList.add("has-context");
+  }
 
   renderAuth({ status, user }) {
     const box = this.querySelector("[data-nav-auth]");
     if (status === "loading") return;
-    if (!user) {
-      box.innerHTML = '<button class="btn btn-primary btn-sm" type="button" data-auth-action="login">Anmelden</button>';
-      return;
-    }
-    const label = user.name || user.email || "Konto";
-    box.innerHTML = `
-      <a class="nav-user" href="/konto/" title="Konto verwalten (${esc(user.email || label)})">
-        <span class="avatar" aria-hidden="true">${esc(auth.initials(user))}</span>
-        <span class="nav-user-name">${esc(label)}</span>
-        <span class="sr-only">Angemeldet als ${esc(label)}. Konto verwalten</span>
-      </a>
-      <button class="btn btn-outline btn-sm" type="button" data-auth-action="logout">Abmelden</button>`;
+    if (this._menu) { this._menu.destroy(); this._menu = null; }
+    // Rechts in der Nav sitzt das Profilmenü (js/profile-menu.js): Konto, Darstellung Hell/Dunkel/System und Abmelden. Gäste bekommen daneben „Anmelden“.
+    box.innerHTML = `${user ? "" : '<button class="btn btn-primary btn-sm nav-login" type="button" data-auth-action="login">Anmelden</button>'}<div data-nav-menu></div>`;
+    this._menu = mountProfileMenu(box.querySelector("[data-nav-menu]"), {
+      user: user ? { name: user.name || user.email || "Konto", email: user.email || "", initials: auth.initials(user) } : null,
+      links: [{ label: "Konto verwalten", href: "/konto/", icon: "user" }],
+      onSignOut: () => signOut(),
+    });
   }
 }
 
 /* ---------- Footer ---------- */
 
 /** Tool-Links im Footer; gesperrte Tools stehen ausgegraut da, für Tester (Team „tester“) sind sie freigeschaltet. */
-const footerTools = (tester) => tools.map((t) => (isLocked(t, tester) ? `<span class="footer-soon" aria-disabled="true">${esc(t.name)} · kommt bald</span>` : `<a href="${t.href}">${esc(t.name)}</a>`)).join("");
+const footerTools = (tester) => tools.filter((t) => !t.team || !isLocked(t, tester)).map((t) => (isLocked(t, tester) ? `<span class="footer-soon" aria-disabled="true">${esc(t.name)} · kommt bald</span>` : `<a href="${t.href}">${esc(t.name)}</a>`)).join("");
 
 class PensumFooter extends HTMLElement {
   connectedCallback() {
@@ -319,7 +314,7 @@ class PensumFooter extends HTMLElement {
         ? '<a href="/konto/">Konto verwalten</a><button type="button" data-auth-action="logout">Abmelden</button>'
         : '<button type="button" data-auth-action="login">Anmelden</button><button type="button" data-auth-action="register">Konto erstellen</button><button type="button" data-auth-action="forgot">Passwort vergessen</button>';
     });
-    this._offTester = onTesterChange((tester) => { const el = this.querySelector("[data-footer-tools]"); if (el) el.innerHTML = footerTools(tester); });
+    this._offTester = onAccessChange((tester) => { const el = this.querySelector("[data-footer-tools]"); if (el) el.innerHTML = footerTools(tester); });
   }
   disconnectedCallback() { if (this._off) this._off(); if (this._offTester) this._offTester(); }
 }

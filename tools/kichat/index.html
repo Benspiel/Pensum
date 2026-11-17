@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>KI-Chat – Pensum</title>
+  <meta name="description" content="Chatte mit der Gemini-KI. Deine Chats werden in deinem Konto gespeichert.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="icon" href="/assets/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="/assets/favicon.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="preload" href="/vendor/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/vendor/fonts.css">
+  <script src="/js/theme.js"></script>
+  <link rel="stylesheet" href="/css/pensum.css">
+  <link rel="stylesheet" href="/css/loader.css">
+  <link rel="stylesheet" href="/tools/kichat/kichat.css">
+  <link rel="modulepreload" href="/vendor/appwrite.js">
+  <link rel="modulepreload" href="/js/auth.js">
+  <script type="module" src="/js/shell.js"></script>
+  <script type="module" src="/tools/kichat/kichat.js"></script>
+</head>
+<body class="kc-page">
+  <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+  <pensum-nav></pensum-nav>
+
+  <!-- Ecke oben links: Name des Tools, damit die Fläche neben der Nav nicht leer bleibt (nur im breiten Fenster) -->
+  <div class="kc-corner" aria-hidden="true">
+    <span class="kc-corner-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-4.5 3.5V17H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path d="M8 10h8M8 13h5"/></svg></span>
+    <span class="kc-corner-name">KI-Chat</span>
+  </div>
+
+  <main id="inhalt" class="kc-wrap">
+    <section class="panel on-tint kc-gate" id="gate" hidden aria-live="polite">
+      <h1 class="h4">Melde dich an, um den KI-Chat zu nutzen.</h1>
+      <div class="row">
+        <button class="btn btn-primary" type="button" data-auth-action="login">Anmelden</button>
+        <button class="btn btn-soft" type="button" data-auth-action="register">Konto erstellen</button>
+      </div>
+    </section>
+
+    <section class="panel on-tint kc-gate" id="denied" hidden aria-live="polite">
+      <h1 class="h4">Nur für das Team „Ki-Tester“.</h1>
+      <p class="body-sm muted-tint">Dein Konto gehört nicht dazu.</p>
+    </section>
+
+    <div id="app" class="kc" hidden>
+      <aside class="kc-side" id="side" aria-label="Chats">
+        <button class="kc-row" type="button" id="newBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>
+          <span>Neuer Chat</span>
+        </button>
+        <ul class="kc-chats" id="chatList"></ul>
+        <p class="kc-empty-list" id="listEmpty" hidden>Noch keine Chats.</p>
+      </aside>
+
+      <section class="kc-main" aria-label="Unterhaltung">
+        <div class="kc-top is-empty" id="top">
+          <button class="kc-icon-btn kc-toggle" type="button" id="sideToggle" aria-label="Chats anzeigen" aria-controls="side" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          </button>
+          <h1 class="kc-chat-title" id="chatTitle"></h1>
+          <button class="btn btn-outline btn-sm" type="button" id="deleteBtn" hidden>Löschen</button>
+        </div>
+        <div class="kc-log" id="log" role="log" aria-live="polite" aria-label="Unterhaltung" tabindex="0"></div>
+        <p class="form-message" id="error" role="alert" hidden></p>
+        <form class="kc-box" id="form" novalidate>
+          <div class="kc-attach" id="attach" hidden>
+            <div class="kc-doc" id="attachDoc" aria-hidden="true">
+              <img id="attachImg" alt="">
+              <span class="kc-doc-scan"></span>
+            </div>
+            <div class="kc-attach-info">
+              <span class="kc-attach-name" id="attachName"></span>
+              <span class="kc-attach-state" id="attachState"></span>
+            </div>
+            <button class="kc-icon-btn" type="button" id="attachRemove" aria-label="Anhang entfernen">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+            </button>
+          </div>
+          <label class="sr-only" for="input">Deine Nachricht</label>
+          <textarea class="kc-input" id="input" rows="1" maxlength="4000" placeholder="Schreib eine Nachricht …"></textarea>
+          <div class="kc-bar">
+            <label class="kc-icon-btn" id="attachPick" title="Bild anhängen (nur für diese Frage, wird nicht gespeichert)">
+              <input type="file" id="fileInput" class="sr-only" accept="image/jpeg,image/png,image/webp">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              <span class="sr-only">Bild anhängen</span>
+            </label>
+            <label class="kc-grade" title="Die KI antwortet passend zu deiner Klasse">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 9 9-5 9 5-9 5-9-5Z"/><path d="M7 11.5V16c0 1.2 2.2 3 5 3s5-1.8 5-3v-4.5"/></svg>
+              <span class="sr-only">Klasse</span>
+              <select id="grade">
+                <option value="8">Klasse 8</option>
+                <option value="9">Klasse 9</option>
+                <option value="10">Klasse 10</option>
+                <option value="11">Klasse 11</option>
+                <option value="12">Klasse 12</option>
+              </select>
+            </label>
+            <button class="kc-send" type="submit" id="sendBtn" aria-label="Senden" title="Senden (Enter)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 4v7a4 4 0 0 1-4 4H5"/><path d="m9 11-4 4 4 4"/></svg>
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,1 @@
+function e(e,t=50){return e>0?Math.min(e,t):0}function t(t,n=50){return e(t,n)/1e3}export{t as n,e as t};

@@ -1,7 +1,7 @@
 /* Tests für die weiteren Spiele: reine Logik ohne Oberfläche. Start: npm test */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { seeded, shuffle, clock } from "../tools/spiele/util.js";
+import { seeded, shuffle, clock, fitScale } from "../tools/spiele/util.js";
 import * as C4 from "../tools/spiele/connect4.js";
 
 test("util: Zufall mit Startwert ist reproduzierbar, Mischen verliert nichts, Uhr", () => {
@@ -40,4 +40,13 @@ test("Vier gewinnt: die KI gewinnt sofort, blockt und spielt nur gültige Züge"
   assert.equal(C4.aiMove(block, 2, 4, seeded(1)), 3);
   const full = C4.emptyBoard(); for (let r = 0; r < 6; r++) full[r][0] = r % 2 ? 1 : 2;
   for (let s = 1; s <= 5; s++) assert.ok(C4.validCols(full).includes(C4.aiMove(full, 1, 3, seeded(s))));
+});
+
+test("fitScale: das Spiel passt ganz in die Fläche, nie über max, ungültige Maße ergeben 1", () => {
+  assert.equal(fitScale(780, 540, 1560, 2000), 2, "Breite begrenzt nicht, Höhe 2000/540=3,7: Breite gewinnt");
+  assert.equal(fitScale(780, 540, 2000, 540), 1, "Höhe begrenzt");
+  assert.equal(fitScale(600, 260, 300, 800), 0.5, "verkleinert bei schmaler Fläche");
+  assert.equal(fitScale(600, 260, 6000, 6000, 3), 3, "max begrenzt die Vergrößerung");
+  assert.equal(fitScale(0, 260, 100, 100), 1);
+  assert.equal(fitScale(600, 260, 0, 100), 1);
 });

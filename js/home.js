@@ -1,7 +1,7 @@
 /* Startseite: Kacheln aus dem Tool-Verzeichnis. */
 import { tools } from "/js/tools.js";
 import { onAuthChange } from "/js/auth.js";
-import { onTesterChange, isLocked } from "/js/access.js";
+import { onAccessChange, isLocked } from "/js/access.js";
 import { esc } from "/js/shell.js";
 import { initParallax, initReveal } from "/js/parallax.js";
 
@@ -10,6 +10,7 @@ const grid = document.getElementById("toolGrid");
 function render(tester) {
   grid.innerHTML =
   tools
+    .filter((t) => !t.team || !isLocked(t, tester)) // Team-Tools sieht nur das Team
     .map(
       (t) => isLocked(t, tester)
         ? `
@@ -48,10 +49,10 @@ render(false);
 initParallax();
 initReveal(document);
 
-// Tester (Team „tester“) bekommen die ausgegrauten Kacheln freigeschaltet
-onTesterChange((tester) => {
-  if (!tester) return;
-  render(true);
+// Tester (Team „tester“) bekommen die ausgegrauten Kacheln freigeschaltet, Ki-Tester den KI-Chat
+onAccessChange((access) => {
+  if (!access.tester && !access.kiTester) return;
+  render(access);
   grid.querySelectorAll(".reveal").forEach((el) => el.classList.add("is-in"));
 });
 

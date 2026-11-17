@@ -1,0 +1,1 @@
+import{t as e}from"./rolldown-runtime-DK3Fl9T5.js";var t=e({EXTRA_CONTROLS:()=>n}),n={rotCW:{label:`Rotate`,keys:[`UP`,`X`,`W`],buttons:[0]},rotCCW:{label:`Rotate back`,keys:[`Z`,`CTRL`],buttons:[1,2]},hold:{label:`Hold`,keys:[`C`,`SHIFT`],buttons:[3,4,5]},drop:{label:`Hard drop`,keys:[`SPACE`],buttons:[12]}};export{t as n,n as t};

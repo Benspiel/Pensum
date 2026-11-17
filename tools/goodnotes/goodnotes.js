@@ -8,6 +8,7 @@ import { onAuthChange } from "/js/auth.js";
 import { toast, confirmDialog, esc } from "/js/shell.js";
 import { tablesDB, databaseId, tableIds, ownerPermissions } from "/js/db.js";
 import { createInkEngine } from "./ink-engine.js";
+import { openExportMenu, CANCELLED } from "/js/export-menu.js";
 import { HANDOFF_KEY, readHandoff } from "/tools/abschreiben/core.js";
 
 const engine = createInkEngine();
@@ -41,8 +42,7 @@ const els = {
   forget: $("forgetTemplate"),
   status: $("statusText"),
   fileName: $("fileName"),
-  exportGn: $("exportGn"),
-  exportPdf: $("exportPdf"),
+  exportBtn: $("exportBtn"),
   fontGrid: $("fontGrid"),
   handTile: $("handTile"),
   handTileInfo: $("handTileInfo"),
@@ -144,9 +144,10 @@ async function handleFile(file) {
 
 /* ---------- Export (Ablauf wie in Inkly; gebaut wird in der Engine) ---------- */
 
+/** Goodnotes-Datei(en) speichern. Gibt einen Hinweistext zurück, CANCELLED bei „Abbrechen“, Fehler werfen (das Export-Menü zeigt sie als Toast). */
 async function exportGoodnotes() {
   const pages = state.pages;
-  if (!pages.length) return;
+  if (!pages.length) throw new Error("Es gibt noch nichts zum Exportieren.");
   const base = engine.safeName(els.fileName.value);
   const ink = state.mode === "ink";
 
@@ -165,41 +166,27 @@ async function exportGoodnotes() {
           confirm: `${pages.length} einzelne Dateien`,
           cancel: "Eine Datei mit allen Seiten",
         });
-    if (ink && !split) return;
+    if (ink && !split) return CANCELLED;
     if (split) groups = pages.map((_, i) => [i, i + 1]);
   }
 
-  const label = els.exportGn.innerHTML;
-  els.exportGn.disabled = true;
-  els.exportGn.textContent = "Erzeuge …";
-  try {
-    const t = await engine.activeTemplate();
-    for (let i = 0; i < groups.length; i++) {
-      const [a, b] = groups[i];
-      const blob = await engine.buildGoodnotes(t, pages.slice(a, b), ink ? state.inkPages[a] : null);
-      const suffix = groups.length > 1 ? ` (${i + 1})` : "";
-      engine.download(blob, `${base}${suffix}.goodnotes`);
-      if (groups.length > 1) await new Promise((r) => setTimeout(r, 400));
-    }
-    toast(groups.length > 1 ? `${groups.length} Dateien exportiert.` : "Export fertig. Jetzt in Goodnotes öffnen.");
-  } catch (e) {
-    console.error(e);
-    toast("Export fehlgeschlagen: " + (e.message || e), { error: true });
-  } finally {
-    els.exportGn.disabled = false;
-    els.exportGn.innerHTML = label;
+  const t = await engine.activeTemplate();
+  for (let i = 0; i < groups.length; i++) {
+    const [a, b] = groups[i];
+    const blob = await engine.buildGoodnotes(t, pages.slice(a, b), ink ? state.inkPages[a] : null);
+    const suffix = groups.length > 1 ? ` (${i + 1})` : "";
+    engine.download(blob, `${base}${suffix}.goodnotes`);
+    if (groups.length > 1) await new Promise((r) => setTimeout(r, 400));
   }
+  return groups.length > 1 ? `${groups.length} Dateien` : "Jetzt in Goodnotes öffnen";
 }
 
+/** PDF speichern. Gibt den Dateinamen zurück, Fehler werfen. */
 function exportPdf() {
-  if (!state.pages.length) return;
-  try {
-    engine.download(new Blob([engine.buildPdf(state.pages)], { type: "application/pdf" }), `${engine.safeName(els.fileName.value)}.pdf`);
-    toast("PDF exportiert.");
-  } catch (e) {
-    console.error(e);
-    toast("PDF-Export fehlgeschlagen: " + (e.message || e), { error: true });
-  }
+  if (!state.pages.length) throw new Error("Es gibt noch nichts zum Exportieren.");
+  const name = `${engine.safeName(els.fileName.value)}.pdf`;
+  engine.download(new Blob([engine.buildPdf(state.pages)], { type: "application/pdf" }), name);
+  return name;
 }
 
 /* ---------- Auswahl: Ausgabe, Schrift, Papier, Tinte ---------- */
@@ -285,8 +272,17 @@ els.forget.addEventListener("click", () => {
 
 els.handVary.addEventListener("change", () => { applyHandVary(); scheduleRender(0); });
 els.handVaryInput.addEventListener("input", () => { applyHandVary(); scheduleRender(60); });
-els.exportGn.addEventListener("click", exportGoodnotes);
-els.exportPdf.addEventListener("click", exportPdf);
+// Ein Knopf „Exportieren“ öffnet das Export-Menü (js/export-menu.js) mit .goodnotes und PDF
+els.exportBtn.addEventListener("click", () => {
+  if (!state.pages.length) { toast("Es gibt noch nichts zum Exportieren.", { error: true }); return; }
+  openExportMenu({
+    title: "Exportieren",
+    options: [
+      { id: "gn", icon: "goodnotes", label: "Als Goodnotes", hint: ".goodnotes-Datei zum Öffnen in Goodnotes", loading: "Goodnotes-Datei wird erstellt …", success: "Goodnotes-Datei gespeichert", errorTitle: "Goodnotes-Export fehlgeschlagen", run: exportGoodnotes },
+      { id: "pdf", icon: "pdf", label: "Als PDF", hint: "Zum Drucken und Teilen", loading: "PDF wird erstellt …", success: "PDF gespeichert", errorTitle: "PDF-Export fehlgeschlagen", run: exportPdf },
+    ],
+  });
+});
 
 /* ---------- Eigene Handschrift: speichern und laden ----------
    Gast: localStorage. Angemeldet: Tabelle „handwriting“, eine Zeile je Benutzer (Zeilen-ID = Benutzer-ID),

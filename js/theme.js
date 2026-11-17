@@ -1,5 +1,6 @@
 /* Hell/Dunkel-Modus. Klassisches Skript im <head>, damit die Seite ohne Aufblitzen im richtigen Modus startet.
- * Gespeichert wird nur die Wahl „hell“ oder „dunkel“ (localStorage). Ohne Wahl gilt die Einstellung des Geräts. */
+ * Gespeichert wird nur die Wahl „hell“ oder „dunkel“ (localStorage). Ohne Wahl („System“) gilt die Einstellung des Geräts.
+ * Umgestellt wird im Profilmenü der Nav (js/profile-menu.js): pensumTheme.set("light" | "dark" | "system"). */
 (function () {
   var KEY = "pensum.theme";
   var root = document.documentElement;
@@ -12,15 +13,25 @@
   }
   apply(stored() || system());
   window.pensumTheme = {
+    /** Was gerade gilt: „light“ oder „dark“. */
     get: function () { return root.getAttribute("data-theme") || "light"; },
+    /** Was gewählt wurde: „light“, „dark“ oder „system“ (folgt dem Gerät). */
+    choice: function () { return stored() || "system"; },
     set: function (t) {
-      try { localStorage.setItem(KEY, t); } catch (e) {}
-      apply(t);
-      document.dispatchEvent(new CustomEvent("pensum-theme", { detail: t }));
+      if (t === "system") {
+        try { localStorage.removeItem(KEY); } catch (e) {}
+        apply(system());
+      } else {
+        try { localStorage.setItem(KEY, t); } catch (e) {}
+        apply(t);
+      }
+      document.dispatchEvent(new CustomEvent("pensum-theme", { detail: this.get() }));
     },
     toggle: function () { this.set(this.get() === "dark" ? "light" : "dark"); },
   };
   if (window.matchMedia) {
-    matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () { if (!stored()) apply(system()); });
+    matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () {
+      if (!stored()) { apply(system()); document.dispatchEvent(new CustomEvent("pensum-theme", { detail: window.pensumTheme.get() })); }
+    });
   }
 })();

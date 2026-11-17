@@ -1,0 +1,59 @@
+/* Empty State (Nachbau von Kokonut UI „Empty State“, MIT). Siehe js/empty-state.js. */
+
+.es {
+  display: grid; justify-items: center; align-content: center; gap: var(--s-xs); flex: 1;
+  min-height: 360px; padding: var(--s-xxl) var(--s-lg); border: 1px solid var(--hairline); border-radius: var(--r-md);
+  background: var(--canvas); text-align: center;
+}
+.es-compact { min-height: 0; padding: var(--s-xl) var(--s-md); border: 0; background: var(--canvas-soft); }
+.es > * { animation: es-rise 0.4s cubic-bezier(0.23, 1, 0.32, 1) both; }
+.es > :nth-child(2) { animation-delay: 0.05s; }
+.es > :nth-child(3) { animation-delay: 0.1s; }
+.es > :nth-child(4) { animation-delay: 0.15s; }
+@keyframes es-rise { from { opacity: 0; transform: translateY(8px); filter: blur(3px); } }
+
+/* Zeichnung: gestapelte Karten, vorn eine gestrichelte „Neu“-Karte */
+.es-art { position: relative; width: 132px; height: 96px; margin-bottom: var(--s-sm); }
+.es-compact .es-art { transform: scale(0.8); margin-bottom: 0; }
+.es-card {
+  position: absolute; left: 50%; top: 50%; display: grid; align-content: center; justify-items: center; gap: 6px;
+  width: 84px; height: 60px; margin: -30px 0 0 -42px; border-radius: 12px; border: 1px solid var(--hairline);
+  background: var(--canvas-soft); transition: transform 0.35s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.25s ease;
+}
+.es-card b { display: block; width: 44px; height: 4px; border-radius: 2px; background: var(--hairline); }
+.es-card b + b { width: 28px; }
+.es-card-3 { transform: translate(-22px, 4px) rotate(-12deg); opacity: 0.6; }
+.es-card-2 { transform: translate(22px, 4px) rotate(10deg); opacity: 0.8; }
+.es-card-1 { transform: translate(0, 0); background: var(--canvas); }
+.es-card-new {
+  border: 1.5px dashed var(--muted); background: transparent; color: var(--muted); opacity: 0;
+  transform: translate(0, 14px) scale(0.9);
+}
+.es-card-new svg { width: 20px; height: 20px; }
+
+/* Auf dem Hauptknopf hebt sich die Karte, die gleich entstehen würde */
+.es:has(.es-primary:hover, .es-primary:focus-visible) .es-card-new { opacity: 1; transform: translate(0, -6px) rotate(-3deg); }
+.es:has(.es-primary:hover, .es-primary:focus-visible) .es-card-1 { transform: translate(0, 10px) rotate(4deg); }
+.es:has(.es-primary:hover, .es-primary:focus-visible) .es-card-2 { transform: translate(30px, 8px) rotate(14deg); }
+.es:has(.es-primary:hover, .es-primary:focus-visible) .es-card-3 { transform: translate(-30px, 8px) rotate(-16deg); }
+
+.es-title { margin: 0; font-size: 1.0625rem; font-weight: 600; letter-spacing: -0.01em; }
+.es-text { max-width: 34ch; margin: 0; font-size: 0.875rem; line-height: 1.4; color: var(--muted); }
+.on-tint .es-text, .es-compact .es-text { color: var(--muted-on-tint); }
+.es-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s-xs); margin-top: var(--s-sm); }
+.es-btn {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 var(--s-md); border: 0; border-radius: var(--r-full, 999px);
+  font: inherit; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: background-color 0.15s ease, transform 0.12s ease;
+}
+.es-btn svg { width: 16px; height: 16px; }
+.es-btn:active { transform: scale(0.97); }
+.es-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.es-primary { background: var(--ink); color: var(--on-primary); }
+.es-primary:hover { background: var(--ink-soft); }
+.es-secondary { background: var(--canvas-soft); color: var(--ink); }
+.es-secondary:hover { background: var(--hairline); }
+
+@media (prefers-reduced-motion: reduce) {
+  .es > * { animation: none; }
+  .es-card, .es-btn { transition: none; }
+}

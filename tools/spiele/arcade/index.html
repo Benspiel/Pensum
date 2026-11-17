@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Security-Policy" content="default-src &#39;self&#39;; script-src &#39;self&#39;; style-src &#39;self&#39;; font-src &#39;self&#39;; img-src &#39;self&#39; data: blob:; connect-src &#39;self&#39;; worker-src &#39;self&#39;; manifest-src &#39;self&#39;; base-uri &#39;none&#39;; object-src &#39;none&#39;; form-action &#39;none&#39;">
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="A growing arcade of free browser games." />
+    <meta name="theme-color" content="#05050d" />
+    <title>GH Arcade</title>
+    <link rel="icon" href="/tools/spiele/arcade/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/tools/spiele/arcade/apple-touch-icon.png" />
+    <script type="module" crossorigin src="/tools/spiele/arcade/assets/hub-CarVMzjR.js"></script>
+    <link rel="modulepreload" crossorigin href="/tools/spiele/arcade/assets/rolldown-runtime-DK3Fl9T5.js">
+    <link rel="modulepreload" crossorigin href="/tools/spiele/arcade/assets/palette-Cb-7kNCq.js">
+    <link rel="modulepreload" crossorigin href="/tools/spiele/arcade/assets/controls-DX0EwpU8.js">
+    <link rel="modulepreload" crossorigin href="/tools/spiele/arcade/assets/controls-BMFSvtU9.js">
+    <link rel="modulepreload" crossorigin href="/tools/spiele/arcade/assets/controls-BOuPZnXw.js">
+    <link rel="modulepreload" crossorigin href="/tools/spiele/arcade/assets/controls-DDKpJIdu.js">
+    <link rel="modulepreload" crossorigin href="/tools/spiele/arcade/assets/controls-BE7mDGYg.js">
+    <link rel="stylesheet" crossorigin href="/tools/spiele/arcade/assets/palette-Dp41la40.css">
+    <link rel="stylesheet" crossorigin href="/tools/spiele/arcade/assets/hub-F_kxjPgt.css">
+  <link rel="manifest" href="/tools/spiele/arcade/manifest.webmanifest"></head>
+  <body>
+    <div class="scanlines" aria-hidden="true"></div>
+    <nav class="topbar" aria-label="Arcade options">
+      <button id="open-trophies" class="topbar-button" type="button">Trophies</button>
+      <button id="open-settings" class="topbar-button" type="button">Settings</button>
+    </nav>
+    <header class="marquee">
+      <p class="eyebrow">Insert coin</p>
+      <h1 class="title">GH<span>Arcade</span></h1>
+      <p class="tagline">Free browser games. No accounts, no ads. Just play.</p>
+      <button id="install" class="install" type="button" hidden>Install the arcade <span>plays offline</span></button>
+      <p id="ios-install" class="ios-install" hidden>
+        To install on iPhone or iPad: tap Share, then Add to Home Screen.
+        <button type="button" class="text-button">Got it</button>
+      </p>
+    </header>
+
+    <main>
+      <div class="toolbar">
+        <h2 class="section-title">Cabinets <span id="game-count" class="count"></span></h2>
+        <div id="filters" class="filters" role="group" aria-label="Filter by tag"></div>
+        <label class="sort">
+          <span>Sort</span>
+          <select id="sort">
+            <option value="featured">Featured</option>
+            <option value="recent">Recently played</option>
+            <option value="plays">Most played</option>
+            <option value="title">A to Z</option>
+          </select>
+        </label>
+      </div>
+      <p id="next-daily" class="next-daily" hidden></p>
+      <ul id="game-grid" class="grid"></ul>
+    </main>
+
+    <footer class="footer">
+      <p class="nav-tip">Tip: browse with the arrow keys or a gamepad, and press Enter or A to play.</p>
+      <a href="https://github.com/TMHSDigital/GH-Arcade">Source on GitHub</a>
+    </footer>
+
+    <dialog id="trophies" class="panel wide" aria-labelledby="trophies-title">
+      <div class="panel-inner">
+        <div class="panel-head">
+          <h2 id="trophies-title">Trophies</h2>
+          <button id="close-trophies" class="close" type="button" aria-label="Close trophies">Close</button>
+        </div>
+        <p id="trophy-summary" class="hint"></p>
+        <div id="trophy-list"></div>
+        <div class="panel-foot">
+          <p class="hint">Trophies and stats are saved on this device. Settings has a backup option.</p>
+          <button id="reset-trophies" class="text-button" type="button">Reset trophies and stats</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="settings" class="panel" aria-labelledby="settings-title">
+      <div class="panel-inner">
+        <div class="panel-head">
+          <h2 id="settings-title">Settings</h2>
+          <button id="close-settings" class="close" type="button" aria-label="Close settings">Close</button>
+        </div>
+
+        <section>
+          <h3>Sound</h3>
+          <label class="row">
+            <span>Volume</span>
+            <input id="volume" type="range" min="0" max="100" step="5" />
+            <output id="volume-value" for="volume"></output>
+          </label>
+          <label class="row check"><input id="muted" type="checkbox" /> <span>Mute all sound</span></label>
+        </section>
+
+        <section>
+          <h3>Accessibility</h3>
+          <label class="row check">
+            <input id="reduced-motion" type="checkbox" />
+            <span>Reduced motion <small>No screen shake, flashes or decorative animation</small></span>
+          </label>
+          <label class="row check">
+            <input id="colorblind" type="checkbox" />
+            <span>Colorblind-friendly colors <small>A palette that stays distinct with color vision deficiencies</small></span>
+          </label>
+          <div id="swatches" class="swatches" aria-hidden="true"></div>
+        </section>
+
+        <section id="touch-settings" hidden>
+          <h3>Touch controls</h3>
+          <label class="row">
+            <span>Button size</span>
+            <input id="touch-scale" type="range" min="80" max="150" step="10" />
+            <output id="touch-scale-value" for="touch-scale"></output>
+          </label>
+          <label class="row check">
+            <input id="touch-mirrored" type="checkbox" />
+            <span>Left-handed layout <small>The on-screen stick and buttons swap sides</small></span>
+          </label>
+          <label class="row check">
+            <input id="touch-haptics" type="checkbox" />
+            <span>Vibrate on button press <small>On devices that support it</small></span>
+          </label>
+        </section>
+
+        <section>
+          <h3>Keyboard controls</h3>
+          <p class="hint">Click Change, then press a new key (Esc cancels). Game-specific keys stay the same.</p>
+          <table class="bindings">
+            <tbody id="bindings"></tbody>
+          </table>
+          <p id="binding-note" class="hint" role="status" hidden></p>
+          <button id="reset-bindings" class="text-button" type="button">Reset controls</button>
+        </section>
+
+        <section>
+          <h3>Gamepad controls</h3>
+          <p class="hint">Click Change, then press a button on the gamepad (Esc cancels). The left stick always moves, and game-specific buttons stay the same.</p>
+          <table class="bindings">
+            <tbody id="pad-bindings"></tbody>
+          </table>
+          <p id="pad-binding-note" class="hint" role="status" hidden></p>
+          <label class="row check">
+            <input id="pad-rumble" type="checkbox" />
+            <span>Rumble on impacts <small>On gamepads and browsers that support it</small></span>
+          </label>
+          <button id="reset-pad-bindings" class="text-button" type="button">Reset gamepad</button>
+        </section>
+
+        <section id="your-data">
+          <h3>Your data</h3>
+          <p class="hint">Trophies, stats, best scores and settings are saved in this browser only. Download a backup to keep them safe or to move them to another device. Restoring replaces what is here; merging keeps the best of both.</p>
+          <p id="data-protection" class="hint" hidden></p>
+          <div class="data-actions">
+            <button id="export-data" class="text-button" type="button">Download backup</button>
+            <button id="import-data" class="text-button" type="button">Restore from backup</button>
+            <button id="merge-data" class="text-button" type="button">Merge a backup</button>
+            <button id="reset-scores" class="text-button" type="button">Reset best scores</button>
+          </div>
+          <input id="import-file" type="file" accept="application/json,.json" hidden />
+          <p id="data-note" class="hint" role="status" hidden></p>
+        </section>
+
+        <div class="panel-foot">
+          <p class="hint">Changes save automatically. Volume, sound, motion and colors can also be changed from a game's pause menu.</p>
+          <button id="reset-all" class="text-button" type="button">Reset all settings</button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- The "are you sure?" step for resets and restores (src/hub/confirm.ts). It comes after the
+         panels so it is the top dialog while it is open. -->
+    <dialog id="confirm" class="panel" aria-labelledby="confirm-question">
+      <div class="panel-inner">
+        <p id="confirm-question" class="confirm-question"></p>
+        <div class="confirm-actions">
+          <button id="confirm-cancel" class="text-button" type="button">Cancel</button>
+          <button id="confirm-ok" class="text-button danger" type="button">Confirm</button>
+        </div>
+      </div>
+    </dialog>
+
+  </body>
+</html>

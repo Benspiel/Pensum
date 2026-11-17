@@ -10,5 +10,11 @@ export function shuffle(list, rng = Math.random) {
   return a;
 }
 
+/** Größte Skalierung, bei der ein Spiel (w × h) komplett in die Fläche (areaW × areaH) passt. max begrenzt die Vergrößerung (1 = nie größer als das Original). */
+export function fitScale(w, h, areaW, areaH, max = Infinity) {
+  if (!(w > 0 && h > 0 && areaW > 0 && areaH > 0)) return 1;
+  return Math.min(max, areaW / w, areaH / h);
+}
+
 /** Sekunden als m:ss. */
 export const clock = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;

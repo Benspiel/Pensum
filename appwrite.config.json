@@ -681,6 +681,106 @@
                     ]
                 }
             ]
+        },
+        {
+            "$id": "chats",
+            "$permissions": [],
+            "databaseId": "pensum",
+            "name": "chats",
+            "enabled": true,
+            "rowSecurity": true,
+            "columns": [
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 36,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "title",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 120,
+                    "default": null,
+                    "encrypt": false
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "by_user",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId"
+                    ],
+                    "orders": [
+                        "ASC"
+                    ]
+                }
+            ]
+        },
+        {
+            "$id": "chat_messages",
+            "$permissions": [],
+            "databaseId": "pensum",
+            "name": "chat_messages",
+            "enabled": true,
+            "rowSecurity": true,
+            "columns": [
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 36,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "chatId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 36,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "role",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 5,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "text",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 20000,
+                    "default": null,
+                    "encrypt": false
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "by_chat",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "chatId"
+                    ],
+                    "orders": [
+                        "ASC"
+                    ]
+                }
+            ]
         }
     ],
     "functions": [
@@ -754,7 +854,7 @@
             ],
             "events": [],
             "schedule": "",
-            "timeout": 90,
+            "timeout": 120,
             "enabled": true,
             "logging": true,
             "entrypoint": "index.js",
@@ -781,6 +881,27 @@
             "commands": "",
             "scopes": [],
             "path": "functions/lehrer-schmidt"
+        },
+        {
+            "$id": "ki-chat",
+            "name": "ki-chat",
+            "runtime": "node-16.0",
+            "execute": [
+                "users"
+            ],
+            "events": [],
+            "schedule": "",
+            "timeout": 120,
+            "enabled": true,
+            "logging": true,
+            "entrypoint": "index.js",
+            "commands": "",
+            "scopes": [
+                "rows.read",
+                "rows.write",
+                "users.read"
+            ],
+            "path": "functions/ki-chat"
         }
     ]
 }

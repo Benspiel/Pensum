@@ -1,0 +1,1 @@
+import{t as e}from"./rolldown-runtime-DK3Fl9T5.js";import{E as t}from"./palette-Cb-7kNCq.js";var n=e({EXTRA_CONTROLS:()=>r}),r={undo:{label:`Undo`,keys:[`Z`,`BACKSPACE`,`U`],buttons:[t.b,t.x]},restart:{label:`Restart level`,keys:[`R`],buttons:[t.y]}};export{n,r as t};

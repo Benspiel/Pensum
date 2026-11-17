@@ -1,0 +1,14 @@
+/* Export-Menü: Dialog mit Stack-Panel-Zeilen (css/stack-panel.css). Siehe js/export-menu.js. */
+
+dialog.em { width: min(420px, calc(100vw - 2 * var(--gutter, 16px))); overflow: hidden; }
+.em-panel { border: 0; border-radius: 0; }
+.em-panel .sp-head { padding-right: var(--s-xs); }
+.em-close { justify-self: end; }
+.em-panel .sp-page { padding-top: var(--s-xs); }
+.em-row { min-height: 64px; gap: var(--s-md); }
+.em-row:disabled { opacity: 0.45; cursor: not-allowed; }
+.em-icon { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--canvas); color: var(--ink); box-shadow: 0 0 0 1px var(--hairline); }
+.em-icon svg { width: 20px; height: 20px; }
+.em-text { display: grid; flex: 1; min-width: 0; text-align: left; }
+.em-text b { font-size: 15px; font-weight: 600; }
+.em-text small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; color: var(--muted); }

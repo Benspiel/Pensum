@@ -38,7 +38,7 @@ const SLIDES = [
   {
     icon: svg('<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h4.5V14h4v5.5h4.5V10"/>'),
     title: "Schneller unterwegs.",
-    text: "Mit „Home“ oben in der Leiste kommst du aus jedem Tool zurück zur Startseite. Der Mindmap-Generator lädt außerdem deutlich schneller.",
+    text: "Mit dem Pensum-Logo oben links kommst du aus jedem Tool zurück zur Startseite. Hell, Dunkel und Abmelden findest du im Profilmenü oben rechts.",
   },
 ];
 

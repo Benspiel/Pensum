@@ -11,7 +11,8 @@ Schüler-Toolkit: mehrere Tools unter einem gemeinsamen Login. Statische Seite (
 
 - **Aufgaben** (`/tools/aufgaben/`): Arbeitsblatt als Foto, Bild oder PDF hochladen (nur mit Konto; bei mehrseitigen PDFs wählt man die Seite, jede Seite ist ein Durchlauf), Gemini bearbeitet die Aufgaben und liefert zu jeder Antwort das Schreibfeld auf dem Blatt (2 Durchläufe pro Tag). Der Browser schreibt die Antworten selbst auf das Blatt: in normaler Schrift, in einer Handschrift-Schriftart oder in der eigenen Handschrift aus dem Goodnotes-Tool. Antworten lassen sich ändern, entfernen und mit der Maus verschieben, Export als PDF oder PNG. Das Bild wird nirgends gespeichert. Siehe „Aufgaben einrichten“.
 
-- **Spiele** (`/tools/spiele/`): Vier gewinnt (KI, eigene Regeln in `connect4.js`, getestet) plus unveränderte Open-Source-Spiele in `vendor/games/` (Asteroids von dmcinnes, MIT; Dino-Runner aus Chromium in der Fassung von wayou, BSD-3). Sie laufen in einem iframe (`ui-embed.js`), die Lizenzen liegen jeweils als `LICENSE` daneben. Die Auswahl steht in `spiele.js`. Solange `soon` in `js/tools.js` gesetzt ist, sehen nur Mitglieder des Teams `tester` die Spiele.
+- **KI-Chat** (`/tools/kichat/`): Normale, gespeicherte Chats mit Gemini, nur für das Team `ki-tester`. Siehe „KI-Chat und Team Ki-Tester“.
+- **Spiele** (`/tools/spiele/`): Vier gewinnt (KI, eigene Regeln in `connect4.js`, getestet) plus unveränderte Open-Source-Spiele in `vendor/games/` (Asteroids von dmcinnes, MIT; Dino-Runner aus Chromium in der Fassung von wayou, BSD-3). Sie laufen in einem iframe (`ui-embed.js`), die Lizenzen liegen jeweils als `LICENSE` daneben. Die Seite zeigt zuerst große Kacheln mit kleiner Vorschau (`spiele.js`: Spiele und Vorschau-SVGs); ein Tipp öffnet das Spiel über die ganze Seite ohne Knöpfe, oben bleibt nur die Nav mit „‹ Spiele“ und dem Namen des Spiels (`PensumNav.setContext` in `js/shell.js`). Die offene Seite steht als `#vier`, `#asteroids` oder `#dino` in der Adresse, das Zurück des Browsers geht zur Übersicht. Touch: Vier gewinnt per Tippen auf eine Spalte, Dino-Runner per Tippen (springen) und einem Knopf zum Ducken, Asteroids mit Bildschirm-Knöpfen (Links, Rechts, Schub, Feuer, das Feuer startet auch das Spiel). Die Knöpfe lösen von außen die Tasten des unveränderten Spiels aus und erscheinen nur auf Touch-Geräten (Klasse `has-touch`). Asteroids ist im Querformat am größten. Solange `soon` in `js/tools.js` gesetzt ist, sehen nur Mitglieder des Teams `tester` die Spiele.
 
 Ohne Konto bleiben Daten im `localStorage`. Mit Konto liegen sie in Appwrite und sind auf allen Geräten gleich.
 
@@ -47,6 +48,8 @@ tools/abschreiben/         core.js (Bildgröße, Übergabe), abschreiben.js (Obe
 functions/abschreiben/     Appwrite-Function: Gemini mit Bild und Tageslimit (lib.js = Logik, index.js = Anbindung)
 tools/aufgaben/            core.js (Felder in Pixel, Textumbruch, Schriftgröße), aufgaben.js (Oberfläche, Zeichnen, PDF/PNG)
 functions/aufgaben/        Appwrite-Function: Gemini löst das Blatt und nennt die Schreibfelder, Tageslimit (lib.js = Logik, index.js = Anbindung)
+tools/kichat/              core.js (Textformatierung), kichat.js (Oberfläche: Chatliste, Unterhaltung)
+functions/ki-chat/         Appwrite-Function: Gemini-Chat mit Teamprüfung und Speicherung (lib.js = Logik, index.js = Anbindung)
 tools/spiele/              Vier gewinnt (connect4.js, ui-vier.js), Einbettung der Open-Source-Spiele (ui-embed.js), spiele.js (Auswahl)
 tools/goodnotes/           ink-engine.js (Inkly-Logik), goodnotes.js (Oberfläche), templates.js
 konto/passwort/            Zielseite für „Passwort zurücksetzen“
@@ -134,6 +137,41 @@ appwrite teams create-membership --team-id tester --user-id <Nutzer-ID> --roles 
 ```
 
 Die Nutzer-ID steht in der Appwrite-Konsole unter Auth → Users. Alternativ dort unter Auth → Teams → tester → Create membership.
+
+### KI-Chat und Team „Ki-Tester“
+
+Der **KI-Chat** (`/tools/kichat/`) ist ein normaler Chat mit Gemini. Chats und Nachrichten werden pro Konto gespeichert (Tabellen `chats` und `chat_messages`, Row Security, lesbar nur für den Besitzer). Die Seite füllt das ganze Fenster (ohne Kopftext und Footer): links bündig am Rand die Chatliste wie bei ChatGPT („Neuer Chat“ als erste Zeile, darunter nur die Titel), rechts die Unterhaltung mit der Eingabe unten; in schmalen Fenstern klappt die Liste über das Menü-Symbol auf. Im Eingabekasten wählt man die **Klasse (8 bis 12)**: Sie wird bei jeder Frage mitgeschickt und bestimmt, wie die KI antwortet (Klasse 8 einfach und mit Alltagsbeispielen, Klasse 12 auf Abitur-Niveau, die Texte stehen als `GRADES` in `functions/ki-chat/lib.js`). Die Wahl merkt sich der Browser. Eine Websuche gibt es nicht mehr. Oben links neben der Nav steht Symbol und Name des Tools (nur im breiten Fenster). Fährt man über einen Chat in der Liste, erscheint rechts „…“ (am Touch-Gerät immer): Das Menü bietet **Umbenennen** (die Zeile wird zum Eingabefeld, Enter oder Verlassen speichert, Escape bricht ab) und **Löschen**. Beides läuft über die Function (`rename` und `delete`, nur für eigene Chats). Unter jeder frischen Antwort steht eine einklappbare Zeile „3 Schritte · 1,4 s“ (Nachbau von Kokonut UI „AI Tool Calls“, MIT): Die Function misst ihre echten Schritte (Verlauf gelesen, Bild gelesen, Antwort geschrieben mit Klasse, Chat gespeichert) und schickt sie als `steps` mit der Antwort mit; `stepsHtml` in `tools/kichat/core.js` zeichnet sie. Gespeichert werden die Schritte nicht, nach dem Neuladen eines Chats fehlen sie. Man kann Chats fortsetzen und löschen. Das Tool hat in `js/tools.js` `team: "kiTester"`: Es ist nur für Mitglieder des Teams `ki-tester` (`kiTesterTeam` in `js/config.js`) sichtbar, für alle anderen weder Kachel noch Footer-Link. Das Team `tester` reicht dafür nicht.
+
+Anders als beim Team `tester` ist das auch serverseitig gesichert: Die Function `ki-chat` (`functions/ki-chat/`, `lib.js` = Logik, `index.js` = Anbindung) prüft bei jedem Aufruf die Mitgliedschaft, fragt Gemini (Verlauf bis 30 Nachrichten) und schreibt Frage und Antwort erst nach erfolgreicher Antwort in die Datenbank. Nur sie schreibt in die Tabellen; die Oberfläche liest und löscht über die Function. Grenzen: 4000 Zeichen pro Nachricht, 100 Chats pro Konto (`LIMITS` in `lib.js`). Es gibt kein Tageslimit.
+
+```bash
+appwrite teams create --team-id ki-tester --name "Ki-Tester"
+appwrite teams create-membership --team-id ki-tester --user-id <Nutzer-ID> --roles tester
+appwrite push tables
+appwrite push function --function-id ki-chat --force
+appwrite functions create-variable --function-id ki-chat --key GEMINI_API_KEY --value "<dein Schlüssel aus Google AI Studio>" --secret true
+```
+
+Optional `GEMINI_MODEL` (Standard `gemini-3.5-flash-lite`). Die Function braucht die Rechte `rows.read`, `rows.write` und `users.read` (für die Teamprüfung, steht in `appwrite.config.json`). Danach `appwrite push function` erneut ausführen, falls die Variable erst nach dem ersten Deploy gesetzt wurde. Fehlt die Function, zeigt das Tool „Der KI-Chat-Dienst ist noch nicht eingerichtet“.
+
+### Stack Panel und Loader
+
+Zwei kleine Bausteine, nachgebaut nach Kokonut UI (MIT, https://kokonutui.com) in Vanilla-JS und CSS, weil die Originale React und Tailwind brauchen:
+
+- **Stack Panel** (`js/stack-panel.js`, `css/stack-panel.css`): ein Panel mit Unterseiten wie die Einstellungen am Handy. Es steckt hinter der Konto-Seite (`/konto/`): Eine Zeile öffnet ihre Seite von rechts, die Beschriftung fliegt dabei in die Kopfzeile. Zurück mit dem Zurück-Knopf, Escape, dem Zurück des Browsers oder (Touch) einer Wischgeste. Die offene Seite steht als `#name` in der Adresse. Aufbau und Beispiel stehen im Kopf von `stack-panel.js`: Seiten sind `<div class="sp-page" data-sp-page="id" data-sp-title="Titel">`, Zeilen `<button data-sp-to="id">`. Die Seiten dürfen beliebigen Inhalt haben (hier die bestehenden Formulare). Bei „Bewegung reduzieren“ gibt es keine Animation.
+- **Loader** (`js/loader.js`, `css/loader.css`): vier drehende Ringe mit Titel und Untertitel, `loaderHtml({ title, subtitle, size: "sm" | "md" | "lg" })`. Eingesetzt beim Laden des Kontos, der Geräte, der Datenzahlen und alter Chats im KI-Chat.
+
+### Profilmenü in der Nav
+
+Die Nav-Pill hat nur noch das Logo (führt zur Startseite) und rechts das **Profilmenü** (`js/profile-menu.js`, Stile im Abschnitt „Profilmenü“ in `css/pensum.css`), nachgebaut nach Kokonut UI „Profile Dropdown“ (MIT, https://kokonutui.com). Der Home-Knopf, der Hell/Dunkel-Schalter und der Abmelden-Knopf in der Nav sind weg. Das Menü zeigt Avatar, Name und E-Mail, „Konto verwalten“, die **Darstellung** (Hell, Dunkel, System; „System“ folgt dem Gerät, `pensumTheme.set("system")` in `js/theme.js`) und **Abmelden**, das man 0,7 Sekunden gedrückt hält (Tastatur: Enter oder Leertaste meldet sofort ab). Bedienung per Pfeiltasten, Home/Ende, Escape schließt. Gäste sehen daneben „Anmelden“ und im Menü „Konto erstellen“ und die Darstellung. Im schmalen Fenster steht das Menü mittig unter der Nav.
+
+### Export-Menü, Promise Toast und Empty State
+
+Drei weitere Bausteine, nachgebaut nach Kokonut UI (MIT, https://kokonutui.com) in Vanilla-JS und CSS (die Stile laden die Module bei Bedarf selbst nach):
+
+- **Export-Menü** (`js/export-menu.js`, `js/export-core.js`, `css/export-menu.css`): Wer im Mindmap-Generator, im Goodnotes-Tool oder bei den Aufgaben auf „Exportieren“ drückt, bekommt ein Menü mit den Formaten des Tools (Zeilen im Stil des Stack Panels): Mindmap und Goodnotes-Tool bieten „Als Goodnotes“ und „Als PDF“, die Aufgaben „Als PDF“ und „Als Bild“. Ein Format ergänzen heißt eine Zeile in `openExportMenu({ options })` hinzufügen: `{ id, icon: "goodnotes" | "pdf" | "image", label, hint, loading, success, errorTitle, run }`. `run` speichert die Datei und gibt den Dateinamen (oder einen Hinweis) zurück, Fehler wirft es. Gibt `run` `CANCELLED` zurück (z. B. nach „Abbrechen“ in einer Rückfrage), verschwindet der Toast still.
+- **Promise Toast** (`js/promise-toast.js`, `css/promise-toast.css`): `promiseToast(async (report) => …, { loading, waiting?, count?, success, error, undo? })` zeigt unten rechts einen Toast, der erst „arbeitet“, dann „fertig“ oder „fehlgeschlagen“ meldet (mit „Nochmal“, optional „Rückgängig“). Mehrere Toasts stapeln sich und fächern sich bei Maus oder Fokus auf. Das Export-Menü nutzt ihn für jeden Export. Der einfache `toast()` aus `js/shell.js` bleibt für kurze Meldungen.
+- **Empty State** (`js/empty-state.js`, `css/empty-state.css`): `emptyStateHtml({ title, description, primary: { label, act }, secondary?, compact? })`: gestapelte Karten als Zeichnung, Text und Knöpfe (`act` wird zu `data-act`). Fährt man auf den Hauptknopf, hebt sich die Karte, die entstehen würde. Eingesetzt bei den Karteikarten: ohne Stapel („Noch keine Vokabelstapel“) und in einem Stapel ohne Karten („Erste Karte hinzufügen“).
 
 ### Rechtsseiten
 

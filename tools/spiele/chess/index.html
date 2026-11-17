@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chess</title>
+<link rel="stylesheet" href="chess.css">
+</head>
+<body>
+<div id="sprite-host" aria-hidden="true"></div>
+
+<div class="app">
+  <main class="board-wrap">
+    <div id="board" class="board" role="application" aria-label="Chess board">
+      <div id="squares" class="squares"></div>
+      <div id="pieces" class="pieces"></div>
+      <svg id="arrows" class="arrows" viewBox="0 0 800 800" aria-hidden="true">
+        <defs>
+          <marker id="arrow-head" viewBox="0 0 10 10" refX="3" refY="5" markerWidth="3" markerHeight="3" orient="auto">
+            <path d="M0 0L10 5L0 10z" fill="#d2a04a"/>
+          </marker>
+        </defs>
+        <g id="arrow-g"></g>
+      </svg>
+      <div id="promo" class="promo hidden"></div>
+    </div>
+  </main>
+
+  <aside class="panel">
+    <div class="card" id="card-top"></div>
+    <div class="moves-box">
+      <div class="moves-head"><span>Moves</span><button id="live-btn" class="link hidden" type="button">Back to live position</button></div>
+      <div id="moves" class="moves"></div>
+    </div>
+    <div class="status" id="status" aria-live="polite"></div>
+    <div class="card" id="card-bottom"></div>
+    <div class="controls">
+      <button class="btn primary" id="btn-new" type="button">New game</button>
+      <button class="btn" id="btn-undo" type="button">Undo</button>
+      <button class="btn" id="btn-hint" type="button">Hint</button>
+      <button class="btn" id="btn-flip" type="button">Flip</button>
+      <button class="btn" id="btn-resign" type="button">Resign</button>
+      <button class="btn" id="btn-sound" type="button" aria-pressed="false">Sound on</button>
+      <button class="btn" id="btn-fen" type="button">Copy FEN</button>
+      <button class="btn" id="btn-pgn" type="button">Copy PGN</button>
+      <button class="btn" id="btn-help" type="button" aria-haspopup="dialog">Help</button>
+    </div>
+  </aside>
+</div>
+
+<div id="modal-new" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="new-title">
+  <div class="dialog">
+    <h2 id="new-title">New game</h2>
+    <div class="field">
+      <div class="label">Play as</div>
+      <div class="seg" id="seg-color">
+        <button type="button" data-v="w">White</button>
+        <button type="button" data-v="b">Black</button>
+        <button type="button" data-v="r">Random</button>
+      </div>
+    </div>
+    <div class="field">
+      <div class="label">Difficulty</div>
+      <div class="seg" id="seg-level">
+        <button type="button" data-v="beginner">Beginner</button>
+        <button type="button" data-v="improver">Improver</button>
+        <button type="button" data-v="casual">Casual</button>
+        <button type="button" data-v="club">Club</button>
+        <button type="button" data-v="strong">Strong</button>
+      </div>
+      <div class="desc" id="level-desc"></div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="new-cancel" type="button">Cancel</button>
+      <button class="btn primary" id="new-start" type="button">Start game</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-over" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="over-title">
+  <div class="dialog over">
+    <div class="over-score" id="over-score"></div>
+    <h2 id="over-title"></h2>
+    <p id="over-reason"></p>
+    <div class="actions">
+      <button class="btn" id="over-close" type="button">Review game</button>
+      <button class="btn primary" id="over-new" type="button">New game</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-help" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="help-title">
+  <div class="dialog help">
+    <div class="help-body">
+      <h2 id="help-title">About this game</h2>
+      <p class="lead">You against the computer, standard chess rules, no clock. The engine runs in the background, so the board stays responsive while it thinks.</p>
+
+      <h3>Difficulty levels</h3>
+      <table class="lvl">
+        <thead><tr><th>Level</th><th>Approx. Elo</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td>Beginner</td><td>400–700</td><td>Looks one move ahead with random noise in its judgement; about one move in three is a deliberately weaker choice. Hangs pieces regularly.</td></tr>
+          <tr><td>Improver</td><td>1000–1300</td><td>Looks three half-moves ahead with a little noise; about one move in eight is a weaker alternative. Sees simple tactics, misses deeper ones, and drops material now and then.</td></tr>
+          <tr><td>Casual</td><td>1500–1700</td><td>Full search, about 0.5 s per move. Tactically alert in short lines; strategically shallow.</td></tr>
+          <tr><td>Club</td><td>1700–1900</td><td>About 1.5 s per move, typically 7–9 moves (half-moves) deep.</td></tr>
+          <tr><td>Strong</td><td>1900–2150</td><td>About 4 s per move, typically 9–10 half-moves deep plus a full capture search.</td></tr>
+        </tbody>
+      </table>
+      <p class="note">These are estimates, not measured ratings, and roughly on a computer-rating-list scale; against humans in slower games they mean about a strong club player at Strong. They hold on a reasonably fast laptop or desktop. On a phone or older computer the engine searches less deeply, which costs roughly 100–200 Elo at the time-based levels.</p>
+
+      <h3>How the computer plays</h3>
+      <ul>
+        <li><strong>Openings:</strong> a built-in book of about 20 main lines (Ruy Lopez, Italian, Sicilian, French, Caro-Kann, QGD, Slav, King's Indian, Nimzo, Grünfeld, English, Réti and others), chosen at random, so games start differently. Once out of book it plays on its own judgement.</li>
+        <li><strong>Strengths:</strong> short tactics, exchanges, punishing loose pieces, king attacks against a weakened pawn shield.</li>
+        <li><strong>Weaknesses:</strong> long-term planning, closed positions, fortresses, and anything that only pays off beyond its search depth.</li>
+        <li><strong>Endgames:</strong> plays king + pawn vs king perfectly (opposition included). It knows the standard drawn cases: wrong-coloured bishop with a rook pawn, KNN vs K, rook vs minor piece, and opposite-coloured bishops and single-rook endings as drawish. It can mate with K+Q, K+R and K+B+N. There are no endgame tablebases beyond K+P vs K.</li>
+        <li>It never resigns and never offers a draw.</li>
+      </ul>
+
+      <h3>Rules</h3>
+      <ul>
+        <li>Full rules: castling (including all check conditions), en passant, promotion to any piece.</li>
+        <li>Draws are applied automatically without a claim: stalemate, threefold repetition, the 50-move rule, and insufficient material (K vs K, K+minor vs K, K+B vs K+B with same-coloured bishops).</li>
+      </ul>
+
+      <h3>Controls</h3>
+      <ul>
+        <li><strong>Moving:</strong> click a piece then a target square, or drag it. Dots mark legal moves, rings mark captures. On promotion, pick the piece from the menu that opens on the promotion square.</li>
+        <li><strong>Undo:</strong> takes back your last move and the computer's reply. Use it freely; nothing is counted.</li>
+        <li><strong>Hint:</strong> draws an arrow for a suggested move, using the Club level.</li>
+        <li><strong>Move list:</strong> click any move to see that position. You can't move while reviewing; use "Back to live position" (or click the last move) to return.</li>
+        <li><strong>Resign:</strong> click twice to confirm.</li>
+        <li><strong>Copy FEN / Copy PGN:</strong> for analysis in another program. FEN copies the position currently shown, including a reviewed one.</li>
+        <li><strong>Esc</strong> closes dialogs and cancels a promotion choice.</li>
+      </ul>
+
+      <h3>Saving</h3>
+      <p>The game is saved in this browser automatically and continues after a reload. It is not shared between browsers or devices; clearing site data or using a private window loses it.</p>
+    </div>
+    <div class="help-foot"><button class="btn primary" id="help-close" type="button">Close</button></div>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status"></div>
+
+<script src="engine.js"></script>
+
+
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -4,9 +4,14 @@ import { client, account, onAuthChange, refresh, logout, authMessage, initials, 
 import { tablesDB, databaseId, tableIds, listAllRows, Query } from "/js/db.js";
 import { config } from "/js/config.js";
 import { toast, confirmDialog, esc } from "/js/shell.js";
+import { initStackPanel } from "/js/stack-panel.js";
+import { loaderHtml } from "/js/loader.js";
 
 const $ = (id) => document.getElementById(id);
 let user = null;
+
+// Bis die Anmeldung geprüft ist, zeigt die Seite den Loader statt einer leeren Fläche
+$("accLoading").innerHTML = loaderHtml({ title: "Konto wird geladen …", subtitle: "Einen Moment bitte." });
 
 function message(form, text, ok = false) {
   const el = form.querySelector(".form-message");
@@ -45,19 +50,9 @@ function renderProfile() {
   if (document.activeElement !== $("nameForm").elements.name) $("nameForm").elements.name.value = user.name || "";
 }
 
-/* ---------- Bereiche (Profil / Sicherheit / Daten) ---------- */
+/* ---------- Einstellungen: Stack Panel mit Unterseiten (js/stack-panel.js) ---------- */
 
-function showTab(name) {
-  const known = ["profil", "sicherheit", "daten"].includes(name) ? name : "profil";
-  document.querySelectorAll("[data-panel]").forEach((p) => { p.hidden = p.dataset.panel !== known; });
-  document.querySelectorAll("#accTabs [data-tab]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.tab === known)));
-  return known;
-}
-$("accTabs").addEventListener("click", (e) => {
-  const b = e.target.closest("[data-tab]");
-  if (b) history.replaceState(null, "", "#" + showTab(b.dataset.tab));
-});
-showTab(location.hash.slice(1));
+initStackPanel($("accPanel"));
 
 $("nameForm").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -94,7 +89,6 @@ let googleIdentity = null;
 
 async function loadGoogle() {
   if (!googleEnabled) return;
-  $("googlePanel").hidden = false;
   try {
     const { identities } = await account.listIdentities();
     googleIdentity = identities.find((i) => i.provider === "google") || null;
@@ -105,7 +99,9 @@ async function loadGoogle() {
   }
   $("googleMsg").hidden = true;
   // Verbinden ist aus: Ohne Cookie auf der Appwrite-Domain legt Appwrite ein neues Konto an, statt das bestehende zu verknüpfen.
-  $("googlePanel").hidden = !googleIdentity;
+  // Die Zeile in den Einstellungen gibt es nur, wenn schon ein Google-Konto verbunden ist.
+  $("googleRow").hidden = !googleIdentity;
+  $("valGoogle").textContent = googleIdentity ? "Verbunden" : "";
   $("googleText").textContent = googleIdentity
     ? `Verbunden mit ${googleIdentity.providerEmail || "deinem Google-Konto"}. Du kannst dich damit ohne Passwort anmelden.`
     : "Verbinde dein Google-Konto, um dich künftig mit einem Tipp anzumelden.";
@@ -131,6 +127,7 @@ let sessions = [];
 
 async function loadSessions() {
   const list = $("sessionList");
+  list.innerHTML = `<li>${loaderHtml({ title: "Geräte werden geladen …", size: "sm" })}</li>`;
   try {
     sessions = (await account.listSessions()).sessions;
   } catch (e) {
@@ -140,6 +137,7 @@ async function loadSessions() {
     return;
   }
   $("sessionMsg").hidden = true;
+  $("valSessions").textContent = sessions.length === 1 ? "1 Gerät" : `${sessions.length} Geräte`;
   sessions.sort((a, b) => (b.current - a.current) || (new Date(b.$createdAt) - new Date(a.$createdAt)));
   list.innerHTML = sessions.map((s) => {
     const what = [s.clientName, s.osName].filter(Boolean).join(" auf ") || s.provider || "Unbekanntes Gerät";
@@ -183,6 +181,7 @@ const strip = (row) => Object.fromEntries(Object.entries(row).filter(([k]) => !k
 
 async function loadCounts() {
   const msg = $("dataMsg");
+  $("dataCount").innerHTML = loaderHtml({ title: "Daten werden gezählt …", size: "sm" });
   try {
     const [s, g, h, m, dk, ca, pl] = await Promise.all([ownRows(tableIds.subjects), ownRows(tableIds.grades), ownRows(tableIds.handwriting), ownRows(tableIds.mindmaps), ownRows(tableIds.decks), ownRows(tableIds.cards), ownRows(tableIds.planner)]);
     const stat = (n, one, many) => `<span class="chip-stat"><strong>${n}</strong> ${n === 1 ? one : many}</span>`;
@@ -191,6 +190,7 @@ async function loadCounts() {
     msg.hidden = true;
     return { subjects: s, grades: g, handwriting: h, mindmaps: m, decks: dk, cards: ca, planner: pl };
   } catch (e) {
+    $("dataCount").innerHTML = "";
     msg.textContent = authMessage(e);
     msg.hidden = false;
     return null;
@@ -279,6 +279,7 @@ onAuthChange(({ status, user: u }) => {
   if (status !== "ready") return;
   const first = !user && !!u;
   user = u;
+  $("accLoading").hidden = true;
   $("accGuest").hidden = !!u;
   $("accMain").hidden = !u;
   if (!u) return;

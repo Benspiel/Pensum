@@ -1,0 +1,1 @@
+import{t as e}from"./rolldown-runtime-DK3Fl9T5.js";import{E as t}from"./palette-Cb-7kNCq.js";var n=e({EXTRA_CONTROLS:()=>r}),r={flag:{label:`Flag`,keys:[`F`],buttons:[t.y]},flagMode:{label:`Flag mode`,keys:[`T`],buttons:[t.x]}};export{n,r as t};
