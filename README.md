@@ -9,7 +9,7 @@ Schüler-Toolkit: mehrere Tools unter einem gemeinsamen Login. Statische Seite (
 
 - **Abschreiben** (`/tools/abschreiben/`): Tafelbild fotografieren (nur mit Konto), Gemini liest den Text heraus (5 Scans pro Tag). Der Text lässt sich kopieren oder mit „In Handschrift umwandeln“ ans Goodnotes-Tool übergeben (Schrift, eigene Handschrift, Export dort). Das Foto wird im Browser auf höchstens 1800 px verkleinert und nirgends gespeichert. Siehe „Abschreiben einrichten“.
 
-- **Aufgaben** (`/tools/aufgaben/`): Arbeitsblatt als Foto oder Screenshot hochladen (nur mit Konto), Gemini bearbeitet die Aufgaben und liefert zu jeder Antwort das Schreibfeld auf dem Blatt (2 Durchläufe pro Tag). Der Browser schreibt die Antworten selbst auf das Blatt: in normaler Schrift, in einer Handschrift-Schriftart oder in der eigenen Handschrift aus dem Goodnotes-Tool. Antworten lassen sich ändern, entfernen und mit der Maus verschieben, Export als PDF oder PNG. Das Bild wird nirgends gespeichert. Siehe „Aufgaben einrichten“.
+- **Aufgaben** (`/tools/aufgaben/`): Arbeitsblatt als Foto, Bild oder PDF hochladen (nur mit Konto; bei mehrseitigen PDFs wählt man die Seite, jede Seite ist ein Durchlauf), Gemini bearbeitet die Aufgaben und liefert zu jeder Antwort das Schreibfeld auf dem Blatt (2 Durchläufe pro Tag). Der Browser schreibt die Antworten selbst auf das Blatt: in normaler Schrift, in einer Handschrift-Schriftart oder in der eigenen Handschrift aus dem Goodnotes-Tool. Antworten lassen sich ändern, entfernen und mit der Maus verschieben, Export als PDF oder PNG. Das Bild wird nirgends gespeichert. Siehe „Aufgaben einrichten“.
 
 - **Spiele** (`/tools/spiele/`): 17 Spiele in vier Gruppen. Klassiker: 2048, Snake, Tetris, Minesweeper. Denken und Rätseln: Sudoku, Memory, Vier gewinnt (KI), Tic-Tac-Toe (KI), Schiebepuzzle, Lights Out, Mastermind. Wörter und Zahlen: Galgenmännchen, Kopfrechnen-Blitz. Geschick: Breakout, Pong (KI), Hüpfer, Simon. Alles ist selbst nach bekannten, freien Spielregeln geschrieben (kein fremder Code, keine fremden Bilder oder Töne). Die Regeln liegen ohne Oberfläche je Spiel in `tools/spiele/*.js` (getestet), die Oberflächen in `ui-klassiker.js`, `ui-denken.js`, `ui-geschick.js`, die Auswahl in `spiele.js`. Bestwerte stehen nur im `localStorage` (`pensum.spiele.best.v1`).
 
@@ -168,6 +168,13 @@ Projekt importieren, Framework „Other“, kein Build-Befehl, Ausgabeverzeichni
 ```bash
 npm i appwrite@28.3.0 esbuild
 npx esbuild node_modules/appwrite/dist/esm/sdk.js --bundle --format=esm --minify --outfile=vendor/appwrite.js
+```
+
+`vendor/pdfjs/` ist pdf.js 4.10.38 (Apache-2.0, `legacy`-Build, nur für PDF-Upload im Aufgaben-Tool; lädt erst, wenn ein PDF gewählt wird):
+
+```bash
+npm i pdfjs-dist@4.10.38
+cp node_modules/pdfjs-dist/legacy/build/pdf.min.mjs node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs vendor/pdfjs/
 ```
 
 Schriften kommen von Fontsource (SIL Open Font License), Lizenztexte liegen in `vendor/fonts/`.

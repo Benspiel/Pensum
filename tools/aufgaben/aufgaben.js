@@ -1,5 +1,5 @@
 /* Aufgaben – Oberfläche.
- * Das Blatt wird im Browser verkleinert und an die Appwrite-Function „aufgaben“ (functions/aufgaben) geschickt.
+ * Das Blatt (Foto, Bild oder eine PDF-Seite, gerendert mit pdf.js aus /vendor/pdfjs) wird im Browser verkleinert und an die Appwrite-Function „aufgaben“ (functions/aufgaben) geschickt.
  * Sie hält den Gemini-Schlüssel und zählt das Tageslimit (2 Durchläufe pro Tag). Das Bild wird nirgends gespeichert.
  * Die Antworten schreibt dieses Modul selbst auf das Blatt (Schrift oder eigene Handschrift) und exportiert PDF oder PNG. */
 import { onAuthChange, client, authMessage } from "/js/auth.js";
@@ -17,6 +17,7 @@ const els = {
   gate: $("gate"), app: $("app"), usage: $("usage"),
   drop: $("drop"), preview: $("preview"), empty: $("empty"),
   camInput: $("camInput"), fileInput: $("fileInput"), camLabel: $("camLabel"), fileLabel: $("fileLabel"),
+  pageField: $("pageField"), pageSel: $("pageSel"),
   sheetError: $("sheetError"), solveBtn: $("solveBtn"),
   resultEmpty: $("resultEmpty"), resultBody: $("resultBody"),
   fontSel: $("fontSel"), inkSel: $("inkSel"), size: $("sizeInput"), sizeVal: $("sizeVal"), handHint: $("handHint"),
@@ -27,6 +28,7 @@ const els = {
 const state = {
   sheet: null,      // Canvas mit dem Blatt in voller Ausgabegröße
   sendBase64: "",   // verkleinertes JPEG für die KI
+  pdf: null,        // { doc, pages, page }, wenn das Blatt ein PDF ist
   previewUrl: "",
   fields: [],       // { id, box, text }
   skipped: [],
@@ -103,16 +105,8 @@ function drawScaled(source, w, h) {
   return canvas;
 }
 
-/** Macht aus der Datei das Blatt in Ausgabegröße und ein kleines JPEG für die KI. Drehung laut Kamera wird übernommen. */
-async function prepareSheet(file) {
-  let source;
-  try {
-    source = await createImageBitmap(file, { imageOrientation: "from-image" });
-  } catch (_) {
-    try { source = await loadImage(file); } catch (__) {
-      throw new Error("Dieses Bild kann der Browser nicht öffnen. Nimm ein Foto direkt mit der Kamera auf oder wähle ein JPEG oder PNG.");
-    }
-  }
+/** Macht aus einer Bildquelle (Bild oder Canvas) das Blatt in Ausgabegröße und ein kleines JPEG für die KI. */
+async function sheetFromSource(source) {
   const sw = source.width || source.naturalWidth, sh = source.height || source.naturalHeight;
   const out = fitSize(sw, sh, OUT_SIDE);
   const sheet = drawScaled(source, out.width, out.height);
@@ -129,22 +123,113 @@ async function prepareSheet(file) {
   throw new Error("Das Bild ist zu groß. Geh etwas weiter weg oder wähle ein kleineres Bild.");
 }
 
+/** Foto oder Bilddatei: Drehung laut Kamera wird übernommen. */
+async function sheetFromImage(file) {
+  let source;
+  try {
+    source = await createImageBitmap(file, { imageOrientation: "from-image" });
+  } catch (_) {
+    try { source = await loadImage(file); } catch (__) {
+      throw new Error("Dieses Bild kann der Browser nicht öffnen. Nimm ein Foto direkt mit der Kamera auf oder wähle ein JPEG oder PNG.");
+    }
+  }
+  return sheetFromSource(source);
+}
+
+/* ---------- PDF ---------- */
+
+const PDF_MAX_BYTES = 25 * 1024 * 1024;
+let pdfjs = null;
+
+/** pdf.js erst laden, wenn jemand ein PDF wählt (liegt lokal in /vendor/pdfjs, nichts kommt von außen). */
+async function loadPdfjs() {
+  if (!pdfjs) {
+    pdfjs = await import("/vendor/pdfjs/pdf.min.mjs");
+    pdfjs.GlobalWorkerOptions.workerSrc = "/vendor/pdfjs/pdf.worker.min.mjs";
+  }
+  return pdfjs;
+}
+
+const isPdf = (file) => file.type === "application/pdf" || /\.pdf$/i.test(file.name || "");
+
+async function openPdf(file) {
+  if (file.size > PDF_MAX_BYTES) throw new Error("Das PDF ist größer als 25 MB. Wähle ein kleineres oder mach einen Screenshot.");
+  let doc;
+  try {
+    const lib = await loadPdfjs();
+    doc = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+  } catch (e) {
+    if (e && e.name === "PasswordException") throw new Error("Das PDF ist passwortgeschützt. Hebe den Schutz auf oder mach einen Screenshot.");
+    throw new Error("Dieses PDF kann der Browser nicht öffnen. Mach einen Screenshot vom Blatt oder wähle ein anderes PDF.");
+  }
+  if (state.pdf) state.pdf.doc.destroy();
+  state.pdf = { doc, pages: doc.numPages, page: 1 };
+  return renderPdfPage(1);
+}
+
+/** Zeichnet eine PDF-Seite so groß, dass die lange Kante der Ausgabegröße entspricht, und macht daraus das Blatt. */
+async function renderPdfPage(n) {
+  const page = await state.pdf.doc.getPage(n);
+  const base = page.getViewport({ scale: 1 });
+  const scale = OUT_SIDE / Math.max(base.width, base.height);
+  const vp = page.getViewport({ scale });
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(vp.width)); canvas.height = Math.max(1, Math.round(vp.height));
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height); // PDF-Seiten sind oft transparent
+  await page.render({ canvasContext: ctx, viewport: vp }).promise;
+  page.cleanup();
+  return sheetFromSource(canvas);
+}
+
+function renderPageField() {
+  const many = !!state.pdf && state.pdf.pages > 1;
+  els.pageField.hidden = !many;
+  if (!many) return;
+  els.pageSel.innerHTML = Array.from({ length: state.pdf.pages }, (_, i) => `<option value="${i + 1}">Seite ${i + 1} von ${state.pdf.pages}</option>`).join("");
+  els.pageSel.value = String(state.pdf.page);
+}
+
+function applySheet(p) {
+  if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+  state.sheet = p.sheet;
+  state.sendBase64 = p.base64;
+  state.previewUrl = URL.createObjectURL(p.blob);
+  els.preview.src = state.previewUrl;
+  clearResult(); // altes Ergebnis passt nicht mehr zum neuen Blatt
+}
+
 async function setFile(file) {
   if (!file || state.busy) return;
   showMessage(els.sheetError, "");
-  if (!/^image\//.test(file.type || "image/")) { showMessage(els.sheetError, "Das ist kein Bild. Mach ein Foto oder einen Screenshot vom Blatt."); return; }
+  const pdf = isPdf(file);
+  if (!pdf && !/^image\//.test(file.type || "image/")) { showMessage(els.sheetError, "Das ist weder Bild noch PDF. Mach ein Foto oder einen Screenshot vom Blatt oder wähle ein PDF."); return; }
   els.solveBtn.disabled = true;
   els.solveBtn.textContent = "Blatt wird vorbereitet …";
   try {
-    const p = await prepareSheet(file);
-    if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
-    state.sheet = p.sheet;
-    state.sendBase64 = p.base64;
-    state.previewUrl = URL.createObjectURL(p.blob);
-    els.preview.src = state.previewUrl;
-    clearResult(); // altes Ergebnis passt nicht mehr zum neuen Blatt
+    if (!pdf && state.pdf) { state.pdf.doc.destroy(); state.pdf = null; }
+    applySheet(pdf ? await openPdf(file) : await sheetFromImage(file));
   } catch (e) {
     showMessage(els.sheetError, e.message);
+  }
+  renderPageField();
+  renderSheetPanel();
+}
+
+/** Andere Seite des PDFs wählen. Jede Seite ist ein eigener Durchlauf. */
+async function changePage() {
+  if (!state.pdf || state.busy) return;
+  const n = Number(els.pageSel.value);
+  showMessage(els.sheetError, "");
+  els.solveBtn.disabled = true;
+  els.solveBtn.textContent = "Seite wird vorbereitet …";
+  try {
+    const p = await renderPdfPage(n);
+    state.pdf.page = n;
+    applySheet(p);
+  } catch (e) {
+    showMessage(els.sheetError, "Diese Seite konnte nicht geladen werden.");
+    els.pageSel.value = String(state.pdf.page);
   }
   renderSheetPanel();
 }
@@ -241,7 +326,7 @@ function renderSheetPanel() {
   els.solveBtn.classList.toggle("is-busy", state.busy);
   els.solveBtn.textContent = state.busy ? "Die KI bearbeitet das Blatt …" : has ? "Aufgaben ausfüllen" : "Erst ein Blatt wählen";
   for (const l of [els.camLabel, els.fileLabel]) l.classList.toggle("is-disabled", state.busy);
-  els.camInput.disabled = els.fileInput.disabled = state.busy;
+  els.camInput.disabled = els.fileInput.disabled = els.pageSel.disabled = state.busy;
   if (has && state.usage && left() <= 0 && !state.busy) showMessage(els.sheetError, `Du hast heute beide Durchläufe verbraucht. Morgen sind es wieder ${state.usage.maxRuns}.`);
 }
 
@@ -438,6 +523,7 @@ els.canvas.addEventListener("pointercancel", endDrag);
 els.camInput.addEventListener("change", () => { setFile(els.camInput.files[0]); els.camInput.value = ""; });
 els.fileInput.addEventListener("change", () => { setFile(els.fileInput.files[0]); els.fileInput.value = ""; });
 els.solveBtn.addEventListener("click", solve);
+els.pageSel.addEventListener("change", changePage);
 els.fontSel.addEventListener("change", changeFont);
 els.inkSel.addEventListener("change", () => { state.inkId = els.inkSel.value; redraw(); });
 els.size.addEventListener("input", () => { state.scale = Number(els.size.value) / 100; els.sizeVal.textContent = `${els.size.value} %`; redraw(); });
