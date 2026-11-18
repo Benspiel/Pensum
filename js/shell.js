@@ -106,6 +106,7 @@ function buildAuthDialog() {
       <button class="btn btn-primary btn-wide" type="submit"></button>
       <div class="auth-or" data-google-or hidden><span>oder</span></div>
       <button class="btn btn-outline btn-wide btn-google" type="button" data-google hidden>${ICON.google}<span>Mit Google fortfahren</span></button>
+      <p class="body-sm center muted" data-google-note hidden>Legst du mit Google ein neues Konto an, bestätigst du, dass du mindestens 16 Jahre alt bist und die <a href="/nutzungsbedingungen/" target="_blank" rel="noopener">Nutzungsbedingungen</a> und die <a href="/datenschutz/" target="_blank" rel="noopener">Datenschutzerklärung</a> akzeptierst.</p>
       <p class="body-sm center muted" data-only="code"><button type="button" class="text-link" data-resend>Code erneut senden</button> · <button type="button" class="text-link" data-switch="login">Zurück</button></p>
       <p class="body-sm center" data-only="login"><button type="button" class="text-link" data-switch="forgot">Passwort vergessen?</button></p>
       <p class="body-sm center muted" data-only="login">Noch kein Konto? <button type="button" class="text-link" data-switch="register">Registrieren</button></p>
@@ -125,7 +126,11 @@ function buildAuthDialog() {
 
   d.querySelector("[data-close]").addEventListener("click", () => d.close());
   d.querySelectorAll("[data-switch]").forEach((b) => b.addEventListener("click", () => setAuthMode(b.dataset.switch)));
-  d.querySelector("[data-google]").addEventListener("click", () => auth.loginWithGoogle());
+  d.querySelector("[data-google]").addEventListener("click", () => {
+    const terms = d.querySelector('[name="terms"]');
+    if (authMode === "register" && terms && !terms.checked) { showMessage("Bitte bestätige zuerst, dass du mindestens 16 bist und die Bedingungen akzeptierst."); return; }
+    auth.loginWithGoogle();
+  });
   d.querySelector("[data-resend]").addEventListener("click", async () => {
     if (!pendingCode) return;
     try {
@@ -193,6 +198,7 @@ function setAuthMode(mode, reason) {
   const showGoogle = auth.googleEnabled && (authMode === "login" || authMode === "register");
   d.querySelector("[data-google]").hidden = !showGoogle;
   d.querySelector("[data-google-or]").hidden = !showGoogle;
+  d.querySelector("[data-google-note]").hidden = !showGoogle;
   d._showMessage("");
 }
 
@@ -302,6 +308,7 @@ class PensumFooter extends HTMLElement {
                 <a href="/datenschutz/">Datenschutz</a>
                 <a href="/cookies/">Cookies und Speicher</a>
                 <a href="/nutzungsbedingungen/">Nutzungsbedingungen</a>
+                <a href="/lizenzen/">Lizenzen</a>
               </div>
             </div>
           </div>

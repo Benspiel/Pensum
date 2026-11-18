@@ -183,12 +183,12 @@ async function loadCounts() {
   const msg = $("dataMsg");
   $("dataCount").innerHTML = loaderHtml({ title: "Daten werden gezählt …", size: "sm" });
   try {
-    const [s, g, h, m, dk, ca, pl] = await Promise.all([ownRows(tableIds.subjects), ownRows(tableIds.grades), ownRows(tableIds.handwriting), ownRows(tableIds.mindmaps), ownRows(tableIds.decks), ownRows(tableIds.cards), ownRows(tableIds.planner)]);
+    const [s, g, h, m, dk, ca, pl, ch, cm] = await Promise.all([ownRows(tableIds.subjects), ownRows(tableIds.grades), ownRows(tableIds.handwriting), ownRows(tableIds.mindmaps), ownRows(tableIds.decks), ownRows(tableIds.cards), ownRows(tableIds.planner), ownRows(tableIds.chats), ownRows(tableIds.chatMessages)]);
     const stat = (n, one, many) => `<span class="chip-stat"><strong>${n}</strong> ${n === 1 ? one : many}</span>`;
     $("dataCount").innerHTML = stat(s.length, "Fach", "Fächer") + stat(g.length, "Note", "Noten") + stat(m.length, "Mindmap", "Mindmaps") + stat(dk.length, "Kartenstapel", "Kartenstapel") + stat(ca.length, "Karteikarte", "Karteikarten") + stat(pl.length, "Planer-Eintrag", "Planer-Einträge") +
       `<span class="chip-stat">${h.length ? "Handschrift-Profil vorhanden" : "Kein Handschrift-Profil"}</span>`;
     msg.hidden = true;
-    return { subjects: s, grades: g, handwriting: h, mindmaps: m, decks: dk, cards: ca, planner: pl };
+    return { subjects: s, grades: g, handwriting: h, mindmaps: m, decks: dk, cards: ca, planner: pl, chats: ch, chatMessages: cm };
   } catch (e) {
     $("dataCount").innerHTML = "";
     msg.textContent = authMessage(e);
@@ -210,6 +210,8 @@ $("exportBtn").addEventListener("click", async () => {
     kartenstapel: data.decks.map(strip),
     karteikarten: data.cards.map(strip),
     planer: data.planner.map(strip),
+    kiChats: data.chats.map(strip),
+    kiChatNachrichten: data.chatMessages.map(strip),
   };
   const url = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], { type: "application/json" }));
   const a = Object.assign(document.createElement("a"), { href: url, download: `pensum-daten-${new Date().toISOString().slice(0, 10)}.json` });
@@ -229,7 +231,7 @@ async function deleteAllRows() {
 }
 
 $("wipeBtn").addEventListener("click", async () => {
-  const ok = await confirmDialog({ title: "Inhalte löschen?", text: "Alle Fächer, Noten, Mindmaps, Karteikarten, Planer-Einträge und dein Handschrift-Profil im Konto werden gelöscht. Das Konto selbst bleibt. Das lässt sich nicht rückgängig machen.", confirm: "Inhalte löschen" });
+  const ok = await confirmDialog({ title: "Inhalte löschen?", text: "Alle Fächer, Noten, Mindmaps, Karteikarten, Planer-Einträge und dein Handschrift-Profil im Konto werden gelöscht. KI-Chats löschst du im KI-Chat selbst; sie verschwinden auch, wenn du das Konto löschst. Das Konto selbst bleibt. Das lässt sich nicht rückgängig machen.", confirm: "Inhalte löschen" });
   if (!ok) return;
   try {
     await deleteAllRows();

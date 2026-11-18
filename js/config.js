@@ -38,6 +38,9 @@ export const config = {
     email: "",         // E-Mail für Anfragen (Datenschutz, Impressum)
     phone: "",         // optional, aber im Impressum empfohlen
     smtpProvider: "",  // Anbieter des E-Mail-Versands (z. B. „Brevo, Frankreich“)
+    hoster: "",        // Anbieter und Land des Servers, auf dem Appwrite läuft (z. B. „Hetzner Online GmbH, Deutschland“)
+    logDays: "",       // nach wie vielen Tagen Server-Logs gelöscht werden (Zahl)
+    backupDays: "",    // nach wie vielen Tagen Sicherungskopien überschrieben werden (Zahl)
   },
 
   // Auf true setzen, sobald der Google-Provider in der Appwrite-Konsole eingerichtet ist (Auth → Settings → OAuth2).

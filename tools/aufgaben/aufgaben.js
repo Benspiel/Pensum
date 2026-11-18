@@ -164,7 +164,7 @@ async function openPdf(file) {
   let doc;
   try {
     const lib = await loadPdfjs();
-    doc = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+    doc = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise;
   } catch (e) {
     if (e && e.name === "PasswordException") throw new Error("Das PDF ist passwortgeschützt. Hebe den Schutz auf oder mach einen Screenshot.");
     throw new Error("Dieses PDF kann der Browser nicht öffnen. Mach einen Screenshot vom Blatt oder wähle ein anderes PDF.");

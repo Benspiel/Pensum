@@ -7,6 +7,7 @@
  * Nur angemeldete Personen dürfen aufrufen (execute: users); Appwrite setzt x-appwrite-user-id selbst.
  * Läuft ohne Abhängigkeiten, weil auf dem Server nur die Laufzeit node-16.0 aktiv ist. */
 "use strict";
+const http = require("http");
 const https = require("https");
 const { UserError, cleanTopic, mapResults, searchUrl, channelUrl, createCache } = require("./lib.js");
 
@@ -47,8 +48,47 @@ async function resolveChannel(key) {
   return id;
 }
 
+/** Nur Konten mit bestätigter E-Mail-Adresse dürfen Funktionen mit Kosten nutzen (die Prüfung im Browser allein ließe sich umgehen). */
+async function isVerified(key, userId) {
+  const base = new URL(process.env.APPWRITE_FUNCTION_API_ENDPOINT);
+  const lib = base.protocol === "https:" ? https : http;
+  const url = new URL(base.pathname.replace(/\/$/, "") + "/users/" + encodeURIComponent(userId), base);
+  const r = await new Promise((resolve, reject) => {
+    const req = lib.request(url, { method: "GET", headers: { "x-appwrite-project": process.env.APPWRITE_FUNCTION_PROJECT_ID, "x-appwrite-key": key } }, (res) => {
+      let data = "";
+      res.setEncoding("utf8");
+      res.on("data", (c) => { data += c; });
+      res.on("end", () => { try { resolve({ status: res.statusCode, json: data ? JSON.parse(data) : null }); } catch (_) { resolve({ status: res.statusCode, json: null }); } });
+    });
+    req.on("error", reject);
+    req.setTimeout(10000, () => req.destroy(new Error("Zeitüberschreitung")));
+    req.end();
+  });
+  return r.status === 200 && !!(r.json && r.json.emailVerification);
+}
+
+/** Einfache Obergrenze pro Person und Tag im Speicher der Function (setzt sich beim Neustart zurück, schützt vor Dauerfeuer eines einzelnen Kontos). */
+const perDay = new Map();
+function overLimit(userId, max) {
+  const day = new Date().toISOString().slice(0, 10);
+  if (perDay.size > 5000) perDay.clear();
+  const cur = perDay.get(userId);
+  const n = cur && cur.day === day ? cur.n + 1 : 1;
+  perDay.set(userId, { day, n });
+  return n > max;
+}
+
 module.exports = async ({ req, res, log, error }) => {
-  if (!req.headers["x-appwrite-user-id"]) return res.json({ ok: false, error: "Bitte melde dich an." }, 401);
+  const userId = req.headers["x-appwrite-user-id"];
+  const appKey = req.headers["x-appwrite-key"];
+  if (!userId || !appKey) return res.json({ ok: false, error: "Bitte melde dich an." }, 401);
+  try {
+    if (!(await isVerified(appKey, userId))) return res.json({ ok: false, error: "Bitte bestätige zuerst deine E-Mail-Adresse." }, 403);
+  } catch (e) {
+    error("Prüfung der E-Mail-Bestätigung fehlgeschlagen: " + e.message);
+    return res.json({ ok: false, error: "Die Videosuche antwortet gerade nicht. Versuch es später noch einmal." }, 502);
+  }
+  if (overLimit(userId, 30)) return res.json({ ok: false, error: "Heute wurden schon viele Videos gesucht. Versuch es morgen noch einmal." }, 429);
   const key = process.env.YOUTUBE_API_KEY;
   if (!key) return res.json({ ok: false, error: "Die Videosuche ist noch nicht eingerichtet." }, 503);
 

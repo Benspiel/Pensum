@@ -109,6 +109,25 @@ async function gemini(system, user) {
   return text;
 }
 
+/** Nur Konten mit bestätigter E-Mail-Adresse dürfen Funktionen mit Kosten nutzen (die Prüfung im Browser allein ließe sich umgehen). */
+async function isVerified(key, userId) {
+  const base = new URL(process.env.APPWRITE_FUNCTION_API_ENDPOINT);
+  const lib = base.protocol === "https:" ? https : http;
+  const url = new URL(base.pathname.replace(/\/$/, "") + "/users/" + encodeURIComponent(userId), base);
+  const r = await new Promise((resolve, reject) => {
+    const req = lib.request(url, { method: "GET", headers: { "x-appwrite-project": process.env.APPWRITE_FUNCTION_PROJECT_ID, "x-appwrite-key": key } }, (res) => {
+      let data = "";
+      res.setEncoding("utf8");
+      res.on("data", (c) => { data += c; });
+      res.on("end", () => { try { resolve({ status: res.statusCode, json: data ? JSON.parse(data) : null }); } catch (_) { resolve({ status: res.statusCode, json: null }); } });
+    });
+    req.on("error", reject);
+    req.setTimeout(10000, () => req.destroy(new Error("Zeitüberschreitung")));
+    req.end();
+  });
+  return r.status === 200 && !!(r.json && r.json.emailVerification);
+}
+
 module.exports = async ({ req, res, log, error }) => {
   let body = req.bodyJson;
   if (!body || typeof body !== "object") {
@@ -117,6 +136,12 @@ module.exports = async ({ req, res, log, error }) => {
   const key = req.headers["x-appwrite-key"];
   const userId = req.headers["x-appwrite-user-id"];
   if (!key) return res.json({ ok: false, error: "Nicht angemeldet.", code: "auth" }, 401);
+  try {
+    if (!userId || !(await isVerified(key, userId))) return res.json({ ok: false, error: "Bitte bestätige zuerst deine E-Mail-Adresse.", code: "unverified" }, 403);
+  } catch (e) {
+    error("Prüfung der E-Mail-Bestätigung fehlgeschlagen: " + e.message);
+    return res.json({ ok: false, error: "Der Dienst antwortet gerade nicht. Versuch es später noch einmal.", code: "error" }, 502);
+  }
 
   const result = await handle({ body, userId }, {
     db: database(key),

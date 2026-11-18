@@ -1,2 +1,12 @@
 functions/
 ui/
+tests/
+scripts/
+.agents/
+.claude/
+appwrite.config.json
+README.md
+package.json
+package-lock.json
+.mcp.json
+.env.example

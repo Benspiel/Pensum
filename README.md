@@ -237,3 +237,12 @@ Die Seite bleibt reines HTML/JS ohne Build-Schritt. Einzelne Komponenten aus der
 - Neue Komponente: im Ordner `ui/` `npx shadcn@latest add @kokonutui/<name> -c .`, in `ui/src/islands.tsx` eine `mount…`-Funktion ergänzen, dann `npm run build` und `vendor/ui/` einchecken.
 - Tailwind läuft ohne Preflight, die shadcn-Farben zeigen auf die Pensum-Variablen (`ui/src/styles.css`), Hell/Dunkel geht über `data-theme`.
 
+
+## Sicherheit und Recht (Stand 18.11.2026)
+
+- Die Functions `mindmap`, `abschreiben`, `aufgaben`, `ki-chat` und `lehrer-schmidt` prüfen serverseitig, dass die E-Mail-Adresse bestätigt ist (Scope `users.read` in `appwrite.config.json`). `ki-chat` und `lehrer-schmidt` haben zusätzlich eine Tagesgrenze im Speicher der Function.
+- `delete-account` löscht alle Tabellen mit `userId` (inkl. `chats`, `chat_messages`, `aufgaben_usage`). Kommt eine neue Tabelle mit Nutzerdaten dazu, muss sie in `TABLES` stehen und in `konto/konto.js` im Export.
+- Auth-Einstellungen (nur E-Mail+Passwort und E-Mail-Code, Passwort-Wörterbuch, 30 Tage Session) stehen in `appwrite.config.json` unter `settings`; mit `appwrite push settings` einspielen.
+- `.vercelignore` hält Konfiguration, Tests und Skripte aus der öffentlichen Seite heraus.
+- Die Sounddateien von Asteroids (Freesound, Lizenz unbekannt) wurden entfernt; das Spiel läuft ohne Ton. Lizenzen aller Bausteine: `/lizenzen/`.
+- Die Betreiberangaben (`config.legal`: Name, Anschrift, E-Mail, Telefon, Mailanbieter, `hoster`, `logDays`, `backupDays`) müssen ausgefüllt werden; leere Felder erscheinen als „[bitte ergänzen]“.

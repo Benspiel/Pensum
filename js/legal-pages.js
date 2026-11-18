@@ -12,7 +12,6 @@ function fill(el, key) {
 
 document.querySelectorAll("[data-legal]").forEach((el) => {
   // Optionale Felder (Telefon) verschwinden samt Zeile, wenn leer
-  if (el.dataset.legal === "phone" && !(L.phone || "").trim()) { el.textContent = "auf Anfrage per E-Mail"; return; }
   fill(el, el.dataset.legal);
 });
 

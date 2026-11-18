@@ -9,7 +9,8 @@ const http = require("http");
 const https = require("https");
 
 const DATABASE_ID = "pensum";
-const TABLES = ["grades", "subjects", "handwriting", "mindmaps", "mindmap_usage", "abschreiben_usage", "cards", "decks", "planner"];
+// Alle Tabellen mit userId (chat_messages vor chats). Neue Tabelle mit Nutzerdaten? Hier eintragen.
+const TABLES = ["chat_messages", "chats", "grades", "subjects", "handwriting", "mindmaps", "mindmap_usage", "abschreiben_usage", "aufgaben_usage", "cards", "decks", "planner"];
 
 function call(method, path, key) {
   const base = new URL(process.env.APPWRITE_FUNCTION_API_ENDPOINT);

@@ -35,7 +35,7 @@
         <table>
           <thead><tr><th>Name</th><th>Art</th><th>Zweck</th><th>Dauer</th></tr></thead>
           <tbody>
-            <tr><td data-label="Name"><code>a_session_…</code></td><td data-label="Art">Cookie (Appwrite)</td><td data-label="Zweck">Hält deine Anmeldung. Nur mit Konto.</td><td data-label="Dauer">Bis zur Abmeldung, höchstens ein Jahr</td></tr>
+            <tr><td data-label="Name"><code>a_session_…</code></td><td data-label="Art">Cookie (Appwrite)</td><td data-label="Zweck">Hält deine Anmeldung. Nur mit Konto.</td><td data-label="Dauer">Bis zur Abmeldung, höchstens 30 Tage</td></tr>
             <tr><td data-label="Name"><code>cookieFallback</code></td><td data-label="Art">Lokaler Speicher</td><td data-label="Zweck">Ersatz für das Anmelde-Cookie, wenn der Browser Cookies von Drittseiten blockiert. Nur mit Konto.</td><td data-label="Dauer">Bis zur Abmeldung</td></tr>
             <tr><td data-label="Name"><code>pensum.notenrechner.guest.v1</code></td><td data-label="Art">Lokaler Speicher</td><td data-label="Zweck">Deine Fächer und Noten im Gast-Modus.</td><td data-label="Dauer">Bis du sie löschst</td></tr>
             <tr><td data-label="Name"><code>pensum.spiele.best.v1</code></td><td data-label="Art">Lokaler Speicher</td><td data-label="Zweck">Deine Bestwerte in den Spielen (Zeiten, Punkte, Züge, Serien).</td><td data-label="Dauer">Bis du sie löschst</td></tr>
@@ -46,7 +46,15 @@
             <tr><td data-label="Name"><code>pensum.notenrechner.view.v1</code></td><td data-label="Art">Lokaler Speicher</td><td data-label="Zweck">Ansicht: Schuljahr, Halbjahr, Notensystem.</td><td data-label="Dauer">Bis du sie löschst</td></tr>
             <tr><td data-label="Name"><code>pensum.notenrechner.seeded.v1</code></td><td data-label="Art">Lokaler Speicher</td><td data-label="Zweck">Merkt sich, dass die Standardfächer schon eingefügt wurden.</td><td data-label="Dauer">Bis du sie löschst</td></tr>
             <tr><td data-label="Name"><code>pensum.goodnotes.hand.guest.v1</code></td><td data-label="Art">Lokaler Speicher</td><td data-label="Zweck">Dein Handschrift-Profil im Gast-Modus.</td><td data-label="Dauer">Bis du sie löschst</td></tr>
-            <tr><td data-label="Name"><code>pensum.goodnotes.template.v1</code></td><td data-label="Art">Lokaler Speicher</td><td data-label="Zweck">Zuletzt gewählte Vorlage im Goodnotes-Tool.</td><td data-label="Dauer">Bis du sie löschst</td></tr>
+            <tr><td data-label="Name"><code>pensum.goodnotes.template.v1</code></td><td data-label="Art">Lokaler Speicher</td><td data-label="Zweck">Die Vorlagen-Datei (PDF), die du im Goodnotes-Tool gewählt hast, damit du sie nicht neu laden musst.</td><td data-label="Dauer">Bis du sie löschst</td></tr>
+            <tr><td data-label="Name"><code>pensum.kichat.grade</code></td><td data-label="Art">Lokaler Speicher</td><td data-label="Zweck">Deine gewählte Klassenstufe im KI-Chat.</td><td data-label="Dauer">Bis du sie löschst</td></tr>
+            <tr><td data-label="Name"><code>pensum.goodnotes.handVary.v1</code></td><td data-label="Art">Lokaler Speicher</td><td data-label="Zweck">Einstellung „Handschrift variieren“ im Goodnotes-Tool.</td><td data-label="Dauer">Bis du sie löschst</td></tr>
+            <tr><td data-label="Name"><code>pensum.goodnotes.handImportDeclined.v1</code></td><td data-label="Art">Lokaler Speicher</td><td data-label="Zweck">Merkt, dass du das Übernehmen deines lokalen Handschrift-Profils ins Konto abgelehnt hast.</td><td data-label="Dauer">Bis du sie löschst</td></tr>
+            <tr><td data-label="Name"><code>pensum.notenrechner.importDeclined.v1</code></td><td data-label="Art">Lokaler Speicher</td><td data-label="Zweck">Merkt, dass du das Übernehmen deiner Gast-Noten ins Konto abgelehnt hast.</td><td data-label="Dauer">Bis du sie löschst</td></tr>
+            <tr><td data-label="Name"><code>pensum.karteikarten.declined.v1</code></td><td data-label="Art">Lokaler Speicher</td><td data-label="Zweck">Merkt, dass du das Übernehmen deiner Gast-Karteikarten ins Konto abgelehnt hast.</td><td data-label="Dauer">Bis du sie löschst</td></tr>
+            <tr><td data-label="Name"><code>pensum.planer.declined.v1</code></td><td data-label="Art">Lokaler Speicher</td><td data-label="Zweck">Merkt, dass du das Übernehmen deines Gast-Planers ins Konto abgelehnt hast.</td><td data-label="Dauer">Bis du sie löschst</td></tr>
+            <tr><td data-label="Name"><code>pensum.abschreiben.handoff.v1</code></td><td data-label="Art">Sitzungsspeicher</td><td data-label="Zweck">Gibt den erkannten Text vom Abschreiben-Tool an das Goodnotes-Tool weiter. Wird sofort nach dem Lesen gelöscht.</td><td data-label="Dauer">Bis zum Schließen des Tabs</td></tr>
+            <tr><td data-label="Name"><code>Service Worker und Cache</code></td><td data-label="Art">Offline-Speicher</td><td data-label="Zweck">Die Spiele unter /tools/spiele/ laufen damit auch ohne Internet.</td><td data-label="Dauer">Bis du die Websitedaten löschst</td></tr>
           </tbody>
         </table>
       </div>
@@ -59,7 +67,7 @@
       </div>
       <p class="form-message is-ok" id="clearLocalMsg" role="status" hidden></p>
     </article>
-    <p class="body-sm muted legal-stand">Stand: 12. November 2026</p>
+    <p class="body-sm muted legal-stand">Stand: 18. November 2026</p>
   </main>
 
   <pensum-footer></pensum-footer>

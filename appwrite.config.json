@@ -24,22 +24,22 @@
         },
         "auth": {
             "methods": {
-                "jwt": true,
-                "phone": true,
-                "invites": true,
-                "anonymous": true,
+                "jwt": false,
+                "phone": false,
+                "invites": false,
+                "anonymous": false,
                 "email-otp": true,
-                "magic-url": true,
+                "magic-url": false,
                 "email-password": true
             },
             "security": {
-                "duration": 31536000,
+                "duration": 2592000,
                 "limit": null,
                 "sessionsLimit": 10,
                 "passwordHistory": null,
-                "passwordDictionary": false,
-                "personalDataCheck": false,
-                "sessionAlerts": false,
+                "passwordDictionary": true,
+                "personalDataCheck": true,
+                "sessionAlerts": true,
                 "mockNumbers": []
             }
         }
@@ -779,6 +779,17 @@
                     "orders": [
                         "ASC"
                     ]
+                },
+                {
+                    "key": "by_user",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId"
+                    ],
+                    "orders": [
+                        "ASC"
+                    ]
                 }
             ]
         }
@@ -821,7 +832,8 @@
             "commands": "",
             "scopes": [
                 "rows.read",
-                "rows.write"
+                "rows.write",
+                "users.read"
             ],
             "path": "functions/mindmap"
         },
@@ -841,7 +853,8 @@
             "commands": "",
             "scopes": [
                 "rows.read",
-                "rows.write"
+                "rows.write",
+                "users.read"
             ],
             "path": "functions/abschreiben"
         },
@@ -861,7 +874,8 @@
             "commands": "",
             "scopes": [
                 "rows.read",
-                "rows.write"
+                "rows.write",
+                "users.read"
             ],
             "path": "functions/aufgaben"
         },
@@ -879,7 +893,9 @@
             "logging": true,
             "entrypoint": "index.js",
             "commands": "",
-            "scopes": [],
+            "scopes": [
+                "users.read"
+            ],
             "path": "functions/lehrer-schmidt"
         },
         {
