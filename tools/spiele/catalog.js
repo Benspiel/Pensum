@@ -1,7 +1,6 @@
 /* Lokal gehostete, touchfähige Spiele aus GH Arcade (MIT). */
 export const LOCAL_GAMES = [
   { id: 'chess', title: 'Schach', category: 'Schach', description: 'Gegen den Computer', preview: '/tools/spiele/chess/vorschau.png', url: '/tools/spiele/chess/index.html' },
-  { id: 'runner', title: 'Neon Runner', category: 'Action', description: 'Springen, rutschen, ausweichen', color: 'pink' },
   { id: 'golf', title: 'Neon Golf', category: 'Sport', description: 'Minigolf mit Hindernissen', color: 'blue' },
   { id: 'tanks', title: 'Neon Tanks', category: 'Action', description: 'Duell gegen den Computer', color: 'orange' },
   { id: 'bubbles', title: 'Neon Bubbles', category: 'Geschick', description: 'Zielen und Blasen platzen lassen', color: 'pink' },

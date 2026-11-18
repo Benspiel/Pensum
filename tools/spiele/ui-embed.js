@@ -63,6 +63,9 @@ function makeEmbed(dir, { title, width, height, max = 3, controls }) {
     if (window.ResizeObserver) { ro = new ResizeObserver(fit); ro.observe(host.stage); }
     const focus = () => { try { frame.focus(); frame.contentWindow.focus(); } catch (_) { /* gleiche Herkunft, sollte gehen */ } };
     frame.addEventListener("load", () => {
+      if (dir === "asteroids") {
+        try { frame.contentDocument.body.style.margin = "0"; } catch (_) {}
+      }
       focus();
       if (dir === "trex") {
         try { frame.contentDocument.addEventListener("touchstart", () => haptic(), { passive: true }); } catch (_) {}
@@ -102,4 +105,6 @@ function dinoControls(frame) {
 }
 
 export const makeAsteroids = makeEmbed("asteroids", { title: "Asteroids", width: 780, height: 540, controls: asteroidsControls });
-export const makeDino = makeEmbed("trex", { title: "Dino-Runner", width: 600, height: 170, controls: dinoControls });
+// Das schmälere Spielfenster vergrößert Dino und Hindernisse auf Tablets;
+// 200 px Höhe lassen die gesamte 150 px hohe Spielfläche inklusive Abstand sichtbar.
+export const makeDino = makeEmbed("trex", { title: "Dino-Runner", width: 400, height: 200, controls: dinoControls });
