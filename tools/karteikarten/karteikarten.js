@@ -5,6 +5,8 @@ import { MAX_DECKS, LEVELS, MODES, isLevelMode, levelCounts, dueCount, buildQueu
 import { onAuthChange, onBeforeLogout } from "/js/auth.js";
 import { loadIslandsSoon } from "/js/islands.js";
 import { emptyStateHtml } from "/js/empty-state.js";
+import { onAccessChange } from "/js/access.js";
+import { generateCards, prepareFile, COUNTS } from "./ki.js";
 import { createGuestStore, createCloudStore, newId } from "./store.js";
 
 const app = document.getElementById("app");
@@ -16,6 +18,8 @@ let saveStatus = "saved";
 let loadToken = 0;
 let view = { name: "boot" };
 let warned = false;
+let kiTester = false; // Team „ki-tester“: zeigt den Bereich „KI“ im Stapel
+const ki = { text: "", count: 15, file: null, busy: false, error: "", cards: null, deckId: null }; // Stand des KI-Bereichs (bleibt beim Neuzeichnen)
 
 const ICON = {
   arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>',
@@ -146,7 +150,7 @@ function renderDeck() {
   const level = isLevelMode(deck);
   const due = dueCount(deck);
   const tab = view.tab || "learn";
-  const TABS = [["learn", "Lernen"], ["cards", `Karten (${deck.cards.length})`], ["add", "Hinzufügen"]];
+  const TABS = [["learn", "Lernen"], ["cards", `Karten (${deck.cards.length})`], ["add", "Hinzufügen"], ...(kiTester ? [["ki", "KI"]] : [])];
 
   let panel;
   if (tab === "learn") {
@@ -164,6 +168,8 @@ function renderDeck() {
       </div>
       ${deck.cards.length ? "" : noCardsHtml()}
     </section>`;
+  } else if (tab === "ki" && kiTester) {
+    panel = kiPanel(deck);
   } else if (tab === "add") {
     panel = `
     <form class="kk-add" id="addCard" novalidate>
@@ -197,6 +203,89 @@ function renderDeck() {
   app.querySelector("#tabsSlot").replaceWith(tabsHost);
   renderTabs(TABS.map(([id, title]) => ({ id, title })), tab);
 }
+
+/* ---------- KI: Karten erstellen lassen ---------- */
+
+function kiPanel(deck) {
+  if (ki.deckId !== deck.id) { ki.deckId = deck.id; ki.cards = null; ki.error = ""; ki.file = null; ki.text = ""; }
+  const chosen = ki.cards ? ki.cards.filter((c) => c.on).length : 0;
+  const form = `
+    <form class="kk-add kk-ki" id="kiForm" novalidate>
+      <p class="body-sm muted">Die KI macht Karten aus einem Thema, deinem Text oder einem Foto, zum Beispiel einer Vokabelseite aus dem Buch. Du siehst alles, bevor etwas in den Stapel kommt.</p>
+      <label class="field"><span class="field-label">Thema oder Text</span><textarea class="textarea" id="kiText" maxlength="8000" placeholder="z. B. „Photosynthese“ oder ein eingefügter Lerntext" ${ki.busy ? "disabled" : ""}>${esc(ki.text)}</textarea></label>
+      <div class="kk-ki-file">
+        <label class="btn btn-outline" for="kiFile">${ki.file ? "Andere Datei wählen" : "Foto oder PDF wählen"}</label>
+        <input id="kiFile" type="file" accept="image/*,application/pdf" hidden ${ki.busy ? "disabled" : ""}>
+        ${ki.file ? `<span class="body-sm">${esc(ki.file.name || "Foto")} <button class="icon-btn" type="button" data-act="ki-clear-file" aria-label="Datei entfernen">${closeIcon}</button></span>` : `<span class="body-sm muted">Vokabeln werden Wort für Wort übernommen.</span>`}
+      </div>
+      <label class="field"><span class="field-label">Anzahl (höchstens)</span><select class="input" id="kiCount" ${ki.busy ? "disabled" : ""}>${COUNTS.map((n) => `<option value="${n}"${n === ki.count ? " selected" : ""}>${n} Karten</option>`).join("")}</select></label>
+      ${ki.error ? `<p class="form-message" role="alert">${esc(ki.error)}</p>` : ""}
+      <button class="btn btn-primary" type="submit" ${ki.busy ? "disabled" : ""}>${ki.busy ? "Die KI liest und schreibt …" : "Karten erstellen"}</button>
+    </form>`;
+  if (!ki.cards) return form;
+  return `${form}
+    <section aria-label="Vorschlag der KI" class="kk-ki-result">
+      <h2 class="body-lg">Vorschlag (${plural(ki.cards.length, "Karte", "Karten")})</h2>
+      <div class="kk-cards">${ki.cards.map((c, i) => `
+        <label class="kk-row kk-ki-row">
+          <input type="checkbox" data-ki-card="${i}" ${c.on ? "checked" : ""}>
+          <div><small>Vorderseite</small>${esc(c.front)}</div>
+          <div><small>Rückseite</small>${esc(c.back)}</div>
+        </label>`).join("")}</div>
+      <div class="kk-ki-actions">
+        <button class="btn btn-primary" type="button" data-act="ki-add" ${chosen ? "" : "disabled"}>${chosen ? `${plural(chosen, "Karte", "Karten")} hinzufügen` : "Nichts ausgewählt"}</button>
+        <button class="btn btn-outline" type="button" data-act="ki-discard">Verwerfen</button>
+      </div>
+    </section>`;
+}
+
+async function kiGenerate() {
+  const deck = deckById(view.id);
+  if (!deck || ki.busy) return;
+  if (!ki.text.trim() && !ki.file) { ki.error = "Gib ein Thema oder einen Text ein oder wähle ein Foto."; renderDeck(); return; }
+  ki.busy = true; ki.error = ""; ki.cards = null;
+  renderDeck();
+  try {
+    const cards = await generateCards({ text: ki.text.trim(), image: ki.file ? ki.file.base64 : undefined, count: ki.count });
+    ki.cards = cards.map((c) => ({ ...c, on: true }));
+  } catch (e) {
+    ki.error = e.message || "Das hat nicht geklappt.";
+  }
+  ki.busy = false;
+  if (view.name === "deck" && view.id === deck.id && view.tab === "ki") renderDeck();
+}
+
+function kiAddChosen() {
+  const deck = deckById(view.id);
+  const picked = (ki.cards || []).filter((c) => c.on);
+  if (!deck || !picked.length) return;
+  const have = new Set(deck.cards.map((c) => c.front.trim().toLowerCase()));
+  let added = 0;
+  for (const c of picked) {
+    if (have.has(c.front.trim().toLowerCase())) continue;
+    deck.cards.push({ id: newId(), front: c.front, back: c.back, level: 1 });
+    added++;
+  }
+  persist();
+  ki.cards = null; ki.file = null; ki.text = "";
+  view.tab = "cards";
+  renderDeck();
+  toast(added === picked.length ? `${plural(added, "Karte", "Karten")} hinzugefügt.` : `${plural(added, "Karte", "Karten")} hinzugefügt, Doppelte übersprungen.`);
+}
+
+app.addEventListener("input", (e) => { if (e.target.id === "kiText") ki.text = e.target.value; });
+app.addEventListener("change", async (e) => {
+  const t = e.target;
+  if (t.id === "kiCount") ki.count = Number(t.value) || 15;
+  else if (t.dataset && t.dataset.kiCard !== undefined && ki.cards) { ki.cards[Number(t.dataset.kiCard)].on = t.checked; renderDeck(); }
+  else if (t.id === "kiFile" && t.files && t.files[0]) {
+    const f = t.files[0];
+    t.value = "";
+    ki.error = "";
+    try { ki.file = await prepareFile(f); } catch (err) { ki.file = null; ki.error = err.message; }
+    if (view.name === "deck" && view.tab === "ki") renderDeck();
+  }
+});
 
 /* Tab-Leiste: bleibt zwischen den Neuzeichnungen erhalten, damit die Anzeige gleiten kann (KokonutUI „Swipe Tabs“).
  * Bis die Komponente geladen ist, gilt eine normale HTML-Leiste. */
@@ -555,6 +644,9 @@ app.addEventListener("click", async (e) => {
       }
       break;
     case "tab": view.tab = el.dataset.tab; renderDeck(); if (view.tab === "add") app.querySelector('[name="front"]').focus({ preventScroll: true }); break;
+    case "ki-clear-file": ki.file = null; renderDeck(); break;
+    case "ki-add": kiAddChosen(); break;
+    case "ki-discard": ki.cards = null; renderDeck(); break;
     case "start": startStudy(deck, el.dataset.type); break;
     case "edit-card": cardDialog(deck, deck.cards.find((c) => c.id === el.dataset.id)); break;
     case "delete-card":
@@ -589,12 +681,20 @@ app.addEventListener("submit", (e) => {
     persist();
     renderDeck();
     app.querySelector('[name="front"]').focus({ preventScroll: true });
+  } else if (e.target.id === "kiForm") {
+    kiGenerate();
   } else if (e.target.id === "answerForm") {
     checkAnswer(new FormData(e.target).get("answer"));
   }
 });
 
 render();
+
+onAccessChange((a) => {
+  if (a.kiTester === kiTester) return;
+  kiTester = a.kiTester;
+  if (view.name === "deck") { if (!kiTester && view.tab === "ki") view.tab = "learn"; renderDeck(); }
+});
 
 /* ---------- Konto: laden, Gast-Daten übernehmen ---------- */
 

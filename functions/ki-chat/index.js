@@ -108,7 +108,7 @@ function database(key) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const RETRY_WAIT = [2500, 6000]; // bei Überlastung (503) und Ratenlimit (429) bis zu zweimal nach Wartezeit neu versuchen
 
-/** opts: { image?: { mime, data } }. Gibt den Antworttext zurück. */
+/** opts: { image?: { mime, data }, json?, maxTokens?, temperature? }. Gibt den Antworttext zurück. */
 async function gemini(system, turns, opts = {}) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw Object.assign(new Error("GEMINI_API_KEY fehlt"), { setup: true });
@@ -122,7 +122,7 @@ async function gemini(system, turns, opts = {}) {
         ? [{ inlineData: { mimeType: opts.image.mime, data: opts.image.data } }, { text: t.text }]
         : [{ text: t.text }],
     })),
-    generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
+    generationConfig: { temperature: opts.temperature ?? 0.7, maxOutputTokens: opts.maxTokens || 4096, ...(opts.json ? { responseMimeType: "application/json" } : {}) },
   };
 
   let r;
@@ -185,7 +185,7 @@ module.exports = async ({ req, res, log, error }) => {
     return res.json({ ok: false, error: "Der Dienst antwortet gerade nicht. Versuch es später noch einmal.", code: "error" }, 502);
   }
 
-  if (body && body.action === "send" && overLimit(userId, 80)) return res.json({ ok: false, error: "Für heute ist das Limit erreicht. Morgen geht es weiter.", code: "limit" }, 429);
+  if (body && (body.action === "send" || body.action === "cards") && overLimit(userId, 80)) return res.json({ ok: false, error: "Für heute ist das Limit erreicht. Morgen geht es weiter.", code: "limit" }, 429);
 
   const db = database(key);
   const result = await handle({ body, userId }, {

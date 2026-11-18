@@ -61,6 +61,12 @@
 @media (min-width: 720px) { .kk-add { grid-template-columns: 1fr 1fr auto; align-items: end; } }
 .kk-add .input, .kk-add .textarea { background: var(--canvas); }
 .kk-add .textarea { min-height: 96px; }
+.kk-ki { grid-template-columns: 1fr; }
+.kk-ki-file { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-sm); }
+.kk-ki-result { display: grid; gap: var(--s-sm); margin-top: var(--s-md); }
+.kk-ki-row { display: grid; grid-template-columns: auto 1fr 1fr; align-items: center; gap: var(--s-sm); cursor: pointer; }
+@media (max-width: 719px) { .kk-ki-row { grid-template-columns: auto 1fr; } .kk-ki-row > div:last-child { grid-column: 2; } }
+.kk-ki-actions { display: flex; flex-wrap: wrap; gap: var(--s-sm); }
 .kk-cards { display: grid; gap: var(--s-xs); }
 .kk-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; align-items: center; gap: var(--s-sm); padding: var(--s-sm) var(--s-md); border-radius: var(--r-sm); background: var(--canvas); border: 1px solid var(--hairline-soft); }
 .kk-row > div { min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }

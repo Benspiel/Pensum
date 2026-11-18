@@ -41,6 +41,16 @@ function systemPrompt(grade) {
   return g ? `${SYSTEM_PROMPT} Die Person besucht Klasse ${g}. ${GRADES[g]}` : SYSTEM_PROMPT;
 }
 
+const CARDS = { countMax: 40, countDefault: 15, frontMax: 1000, backMax: 1000, textMax: 8000 };
+
+const CARDS_PROMPT = "Du erstellst Karteikarten für Schülerinnen und Schüler. Antworte NUR mit JSON in der Form {\"cards\":[{\"front\":\"...\",\"back\":\"...\"}]}. " +
+  "Jede Karte hat genau eine Frage oder einen Begriff (front) und eine kurze, richtige Antwort (back), die man schriftlich eintippen könnte. Keine Doppelten, kein Markdown. " +
+  "VOKABELN: Enthält das Bild oder der Text eine Vokabelliste, übernimm jedes Wort genau so, wie es dasteht: front = Wort in der Fremdsprache, back = deutsche Übersetzung. " +
+  "Mehrere Bedeutungen trennst du mit / (zum Beispiel \"Haus / Gebäude\"). Rate nichts dazu, lass Unleserliches weg. " +
+  "BILD oder PDF mit Heftseite, Buchseite oder Lernzettel: Mach daraus die wichtigsten Frage-Antwort-Karten zum Inhalt. " +
+  "THEMA: Nur ein Thema ohne Material: Erstelle abwechslungsreiche, sachlich richtige Karten dazu. " +
+  "Schreibe in der Sprache des Materials, Erklärungen auf Deutsch. Liefere höchstens die gewünschte Anzahl Karten.";
+
 const ID_RE = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,35}$/;
 const IMAGE = { maxBase64: 2_400_000, maxPdfBase64: 3_500_000 }; // ca. 1,8 MB Bild (der Browser verkleinert vorher) und ca. 2,6 MB PDF
 
@@ -54,6 +64,29 @@ function detectMime(base64) {
   if (head[0] === 0x89 && head.toString("latin1", 1, 4) === "PNG") return "image/png";
   if (head.toString("latin1", 0, 4) === "RIFF" && head.toString("latin1", 8, 12) === "WEBP") return "image/webp";
   return null;
+}
+
+/** Karten aus der Antwort der KI lesen: gültiges JSON (auch in einem Codeblock), bereinigt, ohne Leere und Doppelte. */
+function parseCards(out, max = CARDS.countMax) {
+  let raw = String(out == null ? "" : out).trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+  let json = null;
+  try { json = JSON.parse(raw); } catch (_) {
+    const m = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+    if (m) { try { json = JSON.parse(m[0]); } catch (__) { /* leer */ } }
+  }
+  const list = Array.isArray(json) ? json : json && Array.isArray(json.cards) ? json.cards : [];
+  const seen = new Set();
+  const cards = [];
+  for (const c of list) {
+    const front = cleanText(c && c.front, CARDS.frontMax);
+    const back = cleanText(c && c.back, CARDS.backMax);
+    const key = front.toLowerCase();
+    if (!front || !back || seen.has(key)) continue;
+    seen.add(key);
+    cards.push({ front, back });
+    if (cards.length >= max) break;
+  }
+  return cards;
 }
 
 /** Fehler mit Text, den Nutzer sehen dürfen. Alle anderen Fehler werden nur protokolliert. */
@@ -103,6 +136,7 @@ const chatView = (c) => ({ id: c.$id, title: c.title, updatedAt: c.$updatedAt })
  * Anfrage verarbeiten.
  *   { action: "send", chatId?, text, image?, grade? }  -> { ok, chat, reply: { id, text }, steps: [{ id, label, detail, ms? }] }
  *     image: Base64-JPEG/PNG/WebP (wird nur für diese Frage genutzt), grade: Klasse 8 bis 12 (bestimmt, wie die KI antwortet)
+ *   { action: "cards", text?, image?, count?, grade? } -> { ok, cards: [{ front, back }] }  (Karteikarten aus Thema, Text, Foto oder PDF; es wird nichts gespeichert)
  *   { action: "delete", chatId }       -> { ok }
  *   { action: "rename", chatId, title } -> { ok, title }
  * deps: { db, gemini, isMember, log, error, now? }  (now: Uhr in Millisekunden, nur für Tests)
@@ -132,6 +166,27 @@ async function handle({ body, userId }, deps) {
       if (!title) throw new UserError("Gib dem Chat einen Namen.");
       await deps.db.renameChat(chat.$id, title);
       return { status: 200, json: { ok: true, title } };
+    }
+    if (action === "cards") {
+      let image = null;
+      if (body.image) {
+        const mime = detectMime(body.image);
+        if (!mime) throw new UserError("Diese Datei kann die KI nicht lesen. Nimm ein JPEG, PNG, WebP oder ein PDF (bis ca. 2,5 MB).", 422, "image");
+        image = { mime, data: body.image };
+      }
+      const material = cleanText(body.text, CARDS.textMax);
+      if (!material && !image) throw new UserError("Gib ein Thema oder einen Text ein oder fotografiere eine Seite.");
+      const n = Math.min(CARDS.countMax, Math.max(1, Math.round(Number(body.count)) || CARDS.countDefault));
+      const grade = cleanGrade(body.grade);
+      const task = image
+        ? `Erstelle bis zu ${n} Karteikarten aus ${image.mime === "application/pdf" ? "diesem PDF" : "diesem Bild"}.${material ? ` Hinweis der Person: ${material}` : ""}`
+        : (material.includes("\n") || material.length >= 80)
+          ? `Erstelle bis zu ${n} Karteikarten aus diesem Text:\n\n${material}`
+          : `Erstelle bis zu ${n} Karteikarten zum Thema: ${material}`;
+      const out = await deps.gemini(CARDS_PROMPT + (grade ? ` Passe das Niveau an Klasse ${grade} an.` : ""), [{ role: "user", text: task }], { image, json: true, maxTokens: 8192, temperature: 0.4 });
+      const cards = parseCards(typeof out === "string" ? out : out && out.text, n);
+      if (!cards.length) throw new UserError("Daraus konnte die KI keine Karten machen. Versuch ein anderes Thema oder ein deutlicheres Foto.", 422, "empty");
+      return { status: 200, json: { ok: true, cards } };
     }
     if (action !== "send") throw new UserError("Ungültige Anfrage.");
 
@@ -189,4 +244,4 @@ async function handle({ body, userId }, deps) {
   }
 }
 
-module.exports = { LIMITS, IMAGE, GRADES, SYSTEM_PROMPT, UserError, cleanText, cleanTitle, cleanGrade, systemPrompt, makeTitle, trimHistory, detectMime, handle };
+module.exports = { CARDS, CARDS_PROMPT, parseCards, LIMITS, IMAGE, GRADES, SYSTEM_PROMPT, UserError, cleanText, cleanTitle, cleanGrade, systemPrompt, makeTitle, trimHistory, detectMime, handle };

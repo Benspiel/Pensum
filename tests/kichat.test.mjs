@@ -285,3 +285,26 @@ test("PDF-Anhang: erkannt, an die KI gegeben, nur Hinweis gespeichert; zu große
   assert.equal(checkAttachment({ type: "application/pdf", name: "a.pdf", size: 1000 }), null);
   assert.ok(checkAttachment({ type: "application/pdf", name: "a.pdf", size: 3 * 1024 * 1024 }));
 });
+
+test("cards: nur Team, Karten aus Foto/Thema, bereinigt ohne Doppelte, nichts gespeichert", async () => {
+  const denied = fake({ member: false });
+  assert.equal((await lib.handle({ body: { action: "cards", text: "Bio" }, userId: "u1" }, denied.deps)).status, 403);
+  assert.equal(denied.calls.gemini.length, 0);
+
+  const reply = JSON.stringify({ cards: [{ front: "casa", back: "Haus" }, { front: "Casa", back: "Heim" }, { front: "", back: "x" }, { front: "gato", back: "Katze" }] });
+  const f = fake({ reply });
+  const jpg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(60)]).toString("base64");
+  f.deps.gemini = async (system, turns, opts) => { f.calls.gemini.push({ system, turns, opts }); return reply; };
+  const r = await lib.handle({ body: { action: "cards", text: "", image: jpg, count: 10 }, userId: "u1" }, f.deps);
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.json.cards, [{ front: "casa", back: "Haus" }, { front: "gato", back: "Katze" }]);
+  assert.equal(f.calls.gemini[0].opts.image.mime, "image/jpeg");
+  assert.equal(f.calls.gemini[0].opts.json, true);
+  assert.equal(f.calls.added.length, 0);
+  assert.equal(f.calls.created.length, 0);
+
+  assert.equal((await lib.handle({ body: { action: "cards" }, userId: "u1" }, f.deps)).status, 400);
+  assert.equal((await lib.handle({ body: { action: "cards", text: "x", image: "AAAA" }, userId: "u1" }, f.deps)).status, 422);
+  const empty = fake({ reply: "kein json" });
+  assert.equal((await lib.handle({ body: { action: "cards", text: "Bio" }, userId: "u1" }, empty.deps)).status, 422);
+});
