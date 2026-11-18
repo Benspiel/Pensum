@@ -62,7 +62,6 @@
 .kk-add .input, .kk-add .textarea { background: var(--canvas); }
 .kk-add .textarea { min-height: 96px; }
 .kk-ki { grid-template-columns: 1fr; }
-.kk-ki-file { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-sm); }
 .kk-ki-result { display: grid; gap: var(--s-sm); margin-top: var(--s-md); }
 .kk-ki-row { display: grid; grid-template-columns: auto 1fr 1fr; align-items: center; gap: var(--s-sm); cursor: pointer; }
 @media (max-width: 719px) { .kk-ki-row { grid-template-columns: auto 1fr; } .kk-ki-row > div:last-child { grid-column: 2; } }
