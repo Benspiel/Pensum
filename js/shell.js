@@ -336,3 +336,8 @@ if (params.get("anmeldung") === "fehlgeschlagen") {
   history.replaceState(null, "", location.pathname);
   toast("Die Anmeldung über Google hat nicht geklappt.", { error: true });
 }
+
+/* Offline: Der Service Worker speichert die Startseite beim ersten Besuch auf dem Gerät (erzeugt von scripts/build-offline.mjs). Konto, KI und Appwrite sind nicht betroffen. */
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/offline-sw.js", { scope: "/" }).catch(() => {});
+}

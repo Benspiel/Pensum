@@ -23,7 +23,7 @@ body.kc-page pensum-nav { flex: none; }
 .kc { position: relative; flex: 1; display: grid; grid-template-columns: 272px minmax(0, 1fr); min-height: 0; }
 
 /* Chatliste wie bei ChatGPT: bündig am linken Rand, „Neuer Chat“ als erste Zeile, darunter nur die Titel */
-.kc-side { display: flex; flex-direction: column; gap: var(--s-xxs, 4px); min-height: 0; min-width: 0; padding: var(--s-xs); border-right: 1px solid var(--hairline); background: var(--canvas-soft); }
+.kc-side { overflow-x: hidden; display: flex; flex-direction: column; gap: var(--s-xxs, 4px); min-height: 0; min-width: 0; padding: var(--s-xs); border-right: 1px solid var(--hairline); background: var(--canvas-soft); }
 .kc-row, .kc-chat {
   display: flex; align-items: center; gap: var(--s-sm); width: 100%; min-height: 40px; padding: 0 var(--s-sm); cursor: pointer; text-align: left;
   border: 0; border-radius: 10px; background: transparent; color: var(--ink); font: inherit; font-size: 0.9375rem;
@@ -31,7 +31,7 @@ body.kc-page pensum-nav { flex: none; }
 }
 .kc-row svg { flex: none; width: 18px; height: 18px; }
 .kc-row { margin-bottom: var(--s-xs); font-weight: 500; }
-.kc-chats { flex: 1; min-height: 0; margin: 0; padding: 0; overflow-y: auto; list-style: none; display: grid; align-content: start; gap: 2px; }
+.kc-chats { flex: 1; min-height: 0; margin: 0; padding: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior-x: none; list-style: none; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 2px; }
 .kc-chat { display: block; line-height: 40px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kc-row:hover, .kc-chat:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
 .kc-row:focus-visible, .kc-chat:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }

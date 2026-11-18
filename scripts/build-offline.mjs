@@ -15,6 +15,8 @@ const fsPath = (p) => join(root, ...p.split("/").filter(Boolean));
 
 /** Offline-Tools: name = Cache-Name, scope = Ordner der Seite, entry = Startseiten (für das Verfolgen der Abhängigkeiten), skip = nicht mitnehmen. */
 const TOOLS = [
+  // Startseite: nur die Seite und ihre Dateien, nicht der ganze Ordner. Sie gilt für die ganze Website, fängt aber nur ihre eigenen Dateien ab.
+  { name: "home", scope: "/", entries: ["/index.html"], skip: [/offline-sw\.js$/], walk: false },
   { name: "goodnotes", scope: "/tools/goodnotes/", entries: ["/tools/goodnotes/index.html"], skip: [/\/offline-sw\.js$/] },
   {
     name: "games", scope: "/tools/spiele/", entries: ["/tools/spiele/index.html"],
@@ -102,8 +104,7 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  const page = request.mode === "navigate" && url.pathname.startsWith(SCOPE);
-  if (!page && !known.has(url.pathname)) return;
+  if (!known.has(url.pathname)) return; // nur die Dateien dieser Liste (auch Seiten); alles andere bleibt unberührt
   event.respondWith(networkFirst(request));
 });
 `;
@@ -112,9 +113,9 @@ const only = process.argv[2];
 for (const tool of TOOLS) {
   if (only && only !== tool.name) continue;
   const files = new Set(await crawl(tool.entries, tool.skip));
-  for (const p of await walk(tool.scope)) if (!tool.skip.some((re) => re.test(p))) files.add(p);
+  if (tool.walk !== false) for (const p of await walk(tool.scope)) if (!tool.skip.some((re) => re.test(p))) files.add(p);
   // Startseite des Tools auch unter ihrer Adresse mit Schrägstrich (die Seite hat trailingSlash)
-  for (const e of tool.entries) if (e.endsWith("/index.html")) files.add(e.slice(0, -"index.html".length));
+  for (const e of tool.entries) if (e.endsWith("/index.html") || e === "/index.html") files.add(e.slice(0, -"index.html".length));
   const list = [...files].sort();
   const hash = createHash("sha1");
   for (const p of list) { if (!p.endsWith("/")) hash.update(p).update(await readFile(fsPath(p))); }
