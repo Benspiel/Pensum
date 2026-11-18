@@ -255,6 +255,16 @@ async function kiGenerate() {
   if (view.name === "deck" && view.id === deck.id && view.tab === "ki") renderDeck();
 }
 
+/** Start aus dem Dialog „Neuer Stapel“: Datei vorbereiten (falls vorhanden), dann die KI fragen. */
+async function kiStartFromDialog(file) {
+  if (file) {
+    ki.busy = true; renderDeck();
+    try { ki.file = await prepareFile(file); } catch (err) { ki.busy = false; ki.error = err.message; renderDeck(); return; }
+    ki.busy = false;
+  }
+  kiGenerate();
+}
+
 function kiAddChosen() {
   const deck = deckById(view.id);
   const picked = (ki.cards || []).filter((c) => c.on);
@@ -527,7 +537,17 @@ function deckDialog(deck) {
       <select class="select" name="mode">${Object.entries(MODES).map(([k, m]) => `<option value="${k}" ${k === mode ? "selected" : ""}>${esc(m.label)}</option>`).join("")}</select>
       <span class="field-hint" data-hint>${esc(MODES[mode].hint)}</span>
     </label>
-    ${creating ? `
+    ${creating && kiTester ? `
+    <div class="kk-ai">
+      <div class="kk-ai-head">
+        <label class="check"><input type="checkbox" name="ai" id="aiOn"><span>Mit KI erstellen</span></label>
+      </div>
+      <div id="aiFields" hidden>
+        <label class="field"><span class="field-label">Dein Thema oder Text</span><input class="input" name="aiTopic" maxlength="500" autocomplete="off" placeholder="z. B. Französische Revolution"></label>
+        <label class="field"><span class="field-label">Oder ein Foto / PDF (z. B. Vokabelseite)</span><input class="input" type="file" name="aiFile" accept="image/*,application/pdf"></label>
+        <span class="field-hint">Die KI schlägt Karten vor. Du siehst sie, bevor etwas in den Stapel kommt.</span>
+      </div>
+    </div>` : creating ? `
     <div class="kk-ai" aria-disabled="true">
       <div class="kk-ai-head">
         <label class="check"><input type="checkbox" disabled><span>Mit KI erstellen</span></label>
@@ -549,8 +569,21 @@ function deckDialog(deck) {
     const m = fd.get("mode") === "level" ? "level" : "all";
     if (creating) {
       if (data.decks.length >= MAX_DECKS) { fail("Du kannst höchstens 5 Stapel haben."); return false; }
+      const useAi = kiTester && fd.get("ai") === "on";
+      const topic = String(fd.get("aiTopic") || "").trim();
+      const file = fd.get("aiFile");
+      const hasFile = file && file.size > 0;
+      if (useAi && !topic && !hasFile) { fail("Gib ein Thema ein oder wähle ein Foto für die KI."); return false; }
       const nd = { id: newId(), name, mode: m, cards: [] };
       data.decks.push(nd);
+      if (useAi) {
+        Object.assign(ki, { deckId: nd.id, text: topic, file: null, cards: null, error: "" });
+        view = { name: "deck", id: nd.id, tab: "ki" };
+        persist();
+        render();
+        kiStartFromDialog(hasFile ? file : null);
+        return;
+      }
       view = { name: "deck", id: nd.id, tab: "add" };
     } else {
       deck.name = name;
@@ -559,6 +592,8 @@ function deckDialog(deck) {
     persist();
     render();
   });
+  const aiOn = d.querySelector("#aiOn");
+  if (aiOn) aiOn.addEventListener("change", () => { d.querySelector("#aiFields").hidden = !aiOn.checked; });
   const sel = d.querySelector("select");
   sel.addEventListener("change", () => { d.querySelector("[data-hint]").textContent = MODES[sel.value].hint; });
   d.querySelector('[name="name"]').focus();
