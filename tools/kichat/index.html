@@ -45,6 +45,10 @@
       <p class="body-sm muted-tint">Dein Konto gehört nicht dazu.</p>
     </section>
 
+    <div class="kc-dropscrim" id="dropScrim" aria-hidden="true">
+      <div class="kc-dropzone" id="dropZone"><p class="kc-dropfallback">Zum Hochladen hier loslassen</p></div>
+    </div>
+
     <div id="app" class="kc" hidden>
       <div class="kc-scrim" id="scrim" aria-hidden="true"></div>
       <aside class="kc-side" id="side" aria-label="Chats">
@@ -69,7 +73,6 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
           </button>
           <h1 class="kc-chat-title" id="chatTitle"></h1>
-          <button class="btn btn-outline btn-sm" type="button" id="deleteBtn" hidden>Löschen</button>
         </div>
         <div class="kc-log" id="log" role="log" aria-live="polite" aria-label="Unterhaltung" tabindex="0"></div>
         <p class="form-message" id="error" role="alert" hidden></p>
@@ -77,7 +80,6 @@
           <div class="kc-attach" id="attach" hidden>
             <div class="kc-doc" id="attachDoc" aria-hidden="true">
               <img id="attachImg" alt="">
-              <span class="kc-doc-scan"></span>
             </div>
             <div class="kc-attach-info">
               <span class="kc-attach-name" id="attachName"></span>
@@ -90,10 +92,10 @@
           <label class="sr-only" for="input">Deine Nachricht</label>
           <textarea class="kc-input" id="input" rows="1" maxlength="4000" placeholder="Schreib eine Nachricht …"></textarea>
           <div class="kc-bar">
-            <label class="kc-icon-btn" id="attachPick" title="Bild anhängen (nur für diese Frage, wird nicht gespeichert)">
-              <input type="file" id="fileInput" class="sr-only" accept="image/jpeg,image/png,image/webp">
+            <label class="kc-icon-btn" id="attachPick" title="Bild oder PDF anhängen (nur für diese Frage, wird nicht gespeichert)">
+              <input type="file" id="fileInput" class="sr-only" accept="image/jpeg,image/png,image/webp,application/pdf,.pdf">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-              <span class="sr-only">Bild anhängen</span>
+              <span class="sr-only">Bild oder PDF anhängen</span>
             </label>
             <label class="kc-grade" title="Die KI antwortet passend zu deiner Klasse">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 9 9-5 9 5-9 5-9-5Z"/><path d="M7 11.5V16c0 1.2 2.2 3 5 3s5-1.8 5-3v-4.5"/></svg>

@@ -1,5 +1,5 @@
 /* Export-Menü: Wer in einem Tool „Exportieren“ drückt, bekommt dieses Menü (Zeilen im Stil des Stack Panels, js/stack-panel.js)
- * mit den Formaten, die das Tool kann: Goodnotes, PDF, Bild. Die Wahl läuft als Promise Toast (js/promise-toast.js):
+ * mit den Formaten, die das Tool kann: Goodnotes, PDF, Bild. Die Wahl läuft als Promise Toast (js/promise-toast.js, KokonutUI):
  * „arbeitet“ → „gespeichert“, bei einem Fehler mit „Nochmal“.
  *
  *   import { openExportMenu } from "/js/export-menu.js";
@@ -14,6 +14,7 @@
  * Wirft run einen Fehler, steht dessen Meldung im Toast. Soll ein Abbruch still bleiben (z. B. „Abbrechen“ im Rückfrage-Dialog),
  * gibt run `CANCELLED` zurück: Dann verschwindet der Toast wieder, ohne etwas zu melden. */
 import { promiseToast } from "/js/promise-toast.js";
+import { loadIslands } from "/js/islands.js";
 import { CANCELLED, exportToastOptions } from "/js/export-core.js";
 
 export const EXPORT_ICONS = {
@@ -36,16 +37,22 @@ export function runExport(option) {
   return toast;
 }
 
+/** Lädt die Stile und wartet darauf: Sonst blitzt der Dialog erst ungestaltet auf (das war das Flackern). */
 function ensureStyles() {
-  for (const href of ["/css/stack-panel.css", "/css/export-menu.css"]) {
-    if (document.querySelector(`link[href="${href}"]`)) continue;
-    document.head.append(Object.assign(document.createElement("link"), { rel: "stylesheet", href }));
-  }
+  return Promise.all(["/css/stack-panel.css", "/css/export-menu.css"].map((href) => new Promise((resolve) => {
+    let link = document.querySelector(`link[href="${href}"]`);
+    if (link && link.sheet) { resolve(); return; }
+    if (!link) { link = Object.assign(document.createElement("link"), { rel: "stylesheet", href }); document.head.append(link); }
+    link.addEventListener("load", resolve, { once: true });
+    link.addEventListener("error", resolve, { once: true }); // ohne die Stile ist der Dialog hässlich, aber benutzbar
+  })));
 }
 
 /** Öffnet das Export-Menü. Liefert ein Promise, das beim Schließen endet (mit der gewählten Zeile oder null). */
-export function openExportMenu({ title = "Exportieren", options = [], footer = "" } = {}) {
-  ensureStyles();
+export async function openExportMenu({ title = "Exportieren", options = [], footer = "" } = {}) {
+  loadIslands(); // schon laden, damit der Toast sofort da ist, wenn eine Zeile gewählt wird
+  const keyboard = !!document.activeElement && document.activeElement.matches(":focus-visible"); // nur per Tastatur auf eine Zeile springen
+  await ensureStyles();
   return new Promise((resolve) => {
     const d = document.createElement("dialog");
     d.className = "modal em";
@@ -70,13 +77,26 @@ export function openExportMenu({ title = "Exportieren", options = [], footer = "
     document.body.append(d);
 
     let picked = null;
+    let closing = false;
+    /** Schließen mit Animation nach unten (ohne „Bewegung reduzieren“); danach der echte close(). */
+    const shut = () => {
+      if (closing) return;
+      closing = true;
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) { d.close(); return; }
+      d.classList.add("is-closing");
+      let ended = false;
+      const end = () => { if (!ended) { ended = true; d.close(); } };
+      d.addEventListener("animationend", end, { once: true });
+      setTimeout(end, 320);
+    };
     const rows = [...d.querySelectorAll(".em-row")];
     d.addEventListener("click", (e) => {
-      if (e.target === d) { d.close(); return; }                       // Klick auf den Hintergrund
-      if (e.target.closest(".em-close")) { d.close(); return; }
+      if (e.target === d) { shut(); return; }                          // Klick auf den Hintergrund
+      if (e.target.closest(".em-close")) { shut(); return; }
       const row = e.target.closest(".em-row");
-      if (row) { picked = options[Number(row.dataset.i)]; d.close(); }
+      if (row) { picked = options[Number(row.dataset.i)]; shut(); }
     });
+    d.addEventListener("cancel", (e) => { e.preventDefault(); shut(); });  // Escape
     d.addEventListener("keydown", (e) => {                             // Pfeiltasten springen zwischen den Zeilen
       if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
       e.preventDefault();
@@ -89,6 +109,7 @@ export function openExportMenu({ title = "Exportieren", options = [], footer = "
       resolve(picked);
     });
     d.showModal();
-    (rows.find((r) => !r.disabled) || d.querySelector(".em-close")).focus();
+    if (keyboard) (rows.find((r) => !r.disabled) || d.querySelector(".em-close")).focus();
+    else d.querySelector(".em-panel").setAttribute("tabindex", "-1"), d.querySelector(".em-panel").focus({ preventScroll: true });
   });
 }

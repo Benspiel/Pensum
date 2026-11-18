@@ -109,13 +109,26 @@ export function layoutFields(fields, { width, height, measure, lineH, k = 1, sca
   const minSize = Math.max(6, width * 0.011 * k);
   return fields.map((f) => {
     const rect = boxToRect(f.box, width, height);
-    const fit = fitText(measure, f.text, rect, { lineH, maxSize: Math.min(maxSize, rect.h * 0.9 * scale * k), minSize, pad: Math.min(3, rect.h * 0.04) });
+    // Runde Felder (Sprechblase, Ellipse): Text nur in das Rechteck, das in die Form passt, mittig, damit nichts über den Rand ragt
+    const inner = f.round ? { x: rect.x + rect.w * 0.16, y: rect.y + rect.h * 0.18, w: rect.w * 0.68, h: rect.h * 0.64 } : rect;
+    const fit = fitText(measure, f.text, inner, { lineH, maxSize: Math.min(maxSize, inner.h * 0.9 * scale * k), minSize, pad: Math.min(3, inner.h * 0.04) });
     const n = fit.lines.length;
-    // Eine Zeile sitzt unten im Feld auf der Linie, mehrere Zeilen füllen es von oben
+    // Eine Zeile sitzt unten im Feld auf der Linie, mehrere Zeilen füllen es von oben (in runden Feldern mittig)
+    const top = f.round ? inner.y + Math.max(0, (inner.h - n * fit.size * fit.lineH) / 2) : inner.y;
+    // Kurze Antwort in einem kleinen Feld (Ankreuzkästchen mit "X"): genau in die Mitte des Kästchens
+    const small = !f.round && fit.lines.length === 1 && String(f.text).trim().length <= 2 && rect.w < rect.h * 2.5;
+    if (small) {
+      const size = Math.max(minSize, Math.min(rect.h * 0.85, rect.w * 0.85, maxSize));
+      const tw = measure(String(f.text).trim(), size);
+      return {
+        id: f.id, rect, tx: rect.x + (rect.w - tw) / 2 - 2, size, lines: [String(f.text).trim()], lineH: fit.lineH, fits: true,
+        baselines: [rect.y + rect.h / 2 + size * 0.36], dx: [0], rot: [0],
+      };
+    }
     const baselines = fit.lines.map((_, i) =>
-      n === 1 ? rect.y + rect.h - Math.min(rect.h * 0.18, fit.size * 0.22) : rect.y + fit.size * 0.92 + i * fit.size * fit.lineH);
+      n === 1 && !f.round ? rect.y + rect.h - Math.min(rect.h * 0.18, fit.size * 0.22) : top + fit.size * 0.92 + i * fit.size * fit.lineH);
     return {
-      id: f.id, rect, ...fit, baselines,
+      id: f.id, rect, tx: inner.x, ...fit, baselines,
       dx: fit.lines.map((_, i) => (jitter(f.id, i, 1) - 0.5) * fit.size * 0.12),
       rot: fit.lines.map((_, i) => (jitter(f.id, i, 2) - 0.5) * 0.012),
     };

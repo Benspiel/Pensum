@@ -621,3 +621,8 @@ onAuthChange(async ({ status, user: u }) => {
   scheduleRender(0);
   offerHandImport(token);
 });
+
+/* Offline: Der Service Worker speichert dieses Tool beim ersten Besuch auf dem Gerät (erzeugt von scripts/build-offline.mjs). Konto und Appwrite sind nicht betroffen. */
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/tools/goodnotes/offline-sw.js", { scope: "/tools/goodnotes/" }).catch(() => {});
+}

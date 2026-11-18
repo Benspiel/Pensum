@@ -22,7 +22,18 @@ function notify() {
   }
 }
 
+/* Letzter bekannter Nutzer: Ohne Netz (keine Serverantwort) bleibt die Oberfläche der Offline-Tools angemeldet; Zugriffe auf das Konto schlagen dann einfach fehl. */
+const LAST_USER = "pensum.lastUser";
+const rememberUser = (user) => {
+  try {
+    if (user) localStorage.setItem(LAST_USER, JSON.stringify({ $id: user.$id, name: user.name, email: user.email }));
+    else localStorage.removeItem(LAST_USER);
+  } catch (_) { /* privater Modus: dann eben nicht */ }
+};
+const lastUser = () => { try { return JSON.parse(localStorage.getItem(LAST_USER) || "null"); } catch (_) { return null; } };
+
 function setUser(user, { broadcast = false } = {}) {
+  rememberUser(user);
   const changed = state.status !== "ready" || (state.user && state.user.$id) !== (user && user.$id)
     || (state.user && state.user.name) !== (user && user.name);
   state = { status: "ready", user };
@@ -44,8 +55,10 @@ export function onAuthChange(fn) {
 export async function refresh() {
   try {
     setUser(await account.get());
-  } catch (_) {
-    setUser(null);
+  } catch (e) {
+    // Eine Antwort des Servers (z. B. 401) heißt abgemeldet. Gar keine Antwort heißt offline: dann den letzten Nutzer behalten.
+    const answered = e && typeof e.code === "number" && e.code > 0;
+    setUser(answered ? null : lastUser());
   }
   return state.user;
 }

@@ -13,6 +13,16 @@ function inline(escaped) {
     .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
 }
 
+/** Lösungsfenster: Die KI legt die fertige Lösung einer Aufgabe in einen ```lösung-Block. Daraus wird ein Fenster mit „Kopieren“ und „In Goodnotes-Tool einfügen“. */
+function solutionHtml(body) {
+  const ico = (p) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+  return `<section class="kc-solution" aria-label="Lösung"><header class="kc-solution-head"><span class="kc-solution-title">${ico('<path d="m5 12 5 5 9-10"/>')}Lösung</span>`
+    + `<span class="kc-solution-actions">`
+    + `<button class="kc-solution-btn" type="button" data-solution="copy">${ico('<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/>')}<span>Kopieren</span></button>`
+    + `<button class="kc-solution-btn is-primary" type="button" data-solution="goodnotes">${ico('<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/>')}<span>In Goodnotes-Tool einfügen</span></button>`
+    + `</span></header><pre class="kc-solution-body">${escapeHtml(body)}</pre></section>`;
+}
+
 /** Wandelt eine Nachricht in sicheres HTML: Absätze, Listen, Codeblöcke, `code` und **fett**. Alles andere wird maskiert. */
 export function formatMessage(text) {
   const src = String(text ?? "").replace(/\r\n?/g, "\n");
@@ -21,6 +31,7 @@ export function formatMessage(text) {
   parts.forEach((part, i) => {
     if (i % 2 === 1) { // Codeblock: erste Zeile ist nur die Sprache
       const body = part.replace(/^[^\n]*\n/, "").replace(/\n+$/, "");
+      if (/^\s*l(ö|oe)sung\s*\n/i.test(part)) { out.push(solutionHtml(body)); return; }
       out.push(`<pre><code>${escapeHtml(body)}</code></pre>`);
       return;
     }
@@ -152,11 +163,14 @@ export function stepsHtml(steps, { id = "s", open = false } = {}) {
 }
 
 export const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+export const PDF_MAX_BYTES = 2.5 * 1024 * 1024; // so groß darf ein PDF sein, damit es mit Base64 noch durch die Function passt (IMAGE in functions/ki-chat/lib.js)
+export const isPdfFile = (f) => !!f && (f.type === "application/pdf" || /\.pdf$/i.test(f.name || ""));
 
 /** Darf diese Datei als Anhang gewählt werden? Gibt null oder einen Hinweistext zurück. */
 export function checkAttachment(file) {
   if (!file) return "Keine Datei gewählt.";
-  if (!IMAGE_TYPES.includes(file.type)) return "Anhängen kannst du Bilder (JPEG, PNG oder WebP).";
+  if (isPdfFile(file)) return file.size > PDF_MAX_BYTES ? "Das PDF ist zu groß (höchstens 2,5 MB). Schick einzelne Seiten als Bild oder ein kleineres PDF." : null;
+  if (!IMAGE_TYPES.includes(file.type)) return "Anhängen kannst du Bilder (JPEG, PNG, WebP) oder ein PDF.";
   if (file.size > 25 * 1024 * 1024) return "Das Bild ist zu groß (höchstens 25 MB).";
   return null;
 }

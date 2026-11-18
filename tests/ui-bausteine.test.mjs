@@ -1,23 +1,11 @@
 /* Tests für Promise Toast, Empty State und Export-Menü (reine Logik und HTML). Start: npm test */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { splitLines, linesFor, countLabel, progressOf, errorText } from "../js/promise-toast.js";
+import { errorText } from "../js/export-core.js";
 import { emptyStateHtml } from "../js/empty-state.js";
 import { exportToastOptions, CANCELLED } from "../js/export-core.js";
 
-test("Promise Toast: Zeilen auflösen, zählen, Fortschritt, Fehlertext", () => {
-  assert.deepEqual(splitLines("Fertig"), ["Fertig", ""]);
-  assert.deepEqual(splitLines(["Fertig", "datei.pdf"]), ["Fertig", "datei.pdf"]);
-  assert.deepEqual(splitLines(undefined), ["", ""]);
-  assert.deepEqual(linesFor((n) => ["Gespeichert", n], "a.pdf"), ["Gespeichert", "a.pdf"]);
-  assert.deepEqual(linesFor("Text", 1), ["Text", ""]);
-  const count = { total: 24, unit: "Seiten", verb: "Erstelle" };
-  assert.equal(countLabel(count, 12), "Erstelle 12 von 24 Seiten");
-  assert.equal(countLabel(count, 99), "Erstelle 24 von 24 Seiten", "nicht über die Summe");
-  assert.equal(countLabel(count, -3), "Erstelle 0 von 24 Seiten");
-  assert.equal(progressOf(count, 6), 0.25);
-  assert.equal(progressOf(count, 99), 1);
-  assert.equal(progressOf(null, 5), 0);
+test("Promise Toast: Fehlertext", () => {
   assert.equal(errorText(new Error("kaputt")), "kaputt");
   assert.equal(errorText("text"), "text");
   assert.equal(errorText(null), "");

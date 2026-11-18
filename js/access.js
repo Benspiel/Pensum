@@ -18,6 +18,11 @@ const listeners = new Set();
 
 const emit = () => { for (const fn of [...listeners]) { try { fn(access); } catch (e) { console.error(e); } } };
 
+/* Zuletzt bekannte Teams je Nutzer: Ohne Netz bleiben freigeschaltete Tools (z. B. Spiele) offen. */
+const LAST_ACCESS = "pensum.lastAccess";
+const lastAccess = (id) => { try { const a = JSON.parse(localStorage.getItem(LAST_ACCESS) || "null"); return a && a.id === id ? { tester: !!a.tester, kiTester: !!a.kiTester } : null; } catch (_) { return null; } };
+const rememberAccess = (id, a) => { try { localStorage.setItem(LAST_ACCESS, JSON.stringify({ id, tester: a.tester, kiTester: a.kiTester })); } catch (_) { /* egal */ } };
+
 async function check(user) {
   if (!user) { checkedFor = null; if (access !== NONE) { access = NONE; emit(); } return; }
   if (checkedFor === user.$id) return;
@@ -27,7 +32,12 @@ async function check(user) {
     const r = await new Teams(client).list();
     const ids = new Set((r.teams || []).map((t) => t.$id));
     now = { tester: ids.has(config.testerTeam), kiTester: ids.has(config.kiTesterTeam) };
-  } catch (_) { /* ohne Antwort bleibt alles gesperrt */ }
+    rememberAccess(user.$id, now);
+  } catch (e) {
+    // Hat der Server geantwortet (z. B. abgelaufene Session), bleibt alles gesperrt. Keine Antwort (offline): zuletzt bekannte Teams.
+    const answered = e && typeof e.code === "number" && e.code > 0;
+    if (!answered) now = lastAccess(user.$id) || NONE;
+  }
   if (checkedFor !== user.$id) return; // zwischenzeitlich anderer Nutzer
   if (now.tester !== access.tester || now.kiTester !== access.kiTester) { access = now.tester || now.kiTester ? now : NONE; emit(); }
 }

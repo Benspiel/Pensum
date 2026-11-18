@@ -293,7 +293,7 @@ function drawSheet(canvas, { highlight = 0 } = {}) {
   for (const L of layout) {
     L.lines.forEach((line, i) => {
       if (!line) return;
-      const x = L.rect.x + 2 + (font.hand ? L.dx[i] : 0);
+      const x = (L.tx ?? L.rect.x) + 2 + (font.hand ? L.dx[i] : 0);
       const rot = font.hand ? L.rot[i] : 0;
       ctx.save();
       ctx.translate(x, L.baselines[i]);
@@ -392,7 +392,21 @@ function setActive(id) {
   redraw();
 }
 
+/* Reiter: Hochladen / Ergebnis, und auf dem Handy zusätzlich Blatt / Antworten */
+function setTab(name) {
+  document.querySelectorAll("[data-panel]").forEach((p) => { p.hidden = p.dataset.panel !== name; });
+  document.querySelectorAll(".au-tabs [data-tab]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.tab === name)));
+}
+function setPane(name) {
+  const rv = document.querySelector(".au-review"); if (rv) rv.dataset.pane = name;
+  document.querySelectorAll(".au-pane-tabs [data-pane]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.pane === name)));
+}
+document.querySelectorAll(".au-tabs [data-tab]").forEach((b) => b.addEventListener("click", () => { setTab(b.dataset.tab); if (b.dataset.tab === "result") redrawSoon(); }));
+document.querySelectorAll(".au-pane-tabs [data-pane]").forEach((b) => b.addEventListener("click", () => { setPane(b.dataset.pane); redrawSoon(); }));
+function redrawSoon() { requestAnimationFrame(() => { if (state.fields.length) redraw(); }); }
+
 function showResult() {
+  setTab("result"); setPane("sheet");
   els.resultBody.hidden = false;
   els.resultEmpty.hidden = true;
   fillSelects();
@@ -426,11 +440,11 @@ async function solve() {
     const r = await callFunction({ action: "solve", image: state.sendBase64 });
     loader.finish();
     state.usage = r.usage;
-    state.fields = r.fields.map((f) => ({ id: f.id, box: f.box, text: f.text, label: f.label || "" }));
+    state.fields = r.fields.map((f) => ({ id: f.id, box: f.box, text: f.text, label: f.label || "", ...(f.round ? { round: true } : {}) }));
     state.skipped = r.skipped || [];
     state.active = 0;
     showResult();
-    els.resultBody.scrollIntoView({ block: "start", behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (e) {
     loader.fail();
     showMessage(els.sheetError, errText(e));
@@ -491,6 +505,41 @@ function savePdf() {
   pdf.addImage(c.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, pw, ph, undefined, "FAST");
   const name = fileName(new Date(), "pdf");
   pdf.save(name);
+  return name;
+}
+
+/* ---------- Goodnotes ---------- */
+
+const loadScript = (src, test) => test() ? Promise.resolve() : new Promise((resolve, reject) => {
+  const el = Object.assign(document.createElement("script"), { src });
+  el.onload = () => (test() ? resolve() : reject(new Error("Bibliothek fehlt.")));
+  el.onerror = () => reject(new Error("Eine Bibliothek konnte nicht geladen werden."));
+  document.head.append(el);
+});
+
+let gnEngine = null;
+/** .goodnotes-Datei: eine A4-Seite der leeren Goodnotes-Vorlage, darauf das fertige Blatt als Bild (wie beim Export der Mindmap). */
+async function saveGoodnotes() {
+  await loadScript("/vendor/jszip.min.js", () => !!window.JSZip);
+  await loadScript("/vendor/jspdf.umd.min.js", () => !!window.jspdf);
+  await loadScript("/tools/goodnotes/templates.js", () => !!window.GOODI_TEMPLATES);
+  const { createInkEngine } = await import("/tools/goodnotes/ink-engine.js");
+  gnEngine = gnEngine || createInkEngine();
+
+  // Blatt auf eine weiße A4-Seite legen (Seitenverhältnis bleibt, nichts wird verzerrt)
+  const sheet = exportCanvas();
+  const page = document.createElement("canvas");
+  page.width = 1654; page.height = Math.round(1654 * 841.89 / 595.28);
+  const pc = page.getContext("2d");
+  pc.fillStyle = "#fff"; pc.fillRect(0, 0, page.width, page.height);
+  const sc = Math.min(page.width / sheet.width, page.height / sheet.height);
+  const dw = sheet.width * sc, dh = sheet.height * sc;
+  pc.imageSmoothingQuality = "high";
+  pc.drawImage(sheet, (page.width - dw) / 2, (page.height - dh) / 2, dw, dh);
+
+  const blob = await gnEngine.buildSinglePage(page, null, null);
+  const name = fileName(new Date(), "goodnotes");
+  download(blob, name);
   return name;
 }
 
@@ -562,6 +611,7 @@ els.size.addEventListener("input", () => { state.scale = Number(els.size.value) 
 els.exportBtn.addEventListener("click", () => openExportMenu({
   title: "Blatt exportieren",
   options: [
+    { id: "gn", icon: "goodnotes", label: "Als Goodnotes", hint: ".goodnotes-Datei zum Öffnen in Goodnotes", loading: "Goodnotes-Datei wird erstellt …", success: "Goodnotes-Datei gespeichert", errorTitle: "Goodnotes-Export fehlgeschlagen", run: saveGoodnotes },
     { id: "pdf", icon: "pdf", label: "Als PDF", hint: "Zum Drucken und Abgeben", loading: "PDF wird erstellt …", success: "PDF gespeichert", errorTitle: "PDF-Export fehlgeschlagen", run: savePdf },
     { id: "png", icon: "image", label: "Als Bild", hint: "PNG, z. B. zum Weiterschicken", loading: "Bild wird erstellt …", success: "Bild gespeichert", errorTitle: "Bild-Export fehlgeschlagen", run: savePng },
   ],

@@ -12,3 +12,16 @@ dialog.em { width: min(420px, calc(100vw - 2 * var(--gutter, 16px))); overflow: 
 .em-text { display: grid; flex: 1; min-width: 0; text-align: left; }
 .em-text b { font-size: 15px; font-weight: 600; }
 .em-text small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; color: var(--muted); }
+
+/* Kommt von unten wie ein Sheet und geht wieder nach unten (die Stile sind beim Öffnen schon geladen, darum kein Aufblitzen) */
+dialog.em { margin: auto auto max(var(--gutter, 16px), env(safe-area-inset-bottom)); border-radius: var(--r-md); }
+.em-panel:focus { outline: none; }
+dialog.em[open] { animation: em-up 0.38s cubic-bezier(0.23, 1, 0.32, 1) both; }
+dialog.em[open]::backdrop { animation: em-fade 0.3s ease both; }
+dialog.em.is-closing { animation: em-down 0.22s cubic-bezier(0.4, 0, 1, 1) both; }
+dialog.em.is-closing::backdrop { animation: em-fade-out 0.22s ease both; }
+@keyframes em-up { from { opacity: 0; transform: translateY(48px); } }
+@keyframes em-down { to { opacity: 0; transform: translateY(48px); } }
+@keyframes em-fade { from { opacity: 0; } }
+@keyframes em-fade-out { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { dialog.em[open], dialog.em[open]::backdrop { animation: none; } }

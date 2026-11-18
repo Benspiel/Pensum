@@ -15,7 +15,10 @@ const LIMITS = {
 };
 
 const SYSTEM_PROMPT = "Du bist der KI-Chat von Pensum, einem Toolkit für Schülerinnen und Schüler. Antworte freundlich, klar und in der Sprache der Frage (meist Deutsch). " +
-  "Erkläre Schritt für Schritt, ohne Hausaufgaben unkommentiert abzunehmen. Wenn du dir nicht sicher bist, sag das offen. Formatiere bei Bedarf mit Absätzen, Listen und Codeblöcken.";
+  "Erkläre Schritt für Schritt. Wenn du dir nicht sicher bist, sag das offen. Formatiere bei Bedarf mit Absätzen, Listen und Codeblöcken. " +
+  "AUFGABEN: Schickt die Person eine Aufgabe (als Bild oder Text), löse sie vollständig und richtig. Schreib zuerst höchstens zwei Sätze Einordnung. " +
+  "Setze dann die fertige Lösung, so wie man sie ins Heft schreiben würde (Rechenweg und Ergebnis, ohne Markdown-Zeichen wie ** oder #), in genau einen Codeblock mit der Sprache lösung, also so: ```lösung\n…\n```." +
+  "Mehrere Teilaufgaben stehen alle in diesem einen Block, jeweils mit a), b) usw. Nach dem Block darf ein kurzer Hinweis stehen, mehr nicht.";
 
 /** Klassenstufen, aus denen man wählen kann, und wie die KI dazu antwortet. */
 const GRADES = {
@@ -39,12 +42,14 @@ function systemPrompt(grade) {
 }
 
 const ID_RE = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,35}$/;
-const IMAGE = { maxBase64: 2_400_000 }; // ca. 1,8 MB Bild; der Browser verkleinert vorher
+const IMAGE = { maxBase64: 2_400_000, maxPdfBase64: 3_500_000 }; // ca. 1,8 MB Bild (der Browser verkleinert vorher) und ca. 2,6 MB PDF
 
-/** Erkennt den Bildtyp an den ersten Bytes (der Typ aus dem Browser wird nicht geglaubt). Gibt null zurück, wenn es kein Bild ist. */
+/** Erkennt Bild- oder PDF-Typ an den ersten Bytes (der Typ aus dem Browser wird nicht geglaubt). Gibt null zurück, wenn es keins von beiden ist. */
 function detectMime(base64) {
-  if (typeof base64 !== "string" || base64.length < 32 || base64.length > IMAGE.maxBase64 || !/^[A-Za-z0-9+/]+={0,2}$/.test(base64)) return null;
+  if (typeof base64 !== "string" || base64.length < 32 || base64.length > IMAGE.maxPdfBase64 || !/^[A-Za-z0-9+/]+={0,2}$/.test(base64)) return null;
   const head = Buffer.from(base64.slice(0, 24), "base64");
+  if (head.toString("latin1", 0, 4) === "%PDF") return "application/pdf";
+  if (base64.length > IMAGE.maxBase64) return null;
   if (head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff) return "image/jpeg";
   if (head[0] === 0x89 && head.toString("latin1", 1, 4) === "PNG") return "image/png";
   if (head.toString("latin1", 0, 4) === "RIFF" && head.toString("latin1", 8, 12) === "WEBP") return "image/webp";
@@ -133,12 +138,13 @@ async function handle({ body, userId }, deps) {
     let image = null;
     if (body.image) {
       const mime = detectMime(body.image);
-      if (!mime) throw new UserError("Dieses Bild kann der KI-Chat nicht lesen. Nimm ein JPEG, PNG oder WebP.", 422, "image");
+      if (!mime) throw new UserError("Diese Datei kann der KI-Chat nicht lesen. Nimm ein JPEG, PNG, WebP oder ein PDF (bis ca. 2,5 MB).", 422, "image");
       image = { mime, data: body.image };
     }
     const typed = cleanText(body.text);
     if (!typed && !image) throw new UserError("Schreib zuerst eine Nachricht.");
-    const text = typed || "Beschreibe das Bild.";
+    const isPdf = !!image && image.mime === "application/pdf";
+    const text = typed || (isPdf ? "Löse die Aufgaben in diesem PDF." : "Beschreibe das Bild.");
 
     // Die echten Schritte dieser Anfrage mit Dauer: Die Oberfläche zeigt sie als einklappbare Liste unter der Antwort.
     const now = deps.now || Date.now;
@@ -160,7 +166,7 @@ async function handle({ body, userId }, deps) {
 
     // Erst die KI fragen, dann speichern: Schlägt sie fehl, bleibt nichts Halbes zurück.
     const grade = cleanGrade(body.grade);
-    if (image) steps.push({ id: "image", label: "Bild gelesen", detail: "Nur für diese Frage" }); // gelesen wird es in der Antwort, darum ohne eigene Dauer
+    if (image) steps.push({ id: "image", label: isPdf ? "PDF gelesen" : "Bild gelesen", detail: "Nur für diese Frage" }); // gelesen wird es in der Antwort, darum ohne eigene Dauer
     const tAnswer = now();
     const out = await deps.gemini(systemPrompt(grade), [...history, { role: "user", text }], { image });
     const reply = cleanText(typeof out === "string" ? out : out && out.text, LIMITS.replyMax);
@@ -169,8 +175,8 @@ async function handle({ body, userId }, deps) {
 
     const tSave = now();
     if (!chat) chat = await deps.db.createChat(userId, makeTitle(text));
-    // Das Bild selbst wird nicht gespeichert, nur der Hinweis darauf.
-    await deps.db.addMessage(userId, chat.$id, "user", image ? `${text}\n\n📎 Bild angehängt` : text);
+    // Die Datei selbst wird nicht gespeichert, nur der Hinweis darauf.
+    await deps.db.addMessage(userId, chat.$id, "user", image ? `${text}\n\n📎 ${isPdf ? "PDF" : "Bild"} angehängt` : text);
     const saved = await deps.db.addMessage(userId, chat.$id, "model", reply);
     try { await deps.db.touchChat(chat.$id, chat.title); } catch (e) { deps.error("Chat-Zeitstempel nicht aktualisiert: " + (e && e.message)); } // nur für die Sortierung, darf die Antwort nicht verlieren
     steps.push({ id: "save", label: "Chat gespeichert", detail: "", ms: Math.max(0, now() - tSave) });

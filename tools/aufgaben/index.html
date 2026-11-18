@@ -43,11 +43,18 @@
     <div id="app" hidden>
       <div class="chips-row" id="usage" aria-live="polite"></div>
 
+      <div class="segmented au-tabs" role="group" aria-label="Bereich">
+        <button type="button" data-tab="upload" aria-pressed="true">1. Arbeitsblatt</button>
+        <button type="button" data-tab="result" aria-pressed="false">2. Ausgefülltes Blatt</button>
+      </div>
+
       <div class="au-grid">
         <!-- 1. Arbeitsblatt -->
-        <section class="panel on-tint au-upload" aria-labelledby="sheetTitle">
+        <section class="panel on-tint au-upload" data-panel="upload" aria-labelledby="sheetTitle">
           <h2 class="h4 panel-title" id="sheetTitle">1. Arbeitsblatt.</h2>
 
+          <div class="au-cols">
+          <div class="au-col">
           <div id="fileUpload"></div>
 
           <div class="au-drop has-image" id="drop" hidden>
@@ -58,7 +65,9 @@
             <input type="file" id="camInput" class="sr-only" accept="image/*" capture="environment">
             Foto aufnehmen
           </label>
+          </div>
 
+          <div class="au-col">
           <label class="field" id="pageField" hidden>
             <span class="field-label">Seite des PDFs</span>
             <select class="select" id="pageSel"></select>
@@ -69,15 +78,18 @@
 
           <button class="btn btn-primary btn-wide btn-lg" type="button" id="solveBtn" disabled>Aufgaben ausfüllen</button>
           <div id="aiLoading" hidden></div>
-          <p class="body-sm muted-tint">Tipp: Das ganze Blatt gerade und von oben fotografieren, mit gutem Licht. Ein Durchlauf zählt erst, wenn die KI Antworten geliefert hat. Bei einem PDF mit mehreren Seiten wählst du die Seite aus, jede Seite zählt als eigener Durchlauf.</p>
+          <p class="field-hint">Tipp: Das ganze Blatt gerade und von oben fotografieren, mit gutem Licht. Ein Durchlauf zählt erst, wenn die KI Antworten geliefert hat. Bei einem PDF wählst du die Seite aus, jede Seite zählt als eigener Durchlauf.</p>
+          </div>
+          </div>
         </section>
 
         <!-- 2. Ergebnis -->
-        <section class="panel on-tint au-result" aria-labelledby="resultTitle">
+        <section class="panel on-tint au-result" data-panel="result" aria-labelledby="resultTitle" hidden>
           <h2 class="h4 panel-title" id="resultTitle">2. Ausgefülltes Blatt.</h2>
           <p class="body-sm muted-tint" id="resultEmpty">Hier erscheint dein Blatt mit den Antworten. Danach kannst du Schrift, Farbe und jede Antwort noch ändern.</p>
 
           <div id="resultBody" hidden>
+            <div class="au-bar">
             <div class="au-options">
               <label class="field">
                 <span class="field-label">Schrift</span>
@@ -92,24 +104,32 @@
                 <input type="range" id="sizeInput" min="70" max="130" step="5" value="100">
               </label>
             </div>
+            <button class="btn btn-primary" type="button" id="exportBtn" aria-haspopup="dialog">Exportieren</button>
+            </div>
             <p class="body-sm muted-tint" id="handHint" hidden>„Meine Handschrift“ gibt es, sobald du sie im Goodnotes-Tool gezeichnet hast.</p>
 
-            <div class="au-stage" id="stage">
-              <canvas id="sheet" aria-label="Ausgefülltes Arbeitsblatt"></canvas>
+            <div class="segmented au-pane-tabs" role="group" aria-label="Ansicht">
+              <button type="button" data-pane="sheet" aria-pressed="true">Blatt</button>
+              <button type="button" data-pane="answers" aria-pressed="false">Antworten</button>
             </div>
-            <p class="field-hint" id="dragHint">Tipp: Am Computer kannst du eine Antwort mit der Maus auf dem Blatt verschieben.</p>
+            <div class="au-review" data-pane="sheet">
+              <div class="au-sheetcol">
+                <div class="au-stage" id="stage">
+                  <canvas id="sheet" aria-label="Ausgefülltes Arbeitsblatt"></canvas>
+                </div>
+                <p class="field-hint" id="dragHint">Tipp: Am Computer kannst du eine Antwort mit der Maus auf dem Blatt verschieben.</p>
+              </div>
 
-            <div class="row">
-              <button class="btn btn-primary" type="button" id="exportBtn" aria-haspopup="dialog">Exportieren</button>
-            </div>
+              <div class="au-answers">
+                <h3 class="h4">Antworten prüfen.</h3>
+                <p class="body-sm muted-tint">Die KI kann sich irren. Lies jede Antwort und ändere sie, bevor du abgibst.</p>
+                <ol class="au-list" id="list"></ol>
 
-            <h3 class="h4 au-sub">Antworten prüfen.</h3>
-            <p class="body-sm muted-tint">Die KI kann sich irren. Lies jede Antwort und ändere sie, bevor du abgibst.</p>
-            <ol class="au-list" id="list"></ol>
-
-            <div class="au-skipped" id="skipped" hidden>
-              <h3 class="h4 au-sub">Das hat die KI ausgelassen.</h3>
-              <ul class="au-skipped-list" id="skippedList"></ul>
+                <div class="au-skipped" id="skipped" hidden>
+                  <h3 class="h4 au-sub">Das hat die KI ausgelassen.</h3>
+                  <ul class="au-skipped-list" id="skippedList"></ul>
+                </div>
+              </div>
             </div>
           </div>
         </section>

@@ -7,19 +7,20 @@ import { esc, toast, confirmDialog } from "/js/shell.js";
 import { Teams, Functions, ExecutionMethod } from "/vendor/appwrite.js";
 import { config } from "/js/config.js";
 import { tableIds, Query, listAllRows } from "/js/db.js";
-import { fitSize, MAX_BASE64, QUALITIES } from "/tools/abschreiben/core.js";
+import { fitSize, MAX_BASE64, QUALITIES, HANDOFF_KEY, makeHandoff, suggestName } from "/tools/abschreiben/core.js";
 import { loaderHtml } from "/js/loader.js";
+import { loadIslands } from "/js/islands.js";
 import { haptic } from "/js/haptics.js";
-import { formatMessage, sortMessages, MAX_TEXT, MAX_TITLE, cleanTitle, LOADING_TEXTS, DEFAULT_GRADE, cleanGrade, waveHtml, formatBytes, checkAttachment, stepsHtml, cleanSteps } from "./core.js";
+import { formatMessage, sortMessages, MAX_TEXT, MAX_TITLE, cleanTitle, DEFAULT_GRADE, cleanGrade, formatBytes, checkAttachment, isPdfFile, stepsHtml, cleanSteps } from "./core.js";
 
 const $ = (id) => document.getElementById(id);
 const els = {
   gate: $("gate"), denied: $("denied"), app: $("app"),
   list: $("chatList"), listEmpty: $("listEmpty"), newBtn: $("newBtn"),
-  title: $("chatTitle"), top: $("top"), side: $("side"), sideToggle: $("sideToggle"), deleteBtn: $("deleteBtn"), log: $("log"), error: $("error"),
+  title: $("chatTitle"), top: $("top"), side: $("side"), sideToggle: $("sideToggle"), log: $("log"), error: $("error"),
   form: $("form"), input: $("input"), sendBtn: $("sendBtn"),
   attach: $("attach"), attachImg: $("attachImg"), attachName: $("attachName"), attachState: $("attachState"), attachRemove: $("attachRemove"),
-  fileInput: $("fileInput"), grade: $("grade"),
+  fileInput: $("fileInput"), attachDoc: $("attachDoc"), grade: $("grade"),
   scrim: $("scrim"), sideClose: $("sideClose"), listState: $("listState"),
 };
 
@@ -35,6 +36,8 @@ const state = {
   renamingId: null, // Chat, dessen Name gerade bearbeitet wird
   grade: DEFAULT_GRADE, // Klasse 8 bis 12: bestimmt, wie die KI antwortet (wird im Browser gemerkt)
   waitTimer: 0,
+  wait: null,       // Warteanzeige: { defs, t0, pdf }
+  waitHandle: null, pdfHandle: null, // React-Inseln der Warteanzeige und der PDF-Karte
   listLoading: false, // Chatliste wird gerade geladen
   listFailed: false,  // Laden der Chatliste ist fehlgeschlagen
 };
@@ -180,38 +183,139 @@ async function finishRename(save) {
   }
 }
 
-/** Warteanzeige: Wörter wechseln, Buchstaben leuchten als Welle auf, daneben die Sekunden. */
-function waitHtml(word, seconds) {
-  return `<div class="kc-msg kc-model kc-wait" role="status"><span class="sr-only">Die KI antwortet</span><span aria-hidden="true"><span class="kc-wait-word" data-word="${esc(word)}">${waveHtml(word)}</span><span class="kc-wait-time">${seconds}s</span></span></div>`;
+/* ---------- Schreibmaschine (Takt und Cursor wie bei KokonutUI „Typewriter“, ui/src/components/kokonutui/type-writer.tsx) ----------
+ * Eine neue Antwort wird Zeichen für Zeichen aufgebaut, mit Cursor. Formatierung (Listen, fett, Lösungsfenster) bleibt, nur der Text erscheint nach und nach.
+ * Alte Chats und „Bewegung reduzieren“ zeigen den Text sofort. Ein neues Rendern (z. B. nächste Frage) beendet das Schreiben. */
+
+let typing = null;
+function stopTyping() { if (typing) { typing.stop(); typing = null; } }
+
+/** Verzögerung je Zeichen mit „menschlichem“ Takt: 10 % zögern, 10 % schnell, sonst ±40 % (wie getTypingDelay im Typewriter). */
+function typingDelay(base) {
+  const roll = Math.random();
+  if (roll < 0.1) return base * 2;
+  if (roll > 0.9) return base * 0.5;
+  return base * (0.6 + Math.random() * 0.8);
 }
 
-function startWaiting() {
-  stopWaiting();
-  const words = LOADING_TEXTS;
-  const t0 = Date.now();
-  state.waitTimer = setInterval(() => {
-    const el = els.log.querySelector(".kc-wait");
-    if (!el) return;
-    const ms = Date.now() - t0;
-    const word = words[Math.min(Math.floor(ms / 1800), words.length - 1)];
-    const cur = el.querySelector(".kc-wait-word");
-    if (cur.dataset.word !== word) { cur.dataset.word = word; cur.innerHTML = waveHtml(word); }
-    el.querySelector(".kc-wait-time").textContent = Math.floor(ms / 1000) + "s";
-  }, 400);
+function typeMessage(el) {
+  if (!el || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+    acceptNode: (n) => (n.nodeValue && !n.parentElement.closest("button, svg, .kc-tools, .kc-solution-title") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT),
+  });
+  const parts = [];
+  while (walker.nextNode()) parts.push({ node: walker.currentNode, full: walker.currentNode.nodeValue });
+  const total = parts.reduce((n, p) => n + p.full.length, 0);
+  if (!total) return;
+  const caret = Object.assign(document.createElement("span"), { className: "kc-caret", ariaHidden: "true" });
+  const base = Math.min(22, Math.max(5, 5000 / total)); // lange Antworten schreiben schneller, höchstens etwa 5 Sekunden
+  const perTick = Math.max(1, Math.ceil(total / 1500));
+  let shown = 0, timer = 0, done = false;
+  const paint = () => {
+    let left = shown, last = null;
+    for (const p of parts) {
+      const n = Math.max(0, Math.min(p.full.length, left));
+      p.node.nodeValue = p.full.slice(0, n);
+      if (n > 0) last = p.node;
+      left -= p.full.length;
+    }
+    if (last) last.after(caret); else parts[0].node.before(caret);
+  };
+  const finish = () => {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    for (const p of parts) p.node.nodeValue = p.full;
+    caret.remove();
+    el.classList.remove("is-typing");
+  };
+  const tick = () => {
+    shown = Math.min(total, shown + perTick);
+    paint();
+    const nearEnd = els.log.scrollHeight - els.log.scrollTop - els.log.clientHeight < 80;
+    if (nearEnd) els.log.scrollTop = els.log.scrollHeight;
+    if (shown >= total) { finish(); typing = null; return; }
+    timer = setTimeout(tick, typingDelay(base));
+  };
+  el.classList.add("is-typing");
+  shown = 0;
+  paint();
+  typing = { stop: finish };
+  timer = setTimeout(tick, 200); // kurze Pause vor dem ersten Zeichen
 }
-function stopWaiting() { clearInterval(state.waitTimer); state.waitTimer = 0; }
+
+/* ---------- Warteanzeige und PDF-Karte: KokonutUI „AI Loading“ und „AI Attachment“ (React-Inseln, vendor/ui) ---------- */
+
+let ui = null;
+loadIslands().then((m) => { ui = m; });
+let islands = [];
+const dropIslands = () => { for (const i of islands) { try { i.destroy(); } catch (_) { /* schon weg */ } } islands = []; state.waitHandle = null; state.pdfHandle = null; };
+
+/** Ohne die Inseln (laden nicht): schlichter Text statt der Schrittliste. */
+const waitHtml = () => '<div class="kc-msg kc-model kc-wait" role="status">Die KI antwortet …</div>';
+
+const STEP_MS = 1200; // so lange zeigt die Schrittliste jeden Schritt vor dem letzten
+/** Schritte der Warteanzeige zum Zeitpunkt ms. Sie folgen den echten Schritten der Function; der letzte (Antwort schreiben) läuft, bis die Antwort da ist. */
+function waitSteps(ms) {
+  const defs = state.wait.defs;
+  const active = Math.min(Math.floor(ms / STEP_MS), defs.length - 1);
+  return defs.map((d, i) => {
+    const step = { id: d.id, label: d.label, status: i < active ? "done" : i === active ? "running" : "pending" };
+    if (i === active && d.lines) step.detail = d.lines.slice(0, Math.min(d.lines.length, Math.floor(Math.max(0, ms - i * STEP_MS) / 1800) + 1));
+    return step;
+  });
+}
+
+function tickWaiting() {
+  if (!state.wait) return;
+  const ms = Date.now() - state.wait.t0;
+  if (state.waitHandle) state.waitHandle.update({ steps: waitSteps(ms) });
+  const pdf = state.wait.pdf;
+  if (pdf && state.pdfHandle) {
+    pdf.read = Math.min(pdf.pages, Math.floor(ms / 350));
+    state.pdfHandle.update({ file: pdf.file, status: "reading", pagesRead: pdf.read });
+  }
+}
+
+function startWaiting(defs, pdf) {
+  stopWaiting();
+  state.wait = { defs, t0: Date.now(), pdf: pdf || null };
+  state.waitTimer = setInterval(tickWaiting, 400);
+  tickWaiting();
+}
+function stopWaiting() { clearInterval(state.waitTimer); state.waitTimer = 0; state.wait = null; }
+
+const pdfFile = (p) => ({ name: p.name, size: p.size, pages: p.pages });
+
+function mountIslands() {
+  if (!ui) return;
+  for (const host of els.log.querySelectorAll("[data-pdf]")) {
+    const m = state.messages.find((x) => String(x.id) === host.dataset.pdf);
+    if (!m || !m.pdf) continue;
+    const pending = m.id === "pending";
+    const h = ui.mountAttachment(host, { file: pdfFile(m.pdf), status: pending ? "reading" : "done", pagesRead: pending ? 0 : m.pdf.pages, duration: m.pdf.duration });
+    islands.push(h);
+    if (pending) state.pdfHandle = h;
+  }
+  const wait = els.log.querySelector(".kc-wait");
+  if (wait && state.wait) { state.waitHandle = ui.mountLoading(wait, { steps: waitSteps(Date.now() - state.wait.t0) }); islands.push(state.waitHandle); }
+}
 
 function renderLog({ waiting = false } = {}) {
+  stopTyping();
+  dropIslands();
   const chat = state.chats.find((c) => c.id === state.chatId);
   els.title.textContent = chat ? chat.title : "";
-  els.deleteBtn.hidden = !chat;
   els.top.classList.toggle("is-empty", !chat); // ohne offenen Chat braucht nur das schmale Fenster die Leiste (für die Chatliste)
   if (!state.messages.length && !waiting) {
     els.log.innerHTML = '<p class="kc-hint">Wie kann ich helfen?</p>';
     return;
   }
-  els.log.innerHTML = state.messages.map((m) => `<div class="kc-msg ${m.role === "user" ? "kc-user" : "kc-model"}" data-mid="${esc(m.id)}">${m.steps ? stepsHtml(m.steps, { id: m.id, open: !!m.stepsOpen }) : ""}${m.imageUrl ? `<img class="kc-msg-img" src="${esc(m.imageUrl)}" alt="Angehängtes Bild">` : ""}${formatMessage(m.text)}</div>`).join("")
-    + (waiting ? waitHtml(LOADING_TEXTS[0], 0) : "");
+  els.log.innerHTML = state.messages.map((m) => {
+    const text = m.pdf ? m.text.replace(/\n\n📎 PDF angehängt$/, "") : m.text;
+    return `<div class="kc-msg ${m.role === "user" ? "kc-user" : "kc-model"}${m.pdf ? " has-pdf" : ""}" data-mid="${esc(m.id)}">${m.steps ? stepsHtml(m.steps, { id: m.id, open: !!m.stepsOpen }) : ""}${m.pdf ? `<div class="kc-pdf" data-pdf="${esc(m.id)}"></div>` : ""}${m.imageUrl ? `<img class="kc-msg-img" src="${esc(m.imageUrl)}" alt="Angehängtes Bild">` : ""}${m.pdf ? (text.trim() && !m.noText ? `<div class="kc-user-text">${formatMessage(text)}</div>` : "") : formatMessage(text)}</div>`;
+  }).join("") + (waiting ? waitHtml() : "");
+  mountIslands();
   els.log.scrollTop = els.log.scrollHeight;
 }
 
@@ -219,9 +323,7 @@ function setBusy(busy) {
   state.busy = busy;
   els.sendBtn.disabled = busy;
   els.newBtn.disabled = busy;
-  els.deleteBtn.disabled = busy;
   els.sendBtn.disabled = busy || state.preparing;
-  els.attach.classList.toggle("is-reading", busy && !!state.attachment);
   if (state.attachment) els.attachState.textContent = busy ? "Wird gelesen …" : `Bereit · ${formatBytes(state.attachment.size)} · nur für diese Frage`;
 }
 
@@ -271,11 +373,24 @@ async function prepareImage(file) {
   throw new Error("Das Bild ist zu groß. Wähle ein kleineres Bild.");
 }
 
+/** Seiten eines PDFs (pdf.js liegt lokal in /vendor/pdfjs); klappt es nicht, wird aus dem Dateiinhalt geschätzt. */
+async function countPages(file) {
+  try {
+    const pdfjs = await import("/vendor/pdfjs/pdf.min.mjs");
+    pdfjs.GlobalWorkerOptions.workerSrc = "/vendor/pdfjs/pdf.worker.min.mjs";
+    const doc = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+    const n = doc.numPages;
+    doc.destroy();
+    return Math.max(1, n);
+  } catch (_) {
+    try { return Math.max(1, (new TextDecoder("latin1").decode(await file.arrayBuffer()).match(/\/Type\s*\/Page(?![A-Za-z])/g) || []).length); } catch (__) { return 1; }
+  }
+}
+
 function clearAttachment() {
   if (state.attachment) URL.revokeObjectURL(state.attachment.url);
   state.attachment = null;
   els.attach.hidden = true;
-  els.attach.classList.remove("is-reading");
   els.fileInput.value = "";
 }
 
@@ -289,13 +404,16 @@ async function setAttachment(file) {
   els.sendBtn.disabled = true;
   els.attach.hidden = false;
   els.attachImg.removeAttribute("src");
+  els.attachDoc.classList.remove("is-pdf");
   els.attachName.textContent = file.name;
   els.attachState.textContent = "Wird vorbereitet …";
   try {
-    const p = await prepareImage(file);
-    const url = URL.createObjectURL(p.blob);
-    state.attachment = { base64: p.base64, url, name: file.name, size: p.blob.size };
-    els.attachImg.src = url;
+    const pdf = isPdfFile(file);
+    const p = pdf ? { base64: await blobToBase64(file), blob: file } : await prepareImage(file);
+    const url = pdf ? "" : URL.createObjectURL(p.blob);
+    state.attachment = { base64: p.base64, url, name: file.name, size: p.blob.size, pdf, pages: pdf ? await countPages(file) : 0 };
+    els.attachDoc.classList.toggle("is-pdf", pdf);
+    if (url) els.attachImg.src = url;
     els.attachState.textContent = `Bereit · ${formatBytes(p.blob.size)} · nur für diese Frage`;
   } catch (e) {
     clearAttachment();
@@ -357,27 +475,39 @@ async function send() {
   setBusy(true);
   const token = state.loadToken;
   const attachment = state.attachment;
-  state.messages.push({ id: "pending", role: "user", text, imageUrl: attachment ? attachment.url : "" });
+  if (attachment) els.attach.hidden = true; // die Karte steht ab jetzt in der Nachricht; die Anhangszeile unten verschwindet sofort
+  const t0 = Date.now();
+  if (!ui) ui = await loadIslands();
+  const pdf = attachment && attachment.pdf ? { name: attachment.name, size: attachment.size, pages: attachment.pages || 1 } : null;
+  state.messages.push({ id: "pending", role: "user", text, imageUrl: attachment ? attachment.url : "", pdf: pdf || undefined });
   els.input.value = "";
   growInput();
+  const defs = [];
+  if (state.chatId) defs.push({ id: "history", label: "Verlauf lesen" });
+  if (attachment) defs.push({ id: "file", label: pdf ? "PDF lesen" : "Bild lesen" });
+  defs.push({ id: "answer", label: "Antwort schreiben", lines: attachment ? ["Aufgabe verstehen", "Lösungsweg rechnen", "Lösung formulieren"] : [state.grade ? `Für Klasse ${state.grade}` : "Frage verstehen", "Antwort formulieren"] });
+  state.wait = { defs, t0: Date.now(), pdf: pdf ? { file: pdfFile(pdf), pages: pdf.pages, read: 0 } : null };
   renderLog({ waiting: true });
-  startWaiting();
+  startWaiting(defs, state.wait.pdf);
   try {
     const r = await callFunction({ action: "send", chatId: state.chatId, text, grade: state.grade, image: attachment ? attachment.base64 : undefined });
     if (token !== state.loadToken) return;
     const sent = state.messages[state.messages.length - 1];
     sent.id = "u-" + r.reply.id;
-    if (attachment) { sent.text = (text || "Beschreibe das Bild.") + "\n\n📎 Bild angehängt"; sent.imageUrl = ""; clearAttachment(); }
+    if (sent.pdf) { sent.pdf.duration = (Date.now() - t0) / 1000; sent.noText = !text; } // nur ein PDF ohne eigenen Text: keine Sprechblase
+    if (attachment) { sent.text = (text || (attachment.pdf ? "Löse die Aufgaben in diesem PDF." : "Beschreibe das Bild.")) + `\n\n📎 ${attachment.pdf ? "PDF" : "Bild"} angehängt`; sent.imageUrl = ""; clearAttachment(); }
     state.messages.push({ id: r.reply.id, role: "model", text: r.reply.text, steps: cleanSteps(r.steps) });
     state.chatId = r.chat.id;
     state.chats = [r.chat, ...state.chats.filter((c) => c.id !== r.chat.id)];
     renderList();
     renderLog();
+    typeMessage(els.log.lastElementChild);
     haptic("success");
   } catch (e) {
     haptic("error");
     if (token === state.loadToken) {
       state.messages.pop();   // die Frage wurde nicht gespeichert: zurück ins Eingabefeld
+      if (state.attachment === attachment && attachment) els.attach.hidden = false; // und der Anhang zurück
       els.input.value = text;
       growInput();
       showError(e.message);
@@ -421,7 +551,6 @@ async function removeChat(id = state.chatId) {
 /* ---------- Start ---------- */
 
 els.newBtn.addEventListener("click", () => { toggleSide(false, { quiet: true }); newChat(); });
-els.deleteBtn.addEventListener("click", () => { haptic("tap"); removeChat(); });
 /** Chatliste im schmalen Fenster ein- und ausklappen (im breiten ist sie immer da). */
 function toggleSide(open, { quiet = false } = {}) {
   const was = els.side.classList.contains("is-open");
@@ -463,7 +592,27 @@ els.list.addEventListener("keydown", (e) => {
 });
 els.list.addEventListener("focusout", (e) => { if (e.target.matches(".kc-rename")) finishRename(true); });
 /* Schrittliste unter einer Antwort auf- und zuklappen; der Zustand bleibt, wenn der Chat neu gezeichnet wird */
-els.log.addEventListener("click", (e) => {
+els.log.addEventListener("click", async (e) => {
+  const sol = e.target.closest("[data-solution]");
+  if (sol) {
+    const text = sol.closest(".kc-solution").querySelector(".kc-solution-body").textContent;
+    haptic("tap");
+    if (sol.dataset.solution === "goodnotes") {
+      try { sessionStorage.setItem(HANDOFF_KEY, makeHandoff(text, suggestName(text))); } catch (_) { toast("Das Einfügen klappt in diesem Browser nicht. Kopiere den Text stattdessen.", { error: true }); return; }
+      location.href = "/tools/goodnotes/";
+      return;
+    }
+    try { await navigator.clipboard.writeText(text); } catch (_) {
+      const ta = Object.assign(document.createElement("textarea"), { value: text });
+      document.body.append(ta); ta.select();
+      try { document.execCommand("copy"); } catch (__) { /* nichts mehr zu tun */ }
+      ta.remove();
+    }
+    const label = sol.querySelector("span");
+    label.textContent = "Kopiert";
+    setTimeout(() => { label.textContent = "Kopieren"; }, 1600);
+    return;
+  }
   const retry = e.target.closest("[data-retry-chat]");
   if (retry) { haptic("tap"); const id = retry.dataset.retryChat; state.chatId = null; openChat(id); return; }
   const head = e.target.closest(".kc-tools-head");
@@ -477,6 +626,32 @@ els.log.addEventListener("click", (e) => {
   const msg = state.messages.find((m) => String(m.id) === head.closest("[data-mid]").dataset.mid);
   if (msg) msg.stepsOpen = open;
 });
+/* Datei hereinziehen: dunkler Hintergrund und Ablagefläche. Ablegen irgendwo im Fenster nimmt die Datei als Anhang. */
+const dropScrim = $("dropScrim");
+let dropHandle = null, dropKey = 0, dragDepth = 0;
+const hasFiles = (e) => !!e.dataTransfer && [...e.dataTransfer.types].includes("Files");
+function showDrop(on) {
+  dropScrim.classList.toggle("is-on", on);
+  if (!on) setTimeout(() => { if (dropHandle && !dropScrim.classList.contains("is-on")) dropHandle.update({ onFile: takeDropped, resetKey: ++dropKey }); }, 300);
+}
+function takeDropped(file) { showDrop(false); setAttachment(file); }
+async function setupDrop() {
+  const m = ui || await loadIslands();
+  if (m && !dropHandle) dropHandle = m.mountDropzone($("dropZone"), { onFile: takeDropped, resetKey: dropKey });
+}
+window.addEventListener("dragenter", (e) => { if (!hasFiles(e) || els.app.hidden || state.busy) return; dragDepth++; showDrop(true); });
+window.addEventListener("dragleave", (e) => { if (!hasFiles(e)) return; dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) showDrop(false); });
+window.addEventListener("dragover", (e) => { if (hasFiles(e)) e.preventDefault(); });
+window.addEventListener("drop", (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  dragDepth = 0;
+  const inZone = e.target instanceof Element && e.target.closest(".kc-dropzone button"); // dort nimmt die Ablagefläche die Datei selbst
+  showDrop(false);
+  if (!inZone && !els.app.hidden && !state.busy && e.dataTransfer.files[0]) { haptic("tap"); setAttachment(e.dataTransfer.files[0]); }
+});
+window.addEventListener("dragend", () => { dragDepth = 0; showDrop(false); });
+
 els.fileInput.addEventListener("change", () => { haptic("tap"); setAttachment(els.fileInput.files[0]); });
 els.attachRemove.addEventListener("click", () => { if (!state.busy) { haptic("tap"); clearAttachment(); showError(""); } });
 /* Klassenwahl: gemerkt im Browser (localStorage, nur diese Einstellung) */
@@ -508,6 +683,7 @@ async function start(user) {
   els.app.hidden = !member;
   if (!member) return;
   state.userId = user.$id;
+  setupDrop();
   renderLog();
   await reloadChats(user.$id);
   if (startedFor !== user.$id) return;

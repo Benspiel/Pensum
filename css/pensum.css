@@ -273,7 +273,7 @@ a { color: inherit; }
   -webkit-appearance: none;
 }
 .input::placeholder, .textarea::placeholder { color: var(--muted-on-tint); opacity: 1; }
-.on-tint .input, .on-tint .select, .on-tint .textarea { background: var(--canvas); }
+.on-tint .input, .on-tint .select, .on-tint .textarea { background-color: var(--canvas); }
 
 .input:focus-visible, .select:focus-visible, .textarea:focus-visible {
   outline: 2px solid var(--ink);
@@ -779,7 +779,7 @@ a.tool-card:hover p { color: var(--muted-on-tint); }
   .group-row-value { order: 3; flex: 1 1 100%; }
 }
 
-.panel .input, .panel .select, .panel .textarea { background: var(--canvas); }
+.panel .input, .panel .select, .panel .textarea { background-color: var(--canvas); }
 .panel-title { margin-bottom: var(--s-md); }
 
 /* ---------- Bewegung: überall dieselbe Sprache ---------- */

@@ -39,7 +39,8 @@ body.kc-page pensum-nav { flex: none; }
 
 /* „…“ erscheint beim Darüberfahren (am Touch-Gerät immer) und öffnet Umbenennen und Löschen */
 .kc-item { position: relative; }
-.kc-item:hover .kc-chat, .kc-item:focus-within .kc-chat, .kc-item.is-menu .kc-chat { padding-right: 40px; }
+/* Lange Namen: Rechts bleibt immer Platz für den „…“-Knopf und der Name wird mit „…“ gekürzt, so springt beim Darüberfahren nichts und nichts überlappt. */
+.kc-chat { padding-right: 40px; }
 .kc-more {
   position: absolute; top: 50%; right: 4px; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 8px;
   background: transparent; color: var(--muted); opacity: 0; cursor: pointer; transform: translateY(-50%); transition: opacity 0.12s ease, background-color 0.12s ease, color 0.12s ease;
@@ -49,7 +50,7 @@ body.kc-page pensum-nav { flex: none; }
 .kc-more:hover, .kc-item.is-menu .kc-more { background: color-mix(in srgb, var(--ink) 12%, transparent); color: var(--ink); }
 .kc-more:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
 .kc-item.is-menu .kc-chat { background: color-mix(in srgb, var(--ink) 7%, transparent); }
-@media (hover: none) { .kc-more { opacity: 1; } .kc-chat { padding-right: 40px; } }
+@media (hover: none) { .kc-more { opacity: 1; } }
 
 .kc-rename {
   display: block; width: 100%; height: 40px; padding: 0 var(--s-sm); border: 1.5px solid var(--ink); border-radius: 10px; outline: 0;
@@ -100,6 +101,17 @@ body.kc-page pensum-nav { flex: none; }
 .kc-msg p, .kc-msg ul, .kc-msg ol, .kc-msg pre { margin: 0 0 var(--s-xs); }
 .kc-msg ul, .kc-msg ol { padding-left: 1.4em; }
 .kc-msg pre { overflow-x: auto; padding: var(--s-sm); background: var(--canvas-soft); border-radius: var(--r-sm, 8px); }
+.kc-solution { margin: 0 0 var(--s-xs); border: 1px solid var(--hairline); border-radius: 14px; background: var(--canvas); overflow: hidden; }
+.kc-solution-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px 8px 14px; border-bottom: 1px solid var(--hairline); background: var(--canvas-soft); }
+.kc-solution-title { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.9rem; }
+.kc-solution-title svg, .kc-solution-btn svg { width: 16px; height: 16px; flex: none; }
+.kc-solution-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.kc-solution-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid var(--hairline); border-radius: 999px; background: var(--canvas); color: var(--ink); font: inherit; font-size: 0.85rem; cursor: pointer; }
+.kc-solution-btn:hover { background: var(--canvas-soft); }
+.kc-solution-btn.is-primary { background: var(--ink); color: var(--on-primary); border-color: var(--ink); }
+.kc-solution-btn.is-primary:hover { opacity: 0.88; }
+.kc-solution-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.kc-msg .kc-solution-body { margin: 0; padding: 12px 14px; background: transparent; border-radius: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; line-height: 1.6; }
 .kc-msg code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; }
 .kc-msg a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 .kc-msg-img { display: block; max-width: 100%; max-height: 180px; margin-bottom: var(--s-xs); border-radius: var(--r-sm, 8px); }
@@ -139,13 +151,12 @@ body.kc-page pensum-nav { flex: none; }
 .kc-tool-time { flex: none; font-size: 0.75rem; font-variant-numeric: tabular-nums; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { .kc-tools-chev { transition: none; } .kc-tools-list:not([hidden]) { animation: none; } }
 
-/* Warteanzeige: Buchstaben leuchten nacheinander auf (Nachbau von „AI Text Loading“) */
-.kc-wait { font-weight: 600; opacity: 0.9; }
-@keyframes kc-wave { 50% { opacity: 0.3; } }
-.kc-wave-ch { display: inline-block; animation: kc-wave 1.6s ease-in-out infinite both; }
-@keyframes kc-word-in { from { opacity: 0; transform: translateY(6px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
-.kc-wait-word { display: inline-block; animation: kc-word-in 0.28s cubic-bezier(0.23, 1, 0.32, 1) both; }
-.kc-wait-time { margin-left: var(--s-xs); font-weight: 500; font-variant-numeric: tabular-nums; opacity: 0.6; }
+/* Warteanzeige (KokonutUI „AI Loading“) und PDF-Karte („AI Attachment“) */
+.kc-wait { min-height: 2rem; }
+.kc-wait .ui-island, .kc-pdf { width: 100%; }
+.kc-user.has-pdf { display: grid; justify-items: end; gap: var(--s-xs); width: min(28rem, 100%); padding: 0; background: none; }
+.kc-user.has-pdf .kc-pdf { width: 100%; }
+.kc-user-text { padding: var(--s-xs) var(--s-md); border-radius: var(--r-md); background: var(--canvas-soft); }
 
 /* Eingabe (Nachbau von „AI Input Search“): ein Kasten mit Anhang, Textfeld und Werkzeugleiste */
 .kc-box {
@@ -188,16 +199,15 @@ body.kc-page pensum-nav { flex: none; }
 .kc-attach[hidden] { display: none; }
 .kc-doc { position: relative; flex: none; width: 36px; aspect-ratio: 3 / 4; overflow: hidden; border-radius: 4px; background: var(--canvas-soft); box-shadow: 0 0 0 1px var(--hairline); }
 .kc-doc img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.kc-doc-scan { position: absolute; inset: 0 0 auto 0; height: 2px; background: #0ea5e9; box-shadow: 0 0 8px 1px #0ea5e9; opacity: 0; }
-.kc-attach.is-reading .kc-doc { box-shadow: 0 0 0 1.5px #0ea5e9; }
-.kc-attach.is-reading .kc-doc-scan { opacity: 1; animation: kc-scan 1.2s ease-in-out infinite alternate; }
-@keyframes kc-scan { from { top: 0; } to { top: calc(100% - 2px); } }
+.kc-doc.is-pdf { display: grid; place-items: center; }
+.kc-doc.is-pdf img { display: none; }
+.kc-doc.is-pdf::before { content: "PDF"; font-weight: 700; font-size: 0.7rem; letter-spacing: 0.04em; }
 .kc-attach-info { display: grid; min-width: 0; flex: 1; }
 .kc-attach-name { font-weight: 600; font-size: 0.875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kc-attach-state { font-size: 0.8125rem; opacity: 0.65; }
 
 @media (prefers-reduced-motion: reduce) {
-  .kc-wave-ch, .kc-wait-word, .kc-attach.is-reading .kc-doc-scan { animation: none; }
+  .kc-wave-ch, .kc-wait-word { animation: none; }
 }
 /* Schmale Fenster: Die Chatliste klappt über die Unterhaltung. Zu geht sie per Kreuz, Tippen daneben, Wischen nach links oder Escape. */
 @media (max-width: 899px) {
@@ -220,3 +230,16 @@ body.kc-page pensum-nav { flex: none; }
   .kc-top { padding-top: 2px; }
 }
 @media (prefers-reduced-motion: reduce) { .kc-side, .kc-side.is-open, .kc-scrim { transition: none; } }
+
+/* Schreibmaschine: Cursor am Ende des geschriebenen Texts; die Knöpfe des Lösungsfensters erscheinen erst, wenn alles da ist */
+.kc-caret { display: inline-block; width: 2px; height: 1.05em; margin-left: 1px; vertical-align: text-bottom; background: currentColor; }
+.is-typing .kc-solution-actions { visibility: hidden; }
+
+/* Datei hereinziehen: Hintergrund wird dunkel, die Ablagefläche (KokonutUI „File Upload“) erscheint in der Mitte */
+.kc-dropscrim { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: var(--s-md); background: rgb(0 0 0 / 0.6); opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+.kc-dropscrim.is-on { opacity: 1; pointer-events: auto; }
+.kc-dropzone { width: min(26rem, 100%); transform: scale(0.96); transition: transform 0.28s cubic-bezier(0.23, 1, 0.32, 1); }
+.kc-dropscrim.is-on .kc-dropzone { transform: none; }
+.kc-dropfallback { margin: 0; padding: var(--s-lg); border: 1px dashed rgb(255 255 255 / 0.6); border-radius: var(--r-md); color: #fff; text-align: center; font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .kc-dropscrim, .kc-dropzone { transition: none; } }
+.kc-dropzone > div { box-shadow: 0 0 0 1px rgb(255 255 255 / 0.22), 0 20px 50px rgb(0 0 0 / 0.5); }

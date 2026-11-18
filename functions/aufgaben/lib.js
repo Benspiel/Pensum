@@ -125,7 +125,7 @@ function cleanFields(raw) {
   }
   // Leserichtung: Zeilen von oben nach unten (Toleranz 1 % Blatthöhe), in der Zeile von links nach rechts
   out.sort((a, b) => (Math.abs(a.box[0] - b.box[0]) > 10 ? a.box[0] - b.box[0] : a.box[1] - b.box[1]));
-  return out.map((f, i) => ({ id: i + 1, box: f.box, text: f.text, label: f.label }));
+  return out.map((f, i) => ({ id: i + 1, box: f.box, text: f.text, label: f.label, ...(f.round ? { round: true } : {}) }));
 }
 
 /** Aufgaben, die die KI nicht lösen konnte (Zeichnen, unleserlich …): kurze Hinweise für die Anzeige. */
@@ -144,6 +144,9 @@ const SYSTEM_PROMPT = [
   "Form des Rechtecks: Bei einer Linie oder einer Lücke im Satz liegt die UNTERKANTE des Rechtecks genau auf der Linie, und es reicht von dort so hoch wie die gedruckte Schrift daneben (eine Textzeile) nach oben. Nichts davon liegt unterhalb der Linie, und ein dünner Streifen direkt auf der Linie ist falsch. Die Breite ist die der Linie. Bei einem Kästchen oder einer Tabellenzelle liegt es genau innerhalb der Linien. Gehören mehrere Linien oder ein großes Kästchen zu einer Antwort, ist es ein Rechteck über die ganze freie Fläche.",
   "Tabellen: Für jede leere Zelle, die ausgefüllt werden soll, gibt es ein eigenes Rechteck, das genau in der Zeile der Beschriftung (label) liegt. Gehe die Zeilen von oben nach unten durch, jede Zeile hat ihr eigenes Feld, die Felder haben dieselben Abstände wie die Zeilen auf dem Blatt, und kein Feld liegt außerhalb der Tabelle.",
   "text ist die kurze Antwort, die dort stehen soll. Eine Lücke in einem Satz bekommt nur das fehlende Wort oder die fehlenden Wörter, nicht den ganzen Satz. Bei Rechenaufgaben stehen Rechenweg und Ergebnis kurz in text (Zeilenumbruch mit \\n, höchstens 4 Zeilen), bei Textaufgaben ein vollständiger kurzer Satz. Zum Ankreuzen setzt du ein \"X\" in das Kästchen der richtigen Antwort. Bei Zuordnungen und Tabellen füllst du jede Zelle einzeln. Rechenzeichen schreibst du wie in der Schule: · für mal, : für geteilt, - für minus. Geldbeträge mit dem Zeichen €.",
+  "Auch leere Sprechblasen, Ovale, Wolken und Rahmen unter oder neben einer Aufgabe (zum Beispiel unter \"Kommentiere ...\") sind Schreibfelder: Das Rechteck liegt innerhalb der Form, die Antwort ist ein kurzer Kommentar in ein bis drei Sätzen.",
+  "WICHTIG: Setze bei jedem Feld \"round\": true, wenn der freie Platz eine Ellipse, Sprechblase oder Wolke ist (rund, nicht eckig); box_2d ist dann das umschließende Rechteck der Form. Bei allen anderen Feldern lässt du round weg oder setzt false.",
+  "Aussagen mit leerem Kästchen davor (\"Kreuze alle richtigen an\") sind keine Selbsteinschätzung: Jedes Kästchen ist ein eigenes Feld, du schreibst \"X\" in die Kästchen der richtigen Aussagen und lässt die falschen aus. Rechteck = nur das kleine Kästchen.",
   "Angaben zur Person im Kopf des Blatts (Name, Vorname, Klasse, Datum, Lehrkraft, Punkte) füllst du NICHT aus und erfindest keine.",
   "Selbsteinschätzungen (Ankreuzfelder oder Smileys zum Einschätzen, wie gut man etwas kann, Checklisten zum Abhaken) füllst du NICHT aus, das entscheidet die Schülerin oder der Schüler selbst. Nenne sie in \"skipped\".",
   "Lücken sind auch auszufüllende Platzhalter mitten in einer Rechnung oder Menge: graue Kästchen, leere Kästchen oder Unterstriche wie in L = {-18; ___}. Jede davon ist ein eigenes Feld mit der fehlenden Ziffer oder Zahl. Rechne die Aufgabe richtig aus, bevor du schreibst, zum Beispiel x² = 361 hat die Lösungen -19 und 19. Gehe die Lücken in Lesereihenfolge durch und prüfe jede Rechnung mit Einsetzen.",
@@ -163,7 +166,7 @@ const RESPONSE_SCHEMA = {
     // count zuerst: Die KI zählt die Schreibfelder, bevor sie sie aufschreibt. So endet die Liste seltener zu früh, und der Server erkennt eine unvollständige Antwort.
     count: { type: "INTEGER" },
     // Reihenfolge label → box_2d → text: Erst die Beschriftung der Zeile lesen, dann ihr Feld suchen (verankert das Feld an der Zeile)
-    fields: { type: "ARRAY", items: { type: "OBJECT", properties: { label: { type: "STRING" }, box_2d: { type: "ARRAY", items: { type: "INTEGER" } }, text: { type: "STRING" } }, required: ["label", "box_2d", "text"], propertyOrdering: ["label", "box_2d", "text"] } },
+    fields: { type: "ARRAY", items: { type: "OBJECT", properties: { label: { type: "STRING" }, box_2d: { type: "ARRAY", items: { type: "INTEGER" } }, text: { type: "STRING" }, round: { type: "BOOLEAN" } }, required: ["label", "box_2d", "text"], propertyOrdering: ["label", "box_2d", "text", "round"] } },
     skipped: { type: "ARRAY", items: { type: "STRING" } },
   },
   required: ["count", "fields", "skipped"],
@@ -175,7 +178,7 @@ function buildGeminiBody(system, userText, image) {
   return {
     systemInstruction: { parts: [{ text: system }] },
     contents: [{ role: "user", parts: [{ inlineData: { mimeType: image.mime, data: image.data } }, { text: userText }] }],
-    generationConfig: { responseMimeType: "application/json", temperature: 0, maxOutputTokens: 8192, responseSchema: RESPONSE_SCHEMA },
+    generationConfig: { responseMimeType: "application/json", temperature: 0, maxOutputTokens: 8192, responseSchema: RESPONSE_SCHEMA, thinkingConfig: { thinkingLevel: "medium" } }, // wenig Nachdenken: Das Lesen eines Blatts braucht es kaum, kostet aber Sekunden im 26-s-Budget
   };
 }
 

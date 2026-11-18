@@ -1,5 +1,6 @@
 /* Export-Menü – reine Logik (ohne Browser-Abhängigkeit, daher testbar). Das Menü selbst steht in export-menu.js. */
-import { errorText } from "./promise-toast.js";
+/** Fehlertext für die zweite Zeile. */
+export const errorText = (e) => (e && e.message ? String(e.message) : typeof e === "string" ? e : "");
 
 /** Rückgabewert von run: Der Nutzer hat abgebrochen, der Toast verschwindet still. */
 export const CANCELLED = Symbol("cancelled");

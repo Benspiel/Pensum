@@ -6,10 +6,17 @@
 #usage { margin-bottom: var(--s-md); }
 #usage:empty { display: none; }
 
+/* Oben das Hochladen (zwei Spalten), darunter das Ergebnis in voller Breite */
+.au-tabs { margin-bottom: var(--s-md); }
+.au-pane-tabs { display: none; }
+[data-panel][hidden] { display: none; }
 .au-grid { display: grid; gap: var(--s-lg); align-items: start; margin-bottom: var(--s-xl); }
-@media (min-width: 1000px) { .au-grid { grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); } }
 
 .au-upload > * + *, .au-result > * + * { margin-top: var(--s-md); }
+.au-cols { display: grid; gap: var(--s-md); }
+@media (min-width: 800px) { .au-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-lg); align-items: start; } }
+.au-col > * + * { margin-top: var(--s-md); }
+.au-col > .field-hint { margin-top: var(--s-sm); }
 .au-upload > .panel-title, .au-result > .panel-title { margin-bottom: 0; }
 #resultBody > * + * { margin-top: var(--s-md); }
 
@@ -35,9 +42,25 @@
 .au-pick:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
 .au-pick.is-disabled { opacity: 0.5; pointer-events: none; }
 
-/* Einstellungen über dem Blatt */
+/* Einstellungen und Export in einer Leiste über dem Blatt */
+.au-bar { display: grid; gap: var(--s-md); padding-bottom: var(--s-md); border-bottom: 1px solid var(--hairline); }
+@media (min-width: 800px) { .au-bar { grid-template-columns: minmax(0, 1fr) auto; align-items: end; } }
 .au-options { display: grid; gap: var(--s-md); }
 @media (min-width: 640px) { .au-options { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; } }
+
+/* Blatt links (bleibt beim Scrollen stehen), Antworten rechts */
+.au-review { display: grid; gap: var(--s-lg); align-items: start; }
+@media (min-width: 900px) {
+  .au-review { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .au-sheetcol { position: sticky; top: var(--s-md); }
+}
+@media (max-width: 899px) {
+  .au-pane-tabs { display: flex; width: 100%; }
+  .au-pane-tabs button { flex: 1; }
+  .au-review[data-pane="sheet"] .au-answers, .au-review[data-pane="answers"] .au-sheetcol { display: none; }
+}
+.au-sheetcol > * + *, .au-answers > * + * { margin-top: var(--s-sm); }
+.au-answers > .au-list { margin-top: var(--s-md); }
 .au-size output { float: right; font-weight: 600; color: var(--ink); }
 
 /* Das Blatt selbst */
@@ -52,7 +75,7 @@
 #sheet.can-drag { cursor: grab; }
 #sheet.is-dragging { cursor: grabbing; }
 
-.au-sub { margin-top: var(--s-lg); }
+.au-sub { margin-top: var(--s-md); }
 .au-sub + .body-sm { margin-top: var(--s-xxs); }
 
 /* Antworten */

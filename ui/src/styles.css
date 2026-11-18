@@ -55,3 +55,8 @@
 
 /* Tabs: Browser-Standardfläche und -Rahmen der Buttons entfernen (kommt sonst als graue Kästen durch) */
 .ui-island [role="tab"] { background: transparent; border: 0; margin: 0; cursor: pointer; }
+
+/* Ohne Preflight: Listen der Toaster ohne Punkte, Zahlen und Einzug; Absätze ohne Pensum-Abstand */
+.ui-island ol, .ui-island ul { list-style: none; margin: 0; padding: 0; }
+.ui-island li { margin: 0; }
+.ui-island p { margin: 0; }

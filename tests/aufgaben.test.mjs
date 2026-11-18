@@ -292,7 +292,7 @@ test("Prompt und Schema: Personenangaben nicht ausfüllen, Unterkante auf der Li
   assert.match(lib.SYSTEM_PROMPT, /Name, Vorname, Klasse, Datum.*NICHT aus/);
   assert.match(lib.SYSTEM_PROMPT, /UNTERKANTE/);
   const item = lib.RESPONSE_SCHEMA.properties.fields.items;
-  assert.deepEqual(item.propertyOrdering, ["label", "box_2d", "text"]);
+  assert.deepEqual(item.propertyOrdering, ["label", "box_2d", "text", "round"]);
   assert.deepEqual(item.required, ["label", "box_2d", "text"]);
   assert.deepEqual(lib.buildGeminiBody("s", "u", { mime: "image/png", data: "AAAA" }).generationConfig.responseSchema, lib.RESPONSE_SCHEMA);
 });

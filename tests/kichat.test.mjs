@@ -135,7 +135,7 @@ test("Links nur mit https, Wellen-Buchstaben und Dateigröße", () => {
   assert.equal(formatBytes(2048), "2 KB");
   assert.equal(formatBytes(1.5 * 1024 * 1024), "1,5 MB");
   assert.equal(checkAttachment({ type: "image/png", size: 1000 }), null);
-  assert.ok(checkAttachment({ type: "application/pdf", size: 1000 }));
+  assert.ok(checkAttachment({ type: "text/plain", size: 1000 }));
   assert.ok(checkAttachment({ type: "image/png", size: 30 * 1024 * 1024 }));
 });
 
@@ -261,4 +261,27 @@ test("Name im Browser deckt sich mit dem Server", () => {
   assert.equal(cleanTitle("b".repeat(100)).length, MAX_TITLE);
   assert.equal(MAX_TITLE, lib.LIMITS.titleMax);
   assert.equal(cleanTitle("x".repeat(59) + " yz"), lib.cleanTitle("x".repeat(59) + " yz"), "gleiches Ergebnis wie auf dem Server");
+});
+
+test("formatMessage baut aus einem lösung-Block ein Lösungsfenster mit Kopieren und Goodnotes", () => {
+  const html = formatMessage("Kurz erklärt.\n\n```lösung\na) 2 + 3 = 5 <b>\n```\nFertig.");
+  assert.match(html, /class="kc-solution"/);
+  assert.match(html, /data-solution="copy"/);
+  assert.match(html, /data-solution="goodnotes"/);
+  assert.match(html, /a\) 2 \+ 3 = 5 &lt;b&gt;/);
+  assert.doesNotMatch(html, /<pre><code>/);
+});
+
+test("PDF-Anhang: erkannt, an die KI gegeben, nur Hinweis gespeichert; zu große PDFs abgelehnt", async () => {
+  const pdf = Buffer.from("%PDF-1.4\n" + "x".repeat(60)).toString("base64");
+  assert.equal(lib.detectMime(pdf), "application/pdf");
+  const f = fake();
+  f.deps.gemini = async (system, turns, opts) => { f.calls.gemini.push({ turns, opts }); return "Lösung."; };
+  const r = await lib.handle({ body: { action: "send", text: "", image: pdf }, userId: "u1" }, f.deps);
+  assert.equal(r.status, 200);
+  assert.equal(f.calls.gemini[0].opts.image.mime, "application/pdf");
+  assert.equal(f.calls.gemini[0].turns[0].text, "Löse die Aufgaben in diesem PDF.");
+  assert.equal(f.calls.added[0][1], "Löse die Aufgaben in diesem PDF.\n\n📎 PDF angehängt");
+  assert.equal(checkAttachment({ type: "application/pdf", name: "a.pdf", size: 1000 }), null);
+  assert.ok(checkAttachment({ type: "application/pdf", name: "a.pdf", size: 3 * 1024 * 1024 }));
 });
