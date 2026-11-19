@@ -1,12 +1,13 @@
 /* Admin-Zahlen – Appwrite-Function für das Modul „Team“ (tools/admin).
  *
- * Liefert nur Summen über die ganze Plattform (Nutzer, Besuche je Tool, angelegte Inhalte), nie Inhalte oder Namen.
+ * Liefert Summen über die ganze Plattform (Nutzer, Besuche je Tool, angelegte Inhalte) und mit action „people“ die Liste, wer welches Tool geöffnet hat
+ * (Name, E-Mail, Aufrufe je Tool der letzten 30 Tage). Nie Inhalte der Tools.
  * Nur Mitglieder des Teams „admin“ dürfen: Das prüft diese Function selbst (x-appwrite-user-id setzt Appwrite aus der Session).
  * Optional: ADMIN_TEAM (Standard admin). Der Schlüssel (x-appwrite-key) wird pro Aufruf erzeugt und gilt nur für die Rechte in appwrite.config.json. */
 "use strict";
 const http = require("http");
 const https = require("https");
-const { TOOLS, CONTENT, lastDays, buildStats, inBatches } = require("./lib.js");
+const { TOOLS, CONTENT, lastDays, buildStats, inBatches, aggregatePeople } = require("./lib.js");
 
 const DATABASE_ID = "pensum";
 
@@ -33,6 +34,27 @@ function appwrite(key) {
   });
 }
 
+const PEOPLE_DAYS = 30;     // Zeitraum der Auswertung „Wer nutzt was“
+const MAX_USERS = 1000;     // Obergrenze beim Lesen der Konten
+const MAX_VISIT_PAGES = 50; // höchstens 5000 Aufrufe lesen
+
+/** Alle Seiten einer Liste lesen (je 100, mit Cursor), höchstens maxPages. */
+async function listAll(api, path, key, baseQueries, maxPages) {
+  const out = [];
+  let cursor = null, truncated = false;
+  for (let page = 0; ; page++) {
+    if (page >= maxPages) { truncated = true; break; }
+    const queries = [...baseQueries, JSON.stringify({ method: "limit", values: [100] })];
+    if (cursor) queries.push(JSON.stringify({ method: "cursorAfter", values: [cursor] }));
+    const r = await api(path, queries);
+    const rows = (r && r[key]) || [];
+    out.push(...rows);
+    if (rows.length < 100) break;
+    cursor = rows[rows.length - 1].$id;
+  }
+  return { rows: out, truncated };
+}
+
 const q = (method, attribute, values) => JSON.stringify({ method, attribute, values });
 const limit1 = JSON.stringify({ method: "limit", values: [1] });
 
@@ -49,6 +71,27 @@ module.exports = async ({ req, res, log, error }) => {
   } catch (e) {
     error("Teamprüfung fehlgeschlagen: " + e.message);
     return res.json({ ok: false, error: "Der Dienst antwortet gerade nicht.", code: "error" }, 502);
+  }
+
+  let body = req.bodyJson;
+  if (!body || typeof body !== "object") {
+    try { body = JSON.parse(typeof req.body === "string" ? req.body : req.bodyRaw || "{}"); } catch (_) { body = {}; }
+  }
+
+  if (body && body.action === "people") {
+    try {
+      const since = lastDays(PEOPLE_DAYS)[0];
+      const [u, v] = await Promise.all([
+        listAll(api, "/users", "users", [], MAX_USERS / 100),
+        listAll(api, `/tablesdb/${DATABASE_ID}/tables/tool_visits/rows`, "rows", [q("greaterThanEqual", "day", [since])], MAX_VISIT_PAGES),
+      ]);
+      const users = u.rows.map((x) => ({ id: x.$id, name: x.name, email: x.email, accessedAt: x.accessedAt }));
+      const people = aggregatePeople(users, v.rows.map((r) => ({ userId: r.userId, tool: r.tool, day: r.day })));
+      return res.json({ ok: true, people: { days: PEOPLE_DAYS, truncated: v.truncated || u.truncated, list: people } });
+    } catch (e) {
+      error("Wer nutzt was fehlgeschlagen: " + e.message);
+      return res.json({ ok: false, error: "Die Nutzerliste konnte nicht geladen werden.", code: "error" }, 500);
+    }
   }
 
   try {

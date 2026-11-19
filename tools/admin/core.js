@@ -43,6 +43,38 @@ const widget = ({ id, title, icon, span, rows = 1, body, note }) =>
 
 const bigNumber = (n, label) => `<div class="ad-big"><b>${fmt(n)}</b><span>${esc(label)}</span></div>`;
 
+/** "heute", "gestern", "vor 3 Tagen" für ein Datum JJJJ-MM-TT, bezogen auf today (JJJJ-MM-TT). */
+export function dayAgo(day, today) {
+  const a = Date.parse(String(day) + "T12:00:00Z"), b = Date.parse(String(today) + "T12:00:00Z");
+  if (Number.isNaN(a) || Number.isNaN(b)) return "";
+  const n = Math.round((b - a) / 86400000);
+  return n <= 0 ? "heute" : n === 1 ? "gestern" : `vor ${n} Tagen`;
+}
+
+/** Wer nutzt was: Liste der Personen mit ihren Aufrufen je Tool. filter = Tool-ID oder "" (alle). Personen kommen aus der Function (people.list). */
+export function peopleHtml(people, tools = [], filter = "", today = "") {
+  const toolOf = (id) => tools.find((x) => x.id === id) || { name: id };
+  const used = tools.filter((t) => people.list.some((p) => p.tools[t.id]));
+  const rows = people.list
+    .filter((p) => !filter || p.tools[filter])
+    .sort((a, b) => (filter ? (b.tools[filter] || 0) - (a.tools[filter] || 0) : 0) || b.total - a.total)
+    .slice(0, 200);
+  const select = `<label class="ad-filter"><span class="sr-only">Tool wählen</span><select class="select ad-select" id="peopleFilter" aria-label="Tool wählen"><option value="">Alle Tools</option>`
+    + used.map((t) => `<option value="${esc(t.id)}"${t.id === filter ? " selected" : ""}>${esc(t.name)}</option>`).join("") + `</select></label>`;
+  const list = rows.length
+    ? `<ul class="ad-people">` + rows.map((p) => {
+      const label = p.name || p.email || "Ohne Namen";
+      const chips = Object.entries(p.tools).sort((a, b) => b[1] - a[1])
+        .map(([id, n]) => `<span class="ad-chip${id === filter ? " is-on" : ""}">${esc(toolOf(id).name)} <b>${fmt(n)}</b></span>`).join("");
+      return `<li><span class="ad-av" aria-hidden="true">${esc(Array.from(label)[0] || "?").toUpperCase()}</span>`
+        + `<span class="ad-who"><span class="ad-who-name">${esc(label)}</span>${p.name && p.email ? `<span class="ad-who-mail">${esc(p.email)}</span>` : ""}</span>`
+        + `<span class="ad-chips">${chips}</span><span class="ad-when">${esc(dayAgo(p.lastDay, today))}</span></li>`;
+    }).join("") + `</ul>`
+    : `<p class="body-sm muted-tint">Noch keine Aufrufe in diesem Zeitraum.</p>`;
+  const body = `<div class="ad-people-top">${select}<span class="ad-hint">${fmt(rows.length)} von ${fmt(people.list.length)} Nutzern${people.truncated ? " (Liste gekürzt)" : ""}</span></div>${list}`;
+  return widget({ id: "people", title: "Wer nutzt was", icon: "users", span: 6, note: `${people.days} Tage`, body });
+}
+
 /** Das ganze Raster aus der Antwort der Function (stats) und dem Tool-Verzeichnis (tools: { id, name, icon }). */
 export function bentoHtml(stats, tools = []) {
   const u = stats.users, v = stats.visits, t = stats.teams, c = stats.content;

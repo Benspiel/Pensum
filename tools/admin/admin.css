@@ -79,3 +79,27 @@
   .ad-w { animation: none; }
   .ad-meter i, .ad-bar i { transition: none; }
 }
+
+/* Wer nutzt was */
+.ad-w.ad-span-6 { grid-column: 1 / -1; }
+.ad-people-wait { display: grid; place-items: center; min-height: 140px; }
+.ad-people-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-sm); }
+.ad-people-top .ad-hint { margin: 0; }
+.ad-select { width: auto; min-width: 180px; background-color: var(--canvas); }
+.ad-people { display: grid; margin: 0; padding: 0; list-style: none; }
+.ad-people li { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: var(--s-xs) var(--s-sm); padding: 12px 0; border-top: 1px solid var(--hairline); }
+.ad-people li:first-child { border-top: 0; }
+.ad-av { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 30%; background: var(--canvas); font-weight: 650; }
+.ad-who { display: grid; min-width: 0; }
+.ad-who-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 550; }
+.ad-who-mail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted-on-tint); }
+.ad-chips { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+.ad-chip { padding: 3px 10px; border-radius: var(--r-full); background: var(--canvas); font-size: 12px; white-space: nowrap; }
+.ad-chip b { font-variant-numeric: tabular-nums; }
+.ad-chip.is-on { background: var(--ink); color: var(--canvas); }
+.ad-when { grid-column: 3; grid-row: 1; font-size: 12px; color: var(--muted-on-tint); white-space: nowrap; }
+@media (min-width: 900px) {
+  .ad-people li { grid-template-columns: 36px minmax(160px, 1fr) minmax(0, 2fr) 90px; }
+  .ad-chips { grid-column: 3; }
+  .ad-when { grid-column: 4; text-align: right; }
+}

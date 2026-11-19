@@ -52,4 +52,21 @@ async function inBatches(tasks, size = 8) {
   return out;
 }
 
-module.exports = { TOOLS, CONTENT, DAYS, berlinDay, lastDays, buildStats, inBatches };
+/** Wer hat welches Tool genutzt? users: [{ id, name, email, accessedAt }], visits: [{ userId, tool, day }].
+ *  Ergebnis: Personen mit Aufrufen je Tool, mehr Aufrufe zuerst; Aufrufe unbekannter Tools oder gelöschter Konten werden übergangen. */
+function aggregatePeople(users, visits) {
+  const byId = new Map();
+  for (const u of users || []) {
+    byId.set(u.id, { id: u.id, name: String(u.name || "").slice(0, 80), email: String(u.email || "").slice(0, 120), lastSeen: u.accessedAt || null, total: 0, lastDay: null, tools: {} });
+  }
+  for (const v of visits || []) {
+    const p = byId.get(v.userId);
+    if (!p || !TOOLS.includes(v.tool)) continue;
+    p.total++;
+    p.tools[v.tool] = (p.tools[v.tool] || 0) + 1;
+    if (typeof v.day === "string" && (!p.lastDay || v.day > p.lastDay)) p.lastDay = v.day;
+  }
+  return [...byId.values()].filter((p) => p.total > 0).sort((a, b) => b.total - a.total || String(b.lastDay).localeCompare(String(a.lastDay)));
+}
+
+module.exports = { TOOLS, CONTENT, DAYS, berlinDay, lastDays, buildStats, inBatches, aggregatePeople };

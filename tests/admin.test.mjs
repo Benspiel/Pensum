@@ -4,11 +4,11 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { isLocked } from "../js/lock.js";
 import { tools, toolById } from "../js/tools.js";
-import { fmt, pct, weekday, barHeights, bentoHtml } from "../tools/admin/core.js";
+import { fmt, pct, weekday, barHeights, bentoHtml, peopleHtml, dayAgo } from "../tools/admin/core.js";
 import { toolFromPath, shouldCount, berlinDay } from "../js/track.js";
 
 const require = createRequire(import.meta.url);
-const { buildStats, lastDays, inBatches, TOOLS } = require("../functions/admin-stats/lib.js");
+const { buildStats, lastDays, inBatches, aggregatePeople, TOOLS } = require("../functions/admin-stats/lib.js");
 
 test("Das Admin-Tool ist nur für das Team admin offen, Tester und Ki-Tester reichen nicht", () => {
   const t = toolById("admin");
@@ -82,4 +82,32 @@ test("Besuchszähler: Tool aus dem Pfad, Admin zählt nicht, höchstens einmal j
   assert.equal(shouldCount(now - 60_000, now), false);
   assert.equal(shouldCount(now - 31 * 60_000, now), true);
   assert.match(berlinDay(new Date("2026-11-19T23:30:00Z")), /^2026-11-20$/);
+});
+
+test("Wer nutzt was: Aufrufe je Person und Tool, unbekannte Konten und Tools werden übergangen", () => {
+  const people = aggregatePeople(
+    [{ id: "a", name: "Anna", email: "a@x.de" }, { id: "b", name: "", email: "b@x.de" }, { id: "c", name: "Leer" }],
+    [{ userId: "a", tool: "planer", day: "2026-11-18" }, { userId: "a", tool: "planer", day: "2026-11-19" }, { userId: "a", tool: "mindmap", day: "2026-11-17" },
+      { userId: "b", tool: "planer", day: "2026-11-10" }, { userId: "gelöscht", tool: "planer", day: "2026-11-19" }, { userId: "b", tool: "gibtsnicht", day: "2026-11-19" }],
+  );
+  assert.deepEqual(people.map((p) => p.id), ["a", "b"], "Person ohne Aufrufe fehlt, meiste Aufrufe zuerst");
+  assert.deepEqual(people[0].tools, { planer: 2, mindmap: 1 });
+  assert.equal(people[0].total, 3);
+  assert.equal(people[0].lastDay, "2026-11-19");
+});
+
+test("Wer nutzt was: Oberfläche filtert nach Tool, maskiert Namen und zeigt, wann zuletzt", () => {
+  const list = tools.map((t) => ({ id: t.id, name: t.name, icon: t.icon }));
+  const data = { days: 30, truncated: false, list: [
+    { id: "a", name: "<b>Anna</b>", email: "a@x.de", total: 3, lastDay: "2026-11-19", tools: { planer: 2, mindmap: 1 } },
+    { id: "b", name: "", email: "b@x.de", total: 5, lastDay: "2026-11-17", tools: { planer: 5 } },
+  ] };
+  const all = peopleHtml(data, list, "", "2026-11-19");
+  assert.ok(all.includes("&lt;b&gt;Anna"), "Name maskiert");
+  assert.ok(!all.includes("<b>Anna"));
+  assert.ok(all.includes("b@x.de") && all.includes("heute") && all.includes("vor 2 Tagen"));
+  const onlyMind = peopleHtml(data, list, "mindmap", "2026-11-19");
+  assert.ok(onlyMind.includes("Anna") && !onlyMind.includes("b@x.de"));
+  assert.ok(peopleHtml({ days: 30, list: [] }, list, "", "2026-11-19").includes("Noch keine Aufrufe"));
+  assert.equal(dayAgo("2026-11-18", "2026-11-19"), "gestern");
 });
