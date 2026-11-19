@@ -523,7 +523,7 @@ function deckDialog(deck) {
       <div id="aiFields" hidden>
         <label class="field"><span class="field-label">Dein Thema oder Text</span><input class="input" name="aiTopic" maxlength="500" autocomplete="off" placeholder="z. B. Französische Revolution"></label>
         <label class="field"><span class="field-label">Oder ein Foto / PDF (z. B. Vokabelseite)</span><input class="input" type="file" name="aiFile" accept="image/*,application/pdf"></label>
-        <label class="field"><span class="field-label">Anzahl (höchstens)</span><select class="select" name="aiCount">${COUNTS.map((n) => `<option value="${n}"${n === 15 ? " selected" : ""}>${n} Karten</option>`).join("")}</select></label>
+        <label class="field"><span class="field-label">Anzahl (höchstens)</span><select class="select" name="aiCount">${COUNTS.map((n) => `<option value="${n}"${n === 60 ? " selected" : ""}>${n === 60 ? "Alle (bis 60)" : n + " Karten"}</option>`).join("")}</select></label>
         <span class="field-hint">Die KI schlägt Karten vor. Du siehst sie, bevor etwas in den Stapel kommt.</span>
       </div>
     </div>` : creating ? `
@@ -556,7 +556,7 @@ function deckDialog(deck) {
       const nd = { id: newId(), name, mode: m, cards: [] };
       data.decks.push(nd);
       if (useAi) {
-        Object.assign(ki, { deckId: nd.id, text: topic, count: Number(fd.get("aiCount")) || 15, file: null, cards: null, error: "" });
+        Object.assign(ki, { deckId: nd.id, text: topic, count: Number(fd.get("aiCount")) || 60, file: null, cards: null, error: "" });
         view = { name: "deck", id: nd.id, tab: "cards" };
         persist();
         render();

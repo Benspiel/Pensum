@@ -7,7 +7,7 @@ import { fitSize, MAX_BASE64, QUALITIES } from "/tools/abschreiben/core.js";
 
 export const MAX_FILE = 12 * 1024 * 1024; // Foto vom Handy, wird vor dem Senden verkleinert
 export const MAX_PDF = 2.5 * 1024 * 1024; // PDFs gehen unverändert hin
-export const COUNTS = [10, 15, 20, 30, 40];
+export const COUNTS = [10, 15, 20, 30, 40, 60];
 
 /** Fragt die KI. Wirft Error mit einer Meldung, die man anzeigen darf. */
 export async function generateCards({ text, image, count }) {

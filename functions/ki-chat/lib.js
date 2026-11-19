@@ -41,13 +41,15 @@ function systemPrompt(grade) {
   return g ? `${SYSTEM_PROMPT} Die Person besucht Klasse ${g}. ${GRADES[g]}` : SYSTEM_PROMPT;
 }
 
-const CARDS = { countMax: 40, countDefault: 15, frontMax: 1000, backMax: 1000, textMax: 8000 };
+const CARDS = { countMax: 60, countDefault: 15, frontMax: 1000, backMax: 1000, textMax: 8000 };
 
 const CARDS_PROMPT = "Du erstellst Karteikarten für Schülerinnen und Schüler. Antworte NUR mit JSON in der Form {\"cards\":[{\"front\":\"...\",\"back\":\"...\"}]}. " +
   "Jede Karte hat genau eine Frage oder einen Begriff (front) und eine kurze, richtige Antwort (back), die man schriftlich eintippen könnte. Keine Doppelten, kein Markdown. " +
-  "VOKABELN: Enthält das Bild oder der Text eine Vokabelliste, übernimm jedes Wort genau so, wie es dasteht: front = Wort in der Fremdsprache, back = deutsche Übersetzung. " +
-  "Mehrere Bedeutungen trennst du mit / (zum Beispiel \"Haus / Gebäude\"). Rate nichts dazu, lass Unleserliches weg. " +
-  "BILD oder PDF mit Heftseite, Buchseite oder Lernzettel: Mach daraus die wichtigsten Frage-Antwort-Karten zum Inhalt. " +
+  "VOKABELSEITEN (hat Vorrang): Enthält das Bild, PDF oder der Text eine Vokabeltabelle (z. B. Lehrbuch-Lektion), mach NUR aus dieser Tabelle Karten, und zwar für JEDE Zeile, nichts auslassen. " +
+  "front = nur das Lernwort aus der ersten Spalte, genau so geschrieben wie abgedruckt. back = nur die deutsche Bedeutung (letzte Spalte); mehrere Bedeutungen trennst du mit / (zum Beispiel \"Haus / Gebäude\"). " +
+  "Eine mittlere Spalte mit Formen und Grammatik (zum Beispiel Genitiv, Stammformen, Angaben wie f., m., n., Konj., Adv., + Akk., + Inf.) gehört NICHT auf die Karte: Schreib sie weder auf die Vorder- noch auf die Rückseite. " +
+  "IGNORIERE vollständig: Überschriften, Wiederholungskästen, farbige Randspalten mit Beispielsätzen, Hinweisen, Merkhilfen und Verweisen (z. B. \"→ G18\", \"E to have\"), Übungen und Aufgaben, Bilder, Bildunterschriften. Rate nichts dazu, lass Unleserliches weg. " +
+  "ANDERE BILDER oder PDFs (Heftseite, Buchseite ohne Vokabeltabelle, Lernzettel): Mach daraus die wichtigsten Frage-Antwort-Karten zum Inhalt. " +
   "THEMA: Nur ein Thema ohne Material: Erstelle abwechslungsreiche, sachlich richtige Karten dazu. " +
   "Schreibe in der Sprache des Materials, Erklärungen auf Deutsch. Liefere höchstens die gewünschte Anzahl Karten.";
 
@@ -183,7 +185,7 @@ async function handle({ body, userId }, deps) {
         : (material.includes("\n") || material.length >= 80)
           ? `Erstelle bis zu ${n} Karteikarten aus diesem Text:\n\n${material}`
           : `Erstelle bis zu ${n} Karteikarten zum Thema: ${material}`;
-      const out = await deps.gemini(CARDS_PROMPT + (grade ? ` Passe das Niveau an Klasse ${grade} an.` : ""), [{ role: "user", text: task }], { image, json: true, maxTokens: 8192, temperature: 0.4 });
+      const out = await deps.gemini(CARDS_PROMPT + (grade ? ` Passe das Niveau an Klasse ${grade} an.` : ""), [{ role: "user", text: task }], { image, json: true, maxTokens: 8192, temperature: 0.2 });
       const cards = parseCards(typeof out === "string" ? out : out && out.text, n);
       if (!cards.length) throw new UserError("Daraus konnte die KI keine Karten machen. Versuch ein anderes Thema oder ein deutlicheres Foto.", 422, "empty");
       return { status: 200, json: { ok: true, cards } };
