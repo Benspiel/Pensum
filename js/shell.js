@@ -337,6 +337,9 @@ if (params.get("anmeldung") === "fehlgeschlagen") {
   toast("Die Anmeldung über Google hat nicht geklappt.", { error: true });
 }
 
+// Zählt, welches Tool geöffnet wurde (nur angemeldet, höchstens einmal je Tool und halbe Stunde, siehe js/track.js)
+import("/js/track.js").then((m) => m.trackToolVisit()).catch(() => {});
+
 /* Offline: Der Service Worker speichert die Startseite beim ersten Besuch auf dem Gerät (erzeugt von scripts/build-offline.mjs). Konto, KI und Appwrite sind nicht betroffen. */
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/offline-sw.js", { scope: "/" }).catch(() => {});

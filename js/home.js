@@ -51,7 +51,7 @@ initReveal(document);
 
 // Tester (Team „tester“) bekommen die ausgegrauten Kacheln freigeschaltet, Ki-Tester den KI-Chat
 onAccessChange((access) => {
-  if (!access.tester && !access.kiTester) return;
+  if (!access.tester && !access.kiTester && !access.admin) return;
   render(access);
   grid.querySelectorAll(".reveal").forEach((el) => el.classList.add("is-in"));
 });

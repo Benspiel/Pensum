@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Team – Pensum</title>
+  <meta name="description" content="Zahlen der ganzen Plattform für das Team Admin.">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="/assets/favicon.ico" sizes="any">
+  <link rel="icon" href="/assets/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="/assets/favicon.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="preload" href="/vendor/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/vendor/fonts.css">
+  <script src="/js/theme.js"></script>
+  <link rel="stylesheet" href="/css/pensum.css">
+  <link rel="stylesheet" href="/css/loader.css">
+  <link rel="stylesheet" href="/tools/admin/admin.css">
+  <link rel="modulepreload" href="/vendor/appwrite.js">
+  <link rel="modulepreload" href="/js/auth.js">
+  <script type="module" src="/js/shell.js"></script>
+  <script type="module" src="/tools/admin/admin.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
+  <pensum-nav></pensum-nav>
+
+  <main id="inhalt" class="container ad-main">
+    <section class="panel on-tint ad-gate" id="gate" hidden aria-live="polite">
+      <h1 class="h4">Melde dich an, um das Team-Modul zu sehen.</h1>
+      <div class="row">
+        <button class="btn btn-primary" type="button" data-auth-action="login">Anmelden</button>
+      </div>
+    </section>
+
+    <section class="panel on-tint ad-gate" id="denied" hidden aria-live="polite">
+      <h1 class="h4">Nur für das Team „Admin“.</h1>
+      <p class="body-sm muted-tint">Dein Konto gehört nicht dazu.</p>
+    </section>
+
+    <div id="app" hidden>
+      <div class="ad-head">
+        <div>
+          <h1 class="ad-title">Team</h1>
+          <p class="body-sm muted">Zahlen der ganzen Plattform. Es werden nur Summen gezeigt, keine Inhalte.</p>
+        </div>
+        <div class="ad-head-side">
+          <span class="body-sm muted" id="stand" aria-live="polite"></span>
+          <button class="btn btn-outline btn-sm" type="button" id="reload">Aktualisieren</button>
+        </div>
+      </div>
+      <p class="ad-error" id="error" role="alert" hidden></p>
+      <div class="ad-grid" id="grid" aria-live="polite"></div>
+    </div>
+  </main>
+
+  <pensum-footer></pensum-footer>
+</body>
+</html>

@@ -11,6 +11,7 @@ Schüler-Toolkit: mehrere Tools unter einem gemeinsamen Login. Statische Seite (
 
 - **Aufgaben** (`/tools/aufgaben/`): Arbeitsblatt als Foto, Bild oder PDF hochladen (nur mit Konto; bei mehrseitigen PDFs wählt man die Seite, jede Seite ist ein Durchlauf), Gemini bearbeitet die Aufgaben und liefert zu jeder Antwort das Schreibfeld auf dem Blatt (2 Durchläufe pro Tag). Der Browser schreibt die Antworten selbst auf das Blatt: in normaler Schrift, in einer Handschrift-Schriftart oder in der eigenen Handschrift aus dem Goodnotes-Tool. Antworten lassen sich ändern, entfernen und mit der Maus verschieben, Export als PDF oder PNG. Das Bild wird nirgends gespeichert. Siehe „Aufgaben einrichten“.
 
+- **Team** (`/tools/admin/`): Zahlen der Plattform, nur für das Team `admin`. Siehe „Team „Admin“ und das Modul „Team“.
 - **KI-Chat** (`/tools/kichat/`): Normale, gespeicherte Chats mit Gemini, nur für das Team `ki-tester`. Siehe „KI-Chat und Team Ki-Tester“.
 - **Spiele** (`/tools/spiele/`): Vier gewinnt (KI, eigene Regeln in `connect4.js`, getestet) plus unveränderte Open-Source-Spiele in `vendor/games/` (Asteroids von dmcinnes, MIT; Dino-Runner aus Chromium in der Fassung von wayou, BSD-3). Sie laufen in einem iframe (`ui-embed.js`), die Lizenzen liegen jeweils als `LICENSE` daneben. Die Seite zeigt zuerst große Kacheln mit kleiner Vorschau (`spiele.js`: Spiele und Vorschau-SVGs); ein Tipp öffnet das Spiel über die ganze Seite ohne Knöpfe, oben bleibt nur die Nav mit „‹ Spiele“ und dem Namen des Spiels (`PensumNav.setContext` in `js/shell.js`). Die offene Seite steht als `#vier`, `#asteroids` oder `#dino` in der Adresse, das Zurück des Browsers geht zur Übersicht. Touch: Vier gewinnt per Tippen auf eine Spalte, Dino-Runner per Tippen (springen) und einem Knopf zum Ducken, Asteroids mit Bildschirm-Knöpfen (Links, Rechts, Schub, Feuer, das Feuer startet auch das Spiel). Die Knöpfe lösen von außen die Tasten des unveränderten Spiels aus und erscheinen nur auf Touch-Geräten (Klasse `has-touch`). Asteroids ist im Querformat am größten. Solange `soon` in `js/tools.js` gesetzt ist, sehen nur Mitglieder des Teams `tester` die Spiele.
 
@@ -49,6 +50,8 @@ functions/abschreiben/     Appwrite-Function: Gemini mit Bild und Tageslimit (li
 tools/aufgaben/            core.js (Felder in Pixel, Textumbruch, Schriftgröße), aufgaben.js (Oberfläche, Zeichnen, PDF/PNG)
 functions/aufgaben/        Appwrite-Function: Gemini löst das Blatt und nennt die Schreibfelder, Tageslimit (lib.js = Logik, index.js = Anbindung)
 tools/kichat/              core.js (Textformatierung), kichat.js (Oberfläche: Chatliste, Unterhaltung)
+tools/admin/               core.js (Zahlen, Bento-Raster als HTML), admin.js (Oberfläche)
+functions/admin-stats/     Appwrite-Function: Zahlen der Plattform mit Teamprüfung (lib.js = Logik, index.js = Anbindung)
 functions/ki-chat/         Appwrite-Function: Gemini-Chat mit Teamprüfung und Speicherung (lib.js = Logik, index.js = Anbindung)
 tools/spiele/              Vier gewinnt (connect4.js, ui-vier.js), Einbettung der Open-Source-Spiele (ui-embed.js), spiele.js (Auswahl)
 tools/goodnotes/           ink-engine.js (Inkly-Logik), goodnotes.js (Oberfläche), templates.js
@@ -153,6 +156,21 @@ appwrite functions create-variable --function-id ki-chat --key GEMINI_API_KEY --
 ```
 
 Optional `GEMINI_MODEL` (Standard `gemini-3.5-flash-lite`). Die Function braucht die Rechte `rows.read`, `rows.write` und `users.read` (für die Teamprüfung, steht in `appwrite.config.json`). Danach `appwrite push function` erneut ausführen, falls die Variable erst nach dem ersten Deploy gesetzt wurde. Fehlt die Function, zeigt das Tool „Der KI-Chat-Dienst ist noch nicht eingerichtet“.
+
+### Team „Admin“ und das Modul „Team“
+
+Das Modul **Team** (`/tools/admin/`) zeigt die Zahlen der ganzen Plattform als Bento-Raster (nach Kokonut UI „Widget Grid“, MIT, aber fest: die Module lassen sich nicht verschieben oder in der Größe ändern, die Reihenfolge steht in `bentoHtml` in `tools/admin/core.js`): Nutzer (gesamt, bestätigt, aktiv und neu in 7 Tagen), Tool-Aufrufe (7 Tage, heute, gesamt, Balken je Tag), Rangliste der Tools, Mitglieder je Team und angelegte Inhalte (Stapel, Karten, Mindmaps, Chats, Nachrichten, Planer, Noten). Es sind nur Summen, nie Inhalte oder Namen. Das Tool hat in `js/tools.js` `team: "admin"`: Es ist nur für Mitglieder des Teams `admin` (`adminTeam` in `js/config.js`) sichtbar, für alle anderen weder Kachel noch Footer-Link; `tester` und `ki-tester` reichen nicht.
+
+Gesichert ist das serverseitig: Die Function `admin-stats` (`functions/admin-stats/`, `lib.js` = Logik, `index.js` = Anbindung) prüft bei jedem Aufruf die Mitgliedschaft und zählt dann mit dem Schlüssel der Ausführung (Rechte `rows.read`, `users.read`, `teams.read`). Eine Zahl, die sich nicht lesen lässt, erscheint als „–“.
+
+**Aufrufe zählen:** `js/track.js` (wird von `js/shell.js` geladen) legt beim Öffnen eines Tools eine Zeile in `tool_visits` an (Konto-ID, Tool, Tag; nur mit Konto, höchstens einmal je Tool, Tab und halbe Stunde; das Admin-Modul zählt nicht mit). Aufrufe von Gästen werden nicht gezählt. Die Zeile gehört der Person (Row Security) und wird mit dem Konto gelöscht (`delete-account`). Wegen der Konto-ID gehört der Satz „Wir zählen, welches Tool du öffnest“ in die Datenschutzerklärung.
+
+```bash
+appwrite teams create --team-id admin --name Admin
+appwrite teams create-membership --team-id admin --user-id <Nutzer-ID> --roles admin
+appwrite push table --all --force
+appwrite push function --function-id admin-stats --force
+```
 
 ### Stack Panel und Loader
 

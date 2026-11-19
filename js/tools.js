@@ -10,7 +10,7 @@ const icon = (paths) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 
 /** Reihenfolge auf Startseite und im Footer. Tools, die hier fehlen, stehen am Ende (in der Reihenfolge ihrer Einträge unten). */
-export const TOOL_ORDER = ["goodnotes", "mindmap", "kichat", "aufgaben", "abschreiben", "karteikarten", "planer", "videos", "spiele"];
+export const TOOL_ORDER = ["goodnotes", "mindmap", "kichat", "aufgaben", "abschreiben", "karteikarten", "planer", "videos", "spiele", "admin"];
 
 const entries = [
   {
@@ -91,6 +91,15 @@ const entries = [
     icon: icon('<path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-4.5 3.5V17H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path d="M8 10h8M8 13h5"/>'),
     badge: "Ki-Tester",
     team: "kiTester", // nur für Mitglieder des Teams „ki-tester“ (config.kiTesterTeam), sonst ausgegraut
+  },
+  {
+    id: "admin",
+    name: "Team",
+    href: "/tools/admin/",
+    description: "Zahlen der ganzen Plattform: wie viele Nutzer es gibt, wie oft welches Tool geöffnet wurde und was angelegt wurde.",
+    icon: icon('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'),
+    badge: "Admin",
+    team: "admin", // nur für Mitglieder des Teams „admin“ (config.adminTeam), für alle anderen unsichtbar
   },
 ];
 

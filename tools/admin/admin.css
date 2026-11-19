@@ -1,0 +1,81 @@
+/* Team (Admin) – festes Bento-Raster. 6 Spalten, Module in feststehender Reihenfolge (kein Verschieben, keine Größenänderung). */
+.ad-main { padding-block: var(--s-sm) var(--s-xl); }
+.ad-gate { max-width: 560px; margin-inline: auto; }
+
+.ad-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--s-md); margin-bottom: var(--s-lg); }
+.ad-title { margin: 0 0 var(--s-xxs); font-size: 32px; line-height: 1.1; font-weight: var(--w-head); }
+@media (min-width: 640px) { .ad-title { font-size: 40px; } }
+.ad-head-side { display: flex; align-items: center; gap: var(--s-sm); }
+.ad-error { margin: 0 0 var(--s-md); padding: var(--s-sm) var(--s-md); border-radius: var(--r-sm); background: var(--canvas-soft); font-size: 14px; }
+
+.ad-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(150px, auto); gap: var(--s-sm); }
+@media (min-width: 900px) { .ad-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--s-md); } }
+.ad-loading { grid-column: 1 / -1; display: grid; place-items: center; min-height: 260px; }
+
+/* Schmal: große Module über die ganze Breite, kleine (2 Spalten) teilen sich eine Zeile */
+.ad-w { grid-column: 1 / -1; display: flex; flex-direction: column; gap: var(--s-md); min-width: 0; padding: var(--s-lg); border-radius: var(--r-md); background: var(--canvas-soft); animation: ad-in .4s ease both; }
+.ad-w.ad-span-2 { grid-column: span 1; }
+@media (min-width: 900px) {
+  .ad-w.ad-span-2 { grid-column: span 2; }
+  .ad-w.ad-span-3 { grid-column: span 3; }
+  .ad-w.ad-span-4 { grid-column: span 4; }
+  .ad-w.ad-rows-2 { grid-row: span 2; }
+}
+.ad-w:nth-child(2) { animation-delay: .04s; } .ad-w:nth-child(3) { animation-delay: .08s; } .ad-w:nth-child(4) { animation-delay: .12s; }
+.ad-w:nth-child(5) { animation-delay: .16s; } .ad-w:nth-child(6) { animation-delay: .2s; } .ad-w:nth-child(7) { animation-delay: .24s; }
+@keyframes ad-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+.ad-w-head { display: flex; align-items: center; gap: var(--s-xs); min-width: 0; }
+.ad-w-ico { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 30%; background: var(--canvas); color: var(--ink); }
+.ad-w-ico svg { width: 18px; height: 18px; }
+.ad-w-title { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 600; }
+.ad-w-note { margin-left: auto; flex: none; font-size: 13px; color: var(--muted-on-tint); }
+.ad-w-body { display: flex; flex: 1; flex-direction: column; gap: var(--s-md); min-width: 0; }
+
+.ad-big { display: grid; gap: 2px; min-width: 0; }
+.ad-big b { font-size: 40px; line-height: 1; font-weight: var(--w-head); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.ad-big span { font-size: 13px; color: var(--muted-on-tint); }
+.ad-w.ad-span-2 .ad-big b { font-size: 34px; }
+.ad-hint { margin: auto 0 0; font-size: 13px; color: var(--muted-on-tint); }
+.ad-row { display: flex; flex-wrap: wrap; gap: var(--s-lg) var(--s-xl); }
+.ad-row .ad-big b { font-size: 30px; }
+
+.ad-split { display: grid; gap: var(--s-xs); margin-top: auto; }
+.ad-split p { margin: 0; font-size: 13px; color: var(--muted-on-tint); }
+
+.ad-meter { display: block; height: 6px; overflow: hidden; border-radius: var(--r-full); background: var(--canvas); }
+.ad-meter i { display: block; width: var(--w, 0%); height: 100%; border-radius: inherit; background: var(--ink); transition: width .6s ease; }
+.ad-meter-lg { height: 10px; }
+
+/* Balken der letzten 7 Tage */
+.ad-bars { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--s-xs); align-items: end; height: 120px; margin-top: auto; }
+.ad-bar { display: grid; grid-template-rows: 16px 1fr 16px; justify-items: center; height: 100%; min-width: 0; }
+.ad-bar-n { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted-on-tint); }
+.ad-bar i { align-self: end; width: min(100%, 28px); height: var(--h, 0%); min-height: 2px; border-radius: 8px 8px 4px 4px; background: var(--faint); transition: height .6s ease; }
+.ad-bar.is-today i { background: var(--ink); }
+.ad-bar-d { font-size: 12px; color: var(--muted-on-tint); }
+.ad-bar.is-today .ad-bar-d { color: var(--ink); font-weight: 600; }
+
+/* Rangliste */
+.ad-rank { display: grid; gap: var(--s-sm); margin: 0; padding: 0; list-style: none; }
+.ad-rank li { display: flex; align-items: center; gap: var(--s-sm); min-width: 0; }
+.ad-rank-pos { flex: none; width: 18px; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--muted-on-tint); text-align: right; }
+.ad-rank-ico { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 30%; background: var(--canvas); }
+.ad-rank-ico svg { width: 18px; height: 18px; }
+.ad-rank-main { display: grid; flex: 1; gap: 6px; min-width: 0; }
+.ad-rank-line { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-sm); min-width: 0; }
+.ad-rank-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 500; }
+.ad-rank-val { flex: none; font-size: 15px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.ad-rank-val small { font-size: 12px; font-weight: 450; color: var(--muted-on-tint); }
+
+/* Listen mit Zahl rechts */
+.ad-list { display: grid; margin: 0; }
+.ad-list > div { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-md); padding: 9px 0; border-top: 1px solid var(--hairline); }
+.ad-list > div:first-child { border-top: 0; padding-top: 0; }
+.ad-list dt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
+.ad-list dd { margin: 0; font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ad-w { animation: none; }
+  .ad-meter i, .ad-bar i { transition: none; }
+}

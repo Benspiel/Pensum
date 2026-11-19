@@ -1,17 +1,19 @@
 /* Team-Zugang: Appwrite-Teams schalten Teile der Oberfläche frei.
  *  - „tester“ (config.testerTeam): darf alle ausgegrauten Tools („soon“) nutzen.
  *  - „ki-tester“ (config.kiTesterTeam): darf Tools mit team: "kiTester" nutzen (der KI-Chat). Der KI-Chat prüft das Team zusätzlich serverseitig.
+ *  - „admin“ (config.adminTeam): darf Tools mit team: "admin" nutzen (das Modul „Team“ mit den Plattform-Zahlen). Die Function admin-stats prüft das Team zusätzlich serverseitig.
  * Das Team „tester“ gehört nur der Oberfläche: Die Kacheln und Footer-Links werden freigeschaltet. Gesperrt wird sonst nichts.
  * Teams anlegen und Nutzer aufnehmen:
  *   appwrite teams create --team-id tester --name Tester
  *   appwrite teams create --team-id ki-tester --name Ki-Tester
+ *   appwrite teams create --team-id admin --name Admin
  *   appwrite teams create-membership --team-id ki-tester --user-id <Nutzer-ID> --roles tester */
 import { Teams } from "/vendor/appwrite.js";
 import { client, onAuthChange } from "/js/auth.js";
 import { config } from "/js/config.js";
 import { isLocked as isLockedFor } from "/js/lock.js";
 
-const NONE = Object.freeze({ tester: false, kiTester: false });
+const NONE = Object.freeze({ tester: false, kiTester: false, admin: false });
 let access = NONE;
 let checkedFor = null;
 const listeners = new Set();
@@ -20,8 +22,8 @@ const emit = () => { for (const fn of [...listeners]) { try { fn(access); } catc
 
 /* Zuletzt bekannte Teams je Nutzer: Ohne Netz bleiben freigeschaltete Tools (z. B. Spiele) offen. */
 const LAST_ACCESS = "pensum.lastAccess";
-const lastAccess = (id) => { try { const a = JSON.parse(localStorage.getItem(LAST_ACCESS) || "null"); return a && a.id === id ? { tester: !!a.tester, kiTester: !!a.kiTester } : null; } catch (_) { return null; } };
-const rememberAccess = (id, a) => { try { localStorage.setItem(LAST_ACCESS, JSON.stringify({ id, tester: a.tester, kiTester: a.kiTester })); } catch (_) { /* egal */ } };
+const lastAccess = (id) => { try { const a = JSON.parse(localStorage.getItem(LAST_ACCESS) || "null"); return a && a.id === id ? { tester: !!a.tester, kiTester: !!a.kiTester, admin: !!a.admin } : null; } catch (_) { return null; } };
+const rememberAccess = (id, a) => { try { localStorage.setItem(LAST_ACCESS, JSON.stringify({ id, tester: a.tester, kiTester: a.kiTester, admin: a.admin })); } catch (_) { /* egal */ } };
 
 async function check(user) {
   if (!user) { checkedFor = null; if (access !== NONE) { access = NONE; emit(); } return; }
@@ -31,7 +33,7 @@ async function check(user) {
   try {
     const r = await new Teams(client).list();
     const ids = new Set((r.teams || []).map((t) => t.$id));
-    now = { tester: ids.has(config.testerTeam), kiTester: ids.has(config.kiTesterTeam) };
+    now = { tester: ids.has(config.testerTeam), kiTester: ids.has(config.kiTesterTeam), admin: ids.has(config.adminTeam) };
     rememberAccess(user.$id, now);
   } catch (e) {
     // Hat der Server geantwortet (z. B. abgelaufene Session), bleibt alles gesperrt. Keine Antwort (offline): zuletzt bekannte Teams.
@@ -39,13 +41,14 @@ async function check(user) {
     if (!answered) now = lastAccess(user.$id) || NONE;
   }
   if (checkedFor !== user.$id) return; // zwischenzeitlich anderer Nutzer
-  if (now.tester !== access.tester || now.kiTester !== access.kiTester) { access = now.tester || now.kiTester ? now : NONE; emit(); }
+  if (now.tester !== access.tester || now.kiTester !== access.kiTester || now.admin !== access.admin) { access = now.tester || now.kiTester || now.admin ? now : NONE; emit(); }
 }
 
 onAuthChange(({ status, user }) => { if (status === "ready") check(user); });
 
 export const isTester = () => access.tester;
 export const isKiTester = () => access.kiTester;
+export const isAdmin = () => access.admin;
 export const getAccess = () => access;
 
 /** Ruft fn sofort und bei jeder Änderung mit { tester, kiTester } auf. */
