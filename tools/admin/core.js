@@ -94,6 +94,7 @@ export function bentoHtml(stats, tools = []) {
   }).join("") + `</ol>`;
 
   const verified = pct(u.verified, u.total);
+  const grouped = (groups) => `<div class="ad-groups">` + groups.map(([name, rows]) => `<div class="ad-group"><h3 class="ad-group-name">${esc(name)}</h3>${list(rows)}</div>`).join("") + `</div>`;
   const list = (rows) => `<dl class="ad-list">` + rows.map(([k, val]) => `<div><dt>${esc(k)}</dt><dd>${fmt(val)}</dd></div>`).join("") + `</dl>`;
 
   return [
@@ -106,6 +107,6 @@ export function bentoHtml(stats, tools = []) {
     widget({ id: "new", title: "Neu", icon: "plus", span: 2, body: bigNumber(u.new7, "Konten in 7 Tagen") + `<p class="ad-hint">${fmt(u.total)} insgesamt</p>` }),
     widget({ id: "teams", title: "Teams", icon: "shield", span: 3, body: list([["Admin", t.admin], ["Ki-Tester", t.kiTester], ["Tester", t.tester]]) }),
     widget({ id: "content", title: "Angelegt", icon: "box", span: 3,
-      body: list([["Karteikarten-Stapel", c.decks], ["Karteikarten", c.cards], ["Mindmaps", c.mindmaps], ["KI-Chats", c.chats], ["Chat-Nachrichten", c.messages], ["Planer-Einträge", c.planner], ["Noten", c.grades]]) }),
+      body: grouped([["Notenrechner", [["Noten", c.grades]]], ["Karteikarten", [["Stapel", c.decks], ["Karten", c.cards]]], ["Mindmap", [["Mindmaps", c.mindmaps]]], ["Planer", [["Einträge", c.planner]]], ["KI-Chat", [["Chats", c.chats], ["Nachrichten", c.messages]]]]) }),
   ].join("");
 }

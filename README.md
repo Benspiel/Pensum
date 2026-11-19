@@ -78,6 +78,28 @@ appwrite push table --all --force
 
 `appwrite.config.json` (früher `appwrite.json`) beschreibt die Datenbank `pensum` mit den Tabellen `subjects`, `grades`, `handwriting`, `decks` und `cards` (Karteikarten) sowie `planner` (Hausaufgaben und Klausuren). Jede Tabelle hat Row Security und als Tabellenrecht nur `create("users")`. Zeilen bekommen beim Anlegen Lese-, Änder- und Löschrechte nur für `user:<id>` (`js/db.js`).
 
+### Welche Tabelle gehört zu welchem Tool
+
+Alles liegt in einer Datenbank `pensum` (mehrere Datenbanken brächten nichts: Rechte hängen an den Tabellen, und Appwrite kann Tabellen nicht verschieben). Die Tabellen heißen in der Konsole „Tool · Inhalt“; die IDs im Code bleiben gleich. Jede Zeile hat `userId` (der Besitzer). Tabellen mit „Row Security“ liest nur der Besitzer, die Zähler (`*_usage`) nur die Functions.
+
+| Tool | Tabelle (ID) | Inhalt | Wichtige Spalten |
+|---|---|---|---|
+| Notenrechner | `subjects` | Fächer | `name`, `schoolYear` |
+| Notenrechner | `grades` | Noten je Fach und Halbjahr | `subjectId`, `value`, `system`, `weight`, `half` |
+| Goodnotes | `handwriting` | eigene Handschrift | `glyphs` |
+| Mindmap | `mindmaps` | gespeicherte Mindmaps | `day`, `topic`, `data` |
+| Mindmap | `mindmap_usage` | Zähler pro Konto und Tag | `day`, `created`, `edits` |
+| Abschreiben | `abschreiben_usage` | Zähler pro Konto und Tag | `day`, `scans` |
+| Aufgaben | `aufgaben_usage` | Zähler pro Konto und Tag | `day`, `runs` |
+| Karteikarten | `decks` | Stapel | `name`, `mode` |
+| Karteikarten | `cards` | Karten | `deckId`, `front`, `back`, `level` |
+| Planer | `planner` | Hausaufgaben und Klausuren | `kind`, `title`, `date`, `deckId`, `done` |
+| KI-Chat | `chats` | Chats | `title` |
+| KI-Chat | `chat_messages` | Nachrichten | `chatId`, `role`, `text` |
+| Team (Admin) | `tool_visits` | ein Tool-Aufruf | `tool`, `day` |
+
+Neue Tabelle mit Nutzerdaten: in `appwrite.config.json` mit Namen „Tool · Inhalt“ anlegen, in `delete-account` (`TABLES`) und in `konto/konto.js` (Export) eintragen und hier in die Tabelle schreiben.
+
 ### Konto löschen (Appwrite-Function)
 
 `functions/delete-account/` löscht Konto und alle Daten serverseitig; der Knopf unter `/konto/` ruft sie auf. Sie läuft ohne Abhängigkeiten (der Server hat nur `node-16.0`) und nutzt den pro Aufruf erzeugten Schlüssel, im Repo steht kein API-Key.

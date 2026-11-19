@@ -103,3 +103,8 @@
   .ad-chips { grid-column: 3; }
   .ad-when { grid-column: 4; text-align: right; }
 }
+
+/* "Angelegt" nach Tool gruppiert */
+.ad-groups { display: grid; gap: var(--s-md); }
+.ad-group-name { margin: 0 0 var(--s-xxs); font-size: 12px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: var(--muted-on-tint); }
+.ad-group .ad-list > div:first-child { padding-top: 6px; border-top: 1px solid var(--hairline); }

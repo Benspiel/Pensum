@@ -58,7 +58,7 @@
                 "create(\"users\")"
             ],
             "databaseId": "pensum",
-            "name": "subjects",
+            "name": "Notenrechner · Fächer",
             "enabled": true,
             "rowSecurity": true,
             "columns": [
@@ -110,7 +110,7 @@
                 "create(\"users\")"
             ],
             "databaseId": "pensum",
-            "name": "grades",
+            "name": "Notenrechner · Noten",
             "enabled": true,
             "rowSecurity": true,
             "columns": [
@@ -209,7 +209,7 @@
                 "create(\"users\")"
             ],
             "databaseId": "pensum",
-            "name": "handwriting",
+            "name": "Goodnotes · Handschrift",
             "enabled": true,
             "rowSecurity": true,
             "columns": [
@@ -240,7 +240,7 @@
                 "create(\"users\")"
             ],
             "databaseId": "pensum",
-            "name": "mindmaps",
+            "name": "Mindmap · Mindmaps",
             "enabled": true,
             "rowSecurity": true,
             "columns": [
@@ -299,7 +299,7 @@
             "$id": "mindmap_usage",
             "$permissions": [],
             "databaseId": "pensum",
-            "name": "mindmap_usage",
+            "name": "Mindmap · Tageszähler",
             "enabled": true,
             "rowSecurity": false,
             "columns": [
@@ -358,7 +358,7 @@
             "$id": "abschreiben_usage",
             "$permissions": [],
             "databaseId": "pensum",
-            "name": "abschreiben_usage",
+            "name": "Abschreiben · Tageszähler",
             "enabled": true,
             "rowSecurity": false,
             "columns": [
@@ -408,7 +408,7 @@
             "$id": "aufgaben_usage",
             "$permissions": [],
             "databaseId": "pensum",
-            "name": "aufgaben_usage",
+            "name": "Aufgaben · Tageszähler",
             "enabled": true,
             "rowSecurity": false,
             "columns": [
@@ -460,7 +460,7 @@
                 "create(\"users\")"
             ],
             "databaseId": "pensum",
-            "name": "decks",
+            "name": "Karteikarten · Stapel",
             "enabled": true,
             "rowSecurity": true,
             "columns": [
@@ -512,7 +512,7 @@
                 "create(\"users\")"
             ],
             "databaseId": "pensum",
-            "name": "cards",
+            "name": "Karteikarten · Karten",
             "enabled": true,
             "rowSecurity": true,
             "columns": [
@@ -593,7 +593,7 @@
                 "create(\"users\")"
             ],
             "databaseId": "pensum",
-            "name": "planner",
+            "name": "Planer · Einträge",
             "enabled": true,
             "rowSecurity": true,
             "columns": [
@@ -686,7 +686,7 @@
             "$id": "chats",
             "$permissions": [],
             "databaseId": "pensum",
-            "name": "chats",
+            "name": "KI-Chat · Chats",
             "enabled": true,
             "rowSecurity": true,
             "columns": [
@@ -727,7 +727,7 @@
             "$id": "chat_messages",
             "$permissions": [],
             "databaseId": "pensum",
-            "name": "chat_messages",
+            "name": "KI-Chat · Nachrichten",
             "enabled": true,
             "rowSecurity": true,
             "columns": [
@@ -799,7 +799,7 @@
                 "create(\"users\")"
             ],
             "databaseId": "pensum",
-            "name": "tool_visits",
+            "name": "Team · Tool-Aufrufe",
             "enabled": true,
             "rowSecurity": true,
             "columns": [
