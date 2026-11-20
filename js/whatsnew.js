@@ -2,13 +2,15 @@
  * Gemerkt wird nur, welche Version man schon gesehen hat (localStorage). Über „Was ist neu?“ im Footer lässt es sich wieder öffnen.
  *
  * Neue Neuerungen: Einträge in SLIDES ergänzen und VERSION erhöhen, dann sehen es alle noch einmal. */
+import { config } from "/js/config.js";
+
 const VERSION = "2026-11-b";
 const KEY = "pensum.whatsnew.seen";
 
 const closeIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
 const svg = (paths) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 
-const SLIDES = [
+const ALL_SLIDES = [
   {
     icon: svg('<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/>'),
     title: "Dunkler Modus.",
@@ -30,6 +32,7 @@ const SLIDES = [
   },
   {
     icon: svg('<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.6l1.2-1.8A1 1 0 0 1 10.1 4h3.8a1 1 0 0 1 .8.4L15.9 6h1.6A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-8Z"/><path d="M9 12.5h6M9 15h3.5"/>'),
+    ai: true,
     title: "Abschreiben.",
     text: "Fotografier das Tafelbild und die KI schreibt es ab. Du kopierst den Text oder wandelst ihn mit dem Goodnotes-Tool in deine Handschrift um.",
     href: "/tools/abschreiben/",
@@ -41,6 +44,8 @@ const SLIDES = [
     text: "Mit dem Pensum-Logo oben links kommst du aus jedem Tool zurück zur Startseite. Hell, Dunkel und Abmelden findest du im Profilmenü oben rechts.",
   },
 ];
+// Folien mit ai: true erscheinen nur, solange die KI-Tools eingeschaltet sind (config.aiEnabled)
+const SLIDES = ALL_SLIDES.filter((s) => !s.ai || config.aiEnabled);
 
 const stored = () => { try { return localStorage.getItem(KEY); } catch (_) { return null; } };
 function remember() { try { localStorage.setItem(KEY, VERSION); return true; } catch (_) { return false; } }

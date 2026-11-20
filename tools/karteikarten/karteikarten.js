@@ -6,6 +6,7 @@ import { onAuthChange, onBeforeLogout } from "/js/auth.js";
 import { loadIslandsSoon } from "/js/islands.js";
 import { emptyStateHtml } from "/js/empty-state.js";
 import { onAccessChange } from "/js/access.js";
+import { config } from "/js/config.js";
 import { generateCards, prepareFile, COUNTS } from "./ki.js";
 import { createGuestStore, createCloudStore, newId } from "./store.js";
 
@@ -526,7 +527,7 @@ function deckDialog(deck) {
         <label class="field"><span class="field-label">Anzahl (höchstens)</span><select class="select" name="aiCount">${COUNTS.map((n) => `<option value="${n}"${n === 60 ? " selected" : ""}>${n === 60 ? "Alle (bis 60)" : n + " Karten"}</option>`).join("")}</select></label>
         <span class="field-hint">Die KI schlägt Karten vor. Du siehst sie, bevor etwas in den Stapel kommt.</span>
       </div>
-    </div>` : creating ? `
+    </div>` : creating && config.aiEnabled ? `
     <div class="kk-ai" aria-disabled="true">
       <div class="kk-ai-head">
         <label class="check"><input type="checkbox" disabled><span>Mit KI erstellen</span></label>
@@ -702,8 +703,9 @@ app.addEventListener("submit", (e) => {
 render();
 
 onAccessChange((a) => {
-  if (a.kiTester === kiTester) return;
-  kiTester = a.kiTester;
+  const on = a.kiTester && config.aiEnabled; // KI-Schalter aus: auch Ki-Tester sehen „Mit KI erstellen“ nicht
+  if (on === kiTester) return;
+  kiTester = on;
   if (view.name === "deck") renderDeck();
 });
 

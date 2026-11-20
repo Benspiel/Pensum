@@ -17,11 +17,11 @@ function render(tester) {
     <div class="card tool-card tool-card-off reveal" aria-disabled="true">
       <div class="tool-card-head">
         <span class="squircle">${t.icon}</span>
-        <span class="badge badge-soft">${esc(t.badge || "Kommt bald")}</span>
+        <span class="badge badge-soft">${t.off ? "Aus" : esc(t.badge || "Kommt bald")}</span>
       </div>
       <h3 class="h4">${esc(t.name)}</h3>
       <p class="body-sm">${esc(t.description)}</p>
-      <span class="tool-card-foot">Kommt bald</span>
+      <span class="tool-card-foot">${t.off ? "Zurzeit ausgeschaltet" : "Kommt bald"}</span>
     </div>`
         : `
     <a class="card tool-card reveal" href="${t.href}">

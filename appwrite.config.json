@@ -866,6 +866,125 @@
                     ]
                 }
             ]
+        },
+        {
+            "$id": "push_devices",
+            "$permissions": [
+                "create(\"users\")"
+            ],
+            "databaseId": "pensum",
+            "name": "Push-Geräte",
+            "enabled": true,
+            "rowSecurity": true,
+            "columns": [
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 36,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "token",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 200,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "platform",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 16,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "cards",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
+                },
+                {
+                    "key": "cardsHour",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "default": 17,
+                    "min": 0,
+                    "max": 23
+                },
+                {
+                    "key": "mindmap",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
+                },
+                {
+                    "key": "mindmapHour",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "default": 8,
+                    "min": 0,
+                    "max": 23
+                },
+                {
+                    "key": "targetId",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 36,
+                    "default": null,
+                    "encrypt": false
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "by_user",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "userId"
+                    ],
+                    "orders": [
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "by_cards",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "cards",
+                        "cardsHour"
+                    ],
+                    "orders": [
+                        "ASC",
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "by_mindmap",
+                    "type": "key",
+                    "status": "available",
+                    "columns": [
+                        "mindmap",
+                        "mindmapHour"
+                    ],
+                    "orders": [
+                        "ASC",
+                        "ASC"
+                    ]
+                }
+            ]
         }
     ],
     "functions": [
@@ -900,7 +1019,7 @@
             "events": [],
             "schedule": "",
             "timeout": 60,
-            "enabled": true,
+            "enabled": false,
             "logging": true,
             "entrypoint": "index.js",
             "commands": "",
@@ -921,7 +1040,7 @@
             "events": [],
             "schedule": "",
             "timeout": 60,
-            "enabled": true,
+            "enabled": false,
             "logging": true,
             "entrypoint": "index.js",
             "commands": "",
@@ -942,7 +1061,7 @@
             "events": [],
             "schedule": "",
             "timeout": 120,
-            "enabled": true,
+            "enabled": false,
             "logging": true,
             "entrypoint": "index.js",
             "commands": "",
@@ -982,7 +1101,7 @@
             "events": [],
             "schedule": "",
             "timeout": 120,
-            "enabled": true,
+            "enabled": false,
             "logging": true,
             "entrypoint": "index.js",
             "commands": "",
@@ -1013,6 +1132,24 @@
                 "teams.read"
             ],
             "path": "functions/admin-stats"
+        },
+        {
+            "$id": "push-daily",
+            "name": "push-daily",
+            "runtime": "node-16.0",
+            "execute": [],
+            "events": [],
+            "schedule": "0 * * * *",
+            "timeout": 60,
+            "enabled": true,
+            "logging": true,
+            "entrypoint": "index.js",
+            "commands": "",
+            "scopes": [
+                "rows.read",
+                "messages.write"
+            ],
+            "path": "functions/push-daily"
         }
     ]
 }

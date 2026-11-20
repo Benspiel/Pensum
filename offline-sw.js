@@ -1,6 +1,6 @@
 /* Offline-Dateien für /. ERZEUGT von scripts/build-offline.mjs (npm run build:offline), nicht von Hand ändern.
  * Erst das Netz fragen (online ist alles aktuell), bei Ausfall oder nach 4 Sekunden die gespeicherte Datei. Konto, KI und Appwrite laufen nie hierüber. */
-const CACHE = "pensum-home-56f630afc3";
+const CACHE = "pensum-home-9d5d3af58a";
 const SCOPE = "/";
 const FILES = ["/","/assets/apple-touch-icon.png","/assets/favicon-32.png","/assets/favicon.ico","/assets/favicon.png","/assets/icon.png","/assets/logo-light.png","/assets/logo.png","/css/pensum.css","/index.html","/js/access.js","/js/auth.js","/js/config.js","/js/db.js","/js/home.js","/js/lock.js","/js/parallax.js","/js/profile-menu.js","/js/shell.js","/js/theme.js","/js/tools.js","/js/track.js","/js/whatsnew.js","/vendor/appwrite.js","/vendor/fonts.css","/vendor/fonts/inter-latin-wght-normal.woff2"];
 const WAIT_MS = 4000;

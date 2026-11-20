@@ -24,6 +24,10 @@ export const config = {
   // Appwrite-Funktion, die Konto und Daten serverseitig löscht (functions/delete-account)
   functions: { deleteAccount: "delete-account", mindmap: "6afad2e10029c7718dc2", lehrerSchmidt: "lehrer-schmidt", abschreiben: "abschreiben", aufgaben: "aufgaben", kiChat: "ki-chat", adminStats: "admin-stats" },
 
+  // KI-Schalter: false = alle KI-Tools (Mindmap, Aufgaben, Abschreiben, KI-Chat, KI-Karteikarten) sind aus: Kacheln gesperrt, Seiten laden ihr Modul nicht.
+  // Zum Einschalten auch die Functions mindmap, abschreiben, aufgaben und ki-chat in Appwrite wieder aktivieren (README, „KI-Schalter“).
+  aiEnabled: false,
+
   // Appwrite-Team, dessen Mitglieder alle ausgegrauten Tools („soon“ in js/tools.js) nutzen dürfen (js/access.js)
   testerTeam: "tester",
   // Appwrite-Team „Ki-Tester“: darf den KI-Chat nutzen (Tool mit team: "kiTester" in js/tools.js, Function ki-chat prüft es auch)

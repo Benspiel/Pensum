@@ -1,6 +1,6 @@
 /* Offline-Dateien für /tools/goodnotes/. ERZEUGT von scripts/build-offline.mjs (npm run build:offline), nicht von Hand ändern.
  * Erst das Netz fragen (online ist alles aktuell), bei Ausfall oder nach 4 Sekunden die gespeicherte Datei. Konto, KI und Appwrite laufen nie hierüber. */
-const CACHE = "pensum-goodnotes-32014581e8";
+const CACHE = "pensum-goodnotes-f79466b7d0";
 const SCOPE = "/tools/goodnotes/";
 const FILES = ["/assets/apple-touch-icon.png","/assets/favicon-32.png","/assets/favicon.ico","/assets/favicon.png","/assets/icon.png","/assets/logo-light.png","/assets/logo.png","/css/export-menu.css","/css/pensum.css","/css/stack-panel.css","/js/access.js","/js/auth.js","/js/config.js","/js/db.js","/js/export-core.js","/js/export-menu.js","/js/islands.js","/js/lock.js","/js/profile-menu.js","/js/promise-toast.js","/js/shell.js","/js/theme.js","/js/tools.js","/js/track.js","/js/whatsnew.js","/tools/abschreiben/core.js","/tools/goodnotes/","/tools/goodnotes/goodnotes.css","/tools/goodnotes/goodnotes.js","/tools/goodnotes/index.html","/tools/goodnotes/ink-engine.js","/tools/goodnotes/templates.js","/vendor/appwrite.js","/vendor/fonts.css","/vendor/fonts/inter-latin-wght-normal.woff2","/vendor/jspdf.umd.min.js","/vendor/jszip.min.js","/vendor/ui/islands.css","/vendor/ui/islands.js"];
 const WAIT_MS = 4000;

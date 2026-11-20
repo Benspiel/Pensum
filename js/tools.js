@@ -6,6 +6,8 @@
  *   2. Hier einen Eintrag ergänzen.
  */
 
+import { config } from "./config.js";
+
 const icon = (paths) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 
@@ -22,6 +24,7 @@ const entries = [
   },
   {
     id: "aufgaben",
+    ai: true, // nutzt Gemini; aus, solange config.aiEnabled false ist
     name: "Aufgaben",
     href: "/tools/aufgaben/",
     description: "Arbeitsblatt hochladen, die KI füllt die Aufgaben aus, in normaler Schrift oder in Handschrift. 2 Durchläufe pro Tag, Ergebnis als PDF oder Bild.",
@@ -52,6 +55,7 @@ const entries = [
   },
   {
     id: "abschreiben",
+    ai: true, // nutzt Gemini; aus, solange config.aiEnabled false ist
     name: "Abschreiben",
     href: "/tools/abschreiben/",
     description: "Tafelbild fotografieren, die KI schreibt den Text ab. Du kopierst ihn oder machst daraus deine Handschrift für Goodnotes.",
@@ -60,6 +64,7 @@ const entries = [
   },
   {
     id: "mindmap",
+    ai: true, // nutzt Gemini; aus, solange config.aiEnabled false ist
     name: "Mindmap-Generator",
     href: "/tools/mindmap/",
     description: "Die KI baut jeden Tag eine Mindmap zu deinem Thema. Du änderst sie mit KI (3-mal pro Tag) oder direkt im Editor.",
@@ -85,6 +90,7 @@ const entries = [
   },
   {
     id: "kichat",
+    ai: true, // nutzt Gemini; aus, solange config.aiEnabled false ist
     name: "KI-Chat",
     href: "/tools/kichat/",
     description: "Ganz normale Chats mit der Gemini-KI. Deine Chats werden in deinem Konto gespeichert und lassen sich jederzeit weiterführen.",
@@ -103,7 +109,10 @@ const entries = [
   },
 ];
 
+/** KI-Tools sind bei config.aiEnabled = false „off“: gesperrt für alle, auch für Tester und Teams. */
+const withOff = (t) => (t.ai && !config.aiEnabled ? { ...t, off: true } : t);
+
 const rank = (t) => { const i = TOOL_ORDER.indexOf(t.id); return i < 0 ? TOOL_ORDER.length : i; };
-export const tools = [...entries].sort((a, b) => rank(a) - rank(b)); // Array.sort ist stabil: Unbekannte behalten ihre Reihenfolge
+export const tools = entries.map(withOff).sort((a, b) => rank(a) - rank(b)); // Array.sort ist stabil: Unbekannte behalten ihre Reihenfolge
 
 export const toolById = (id) => tools.find((t) => t.id === id);

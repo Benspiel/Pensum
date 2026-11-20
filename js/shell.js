@@ -279,7 +279,7 @@ class PensumNav extends HTMLElement {
 /* ---------- Footer ---------- */
 
 /** Tool-Links im Footer; gesperrte Tools stehen ausgegraut da, für Tester (Team „tester“) sind sie freigeschaltet. */
-const footerTools = (tester) => tools.filter((t) => !t.team || !isLocked(t, tester)).map((t) => (isLocked(t, tester) ? `<span class="footer-soon" aria-disabled="true">${esc(t.name)} · kommt bald</span>` : `<a href="${t.href}">${esc(t.name)}</a>`)).join("");
+const footerTools = (tester) => tools.filter((t) => !t.team || !isLocked(t, tester)).map((t) => (isLocked(t, tester) ? `<span class="footer-soon" aria-disabled="true">${esc(t.name)} · ${t.off ? "aus" : "kommt bald"}</span>` : `<a href="${t.href}">${esc(t.name)}</a>`)).join("");
 
 class PensumFooter extends HTMLElement {
   connectedCallback() {

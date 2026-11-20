@@ -110,6 +110,17 @@ appwrite push function --function-id delete-account --force
 
 Schlägt der Build mit „Download failed with status 500“ fehl, liegt es am Server: `docker logs appwrite-worker-builds` ansehen.
 
+### KI-Schalter
+
+Alle Tools, die Gemini nutzen (Mindmap-Generator, Aufgaben, Abschreiben, KI-Chat und „Mit KI erstellen“ bei den Karteikarten), sind **ausgeschaltet**. Sie sind nicht entfernt, nur aus:
+
+- `config.aiEnabled` in `js/config.js` steht auf `false`. Die Kacheln sind gesperrt (auch für Tester, Ki-Tester und Admin), die Seiten laden ihr Modul nicht (`js/ai-tool.js`) und zeigen nur einen Hinweis, bei den Karteikarten fehlt „Mit KI erstellen“, die Folie „Abschreiben“ in „Was ist neu“ entfällt.
+- Die Functions `mindmap`, `abschreiben`, `aufgaben` und `ki-chat` haben in `appwrite.config.json` `"enabled": false`. Mit `appwrite push function --function-id <id> --force` wird das auf dem Server übernommen; die Function nimmt dann keine Aufrufe mehr an.
+- Die Push-Erinnerung „Neue Mindmap“ wird nur verschickt, wenn die Function `push-daily` die Variable `AI_ENABLED=true` hat.
+- Datenschutz und Nutzungsbedingungen behalten die Abschnitte zu Gemini mit dem Hinweis „zurzeit ausgeschaltet“.
+
+**Einschalten:** `aiEnabled: true` setzen, in `appwrite.config.json` bei den vier Functions `"enabled": true`, Functions neu pushen (der Gemini-Schlüssel muss gesetzt sein), `AI_ENABLED=true` an `push-daily`, dazu den Hinweis „zurzeit ausgeschaltet“ in den Rechtstexten entfernen. Vorher klären, ob der Gemini-Vertrag die Zielgruppe (Schüler unter 18) abdeckt.
+
 ### Mindmap-Generator einrichten
 
 Die Function `mindmap` (`functions/mindmap/`) ruft Gemini auf und zählt die Tageslimits (1 Mindmap, 3 KI-Änderungen pro Konto und Tag, Tageswechsel um Mitternacht deutscher Zeit). Der Gemini-Schlüssel steht nur dort als geheime Umgebungsvariable, nie im Repo oder Browser. Neue Tabellen: `mindmaps` (Mindmaps, nur für den Besitzer lesbar) und `mindmap_usage` (Zähler, ohne Nutzerrechte: nur die Function liest und schreibt sie).
