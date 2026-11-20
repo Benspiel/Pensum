@@ -1010,7 +1010,7 @@
             "path": "functions/delete-account"
         },
         {
-            "$id": "mindmap",
+            "$id": "6afad2e10029c7718dc2",
             "name": "mindmap",
             "runtime": "node-16.0",
             "execute": [
