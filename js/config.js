@@ -34,16 +34,16 @@ export const config = {
   // Betreiberangaben für Impressum und Datenschutz. Hier einmal ausfüllen, dann erscheinen sie auf allen Rechtsseiten.
   // Leere Felder werden auf den Seiten als „[bitte ergänzen]“ markiert.
   legal: {
-    name: "",          // Vor- und Nachname (bzw. Firma)
-    street: "",        // Straße und Hausnummer
-    city: "",          // PLZ und Ort
+    name: "Michael Buchholz",          // Vor- und Nachname (bzw. Firma)
+    street: "Zum Vulting 16A",        // Straße und Hausnummer
+    city: "59514 Welver-Schwefe",          // PLZ und Ort
     country: "Deutschland",
-    email: "",         // E-Mail für Anfragen (Datenschutz, Impressum)
-    phone: "",         // optional, aber im Impressum empfohlen
-    smtpProvider: "",  // Anbieter des E-Mail-Versands (z. B. „Brevo, Frankreich“)
-    hoster: "",        // Anbieter und Land des Servers, auf dem Appwrite läuft (z. B. „Hetzner Online GmbH, Deutschland“)
-    logDays: "",       // nach wie vielen Tagen Server-Logs gelöscht werden (Zahl)
-    backupDays: "",    // nach wie vielen Tagen Sicherungskopien überschrieben werden (Zahl)
+    email: "info@rootex.de",         // E-Mail für Anfragen (Datenschutz, Impressum)
+    phone: "+49 171 8702349",         // optional, aber im Impressum empfohlen
+    smtpProvider: "Alfahosting GmbH, Deutschland",  // Anbieter des E-Mail-Versands (z. B. „Brevo, Frankreich“)
+    hoster: "Selbst betrieben, Deutschland",        // Anbieter und Land des Servers, auf dem Appwrite läuft (z. B. „Hetzner Online GmbH, Deutschland“)
+    logDays: "14",       // nach wie vielen Tagen Server-Logs gelöscht werden (Zahl)
+    backupDays: "14",    // nach wie vielen Tagen Sicherungskopien überschrieben werden (Zahl)
   },
 
   // Auf true setzen, sobald der Google-Provider in der Appwrite-Konsole eingerichtet ist (Auth → Settings → OAuth2).
